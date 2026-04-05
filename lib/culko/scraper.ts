@@ -168,17 +168,6 @@ async function fetchAttendanceViaAjax(url: string, cookies: Record<string, strin
     console.error('Report ID found:', reportId)
     console.error('Session ID found:', sessionId)
     
-    // Save HTML for debugging
-    try {
-      const fs = require('fs')
-      const path = require('path')
-      const debugPath = path.join(process.cwd(), 'debug_attendance_ajax.html')
-      fs.writeFileSync(debugPath, html, 'utf-8')
-      console.log('Page HTML saved to debug_attendance_ajax.html')
-    } catch (e) {
-      console.error('Could not save debug files:', e)
-    }
-    
     return []
   }
   
@@ -243,17 +232,7 @@ async function fetchAttendanceViaAjax(url: string, cookies: Record<string, strin
     console.error('Error parsing AJAX response:', error)
     console.error('Raw response (first 500 chars):', ajaxText.substring(0, 500))
     
-    // Save AJAX response for debugging
-    try {
-      const fs = require('fs')
-      const path = require('path')
-      const debugPath = path.join(process.cwd(), 'debug_ajax_response.json')
-      fs.writeFileSync(debugPath, ajaxText, 'utf-8')
-      console.log('AJAX response saved to debug_ajax_response.json')
-    } catch (e) {
-      // Ignore
-    }
-    
+    // AJAX response reading failed, return empty
     return []
   }
 }
@@ -350,10 +329,6 @@ function parseMarksHTML(html: string): MarkRecord[] {
   const records: MarkRecord[] = []
   
   try {
-    const fs = require('fs')
-    fs.writeFileSync('debug_marks.html', html, 'utf-8')
-    console.log('Saved debug_marks.html for inspection')
-    
     const $ = cheerio.load(html)
     
     // PRIMARY STRATEGY: Accordion format (Subject is in h3, marks in nested table)
@@ -474,10 +449,6 @@ function parseMarksHTML(html: string): MarkRecord[] {
 function parseTimetable(html: string): any {
   const timetable: any = {}
   try {
-    const fs = require('fs')
-    fs.writeFileSync('debug_timetable.html', html, 'utf-8')
-    console.log('Saved debug_timetable.html for inspection')
-    
     const $ = cheerio.load(html)
     // Find timetable
     let table = $('table[id*="timetable" i], table[id*="schedule" i], table[id*="grdMain" i]')

@@ -42,7 +42,7 @@ function AttendanceRing({ percentage, attended, total }: { percentage: number, a
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className={`text-xl font-bold ${statusColor}`}>{percentage.toFixed(1)}%</span>
+          <span className={`text-base font-bold ${statusColor}`}>{percentage.toFixed(1)}%</span>
         </div>
       </div>
       
