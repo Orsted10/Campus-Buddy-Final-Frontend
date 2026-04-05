@@ -48,15 +48,15 @@ export default async function TimetablePage() {
           </CardContent>
         </Card>
       ) : (
-        <Tabs defaultValue={defaultTab} className="w-full">
-          <TabsList className="w-full justify-start overflow-x-auto p-1 bg-muted/50 h-auto mb-6">
+        <Tabs defaultValue={defaultTab} className="w-full flex flex-col">
+          <TabsList className="w-full justify-start overflow-x-auto overflow-y-hidden p-1 bg-muted/50 h-auto mb-6 flex flex-row flex-wrap gap-2">
             {standardDays.map((day) => {
                if (!availableDays.includes(day)) return null
                return (
                  <TabsTrigger 
                    key={day} 
                    value={day}
-                   className="px-6 py-2.5 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all"
+                   className="px-6 py-2.5 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all flex-none h-auto"
                  >
                    {day}
                  </TabsTrigger>
