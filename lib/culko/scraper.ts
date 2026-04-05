@@ -177,15 +177,28 @@ interface MarkRecord {
   evaluations: MarkEvaluation[]
 }
 
+import { getPortalData, savePortalData } from './persistence'
+
 export async function fetchCULKOData(endpoint: 'attendance' | 'marks' | 'timetable' | 'profile') {
   try {
     const cookieStore = await cookies()
     const culkoCookies = cookieStore.get('culko_session')
     
     if (!culkoCookies) {
+      // If no session, try to get from DB fallback
+      console.warn(`[fetchCULKOData] No session for ${endpoint}. Trying DB fallback...`)
+      const cached = await getPortalData(endpoint)
+      if (cached.success) {
+        return {
+          success: true,
+          data: cached.data,
+          isCached: true,
+          updatedAt: cached.updatedAt
+        }
+      }
       return {
         success: false,
-        error: 'Not authenticated with CULKO portal'
+        error: 'Not authenticated with CULKO portal and no cached data available'
       }
     }
     
@@ -195,12 +208,29 @@ export async function fetchCULKOData(endpoint: 'attendance' | 'marks' | 'timetab
     // Make request to CULKO
     const response = await fetchCULKOResource(endpoint, sessionCookies)
     
+    // Sync to DB in background
+    savePortalData(endpoint, response).catch(e => console.error(`Sync error:`, e))
+    
     return {
       success: true,
-      data: response
+      data: response,
+      isCached: false,
+      updatedAt: new Date().toISOString()
     }
   } catch (error) {
     console.error(`Error fetching ${endpoint}:`, error)
+    
+    // On error, try DB fallback
+    const cached = await getPortalData(endpoint)
+    if (cached.success) {
+      return {
+        success: true,
+        data: cached.data,
+        isCached: true,
+        updatedAt: cached.updatedAt
+      }
+    }
+
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error'
@@ -825,8 +855,16 @@ function parseProfile(html: string): any {
     
     // Final Polish
     if (profile.name.includes(',')) {
-       profile.name = profile.name.split(',')[1].trim() || profile.name.split(',')[0].trim()
+       // If it was "Hello,Ankan", this handles it. If it was "Last,First", it picks the right part.
+       const parts = profile.name.split(',')
+       profile.name = parts.length > 1 ? parts[1].trim() : parts[0].trim()
     }
+    
+    // Guess email if unknown
+    if (profile.email === 'Unknown' && profile.uid !== 'Unknown') {
+       profile.email = profile.uid.toLowerCase() + "@culkomail.in"
+    }
+
     profile.mobile = formatContacts(profile.mobile)
 
     // Fallback regex for UID

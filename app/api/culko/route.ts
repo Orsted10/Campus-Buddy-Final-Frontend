@@ -3,9 +3,11 @@ import { fetchCULKOData } from '@/lib/culko/scraper'
 import { spawn } from 'child_process'
 import path from 'path'
 
+import { savePortalData, getPortalData, PortalDataType } from '@/lib/culko/persistence'
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
-  const endpoint = searchParams.get('endpoint') as 'attendance' | 'marks' | 'timetable' | 'profile'
+  const endpoint = searchParams.get('endpoint') as PortalDataType
   
   if (!endpoint || !['attendance', 'marks', 'timetable', 'profile'].includes(endpoint)) {
     return NextResponse.json(
@@ -14,13 +16,39 @@ export async function GET(req: Request) {
     )
   }
   
+  console.log(`[GET] ${endpoint}: Attempting live fetch...`)
   const result = await fetchCULKOData(endpoint)
   
-  if (!result.success) {
-    return NextResponse.json(result, { status: 401 })
+  if (result.success) {
+    console.log(`[GET] ${endpoint}: Live fetch successful. Syncing to DB...`)
+    // Save to DB in the background
+    savePortalData(endpoint, result.data).catch(err => 
+      console.error(`Background sync failed for ${endpoint}:`, err)
+    )
+    
+    return NextResponse.json({
+      ...result,
+      isCached: false,
+      updatedAt: new Date().toISOString()
+    })
+  }
+
+  // FALLBACK: Try to get from DB if portal fetch failed (e.g. session expired)
+  console.warn(`[GET] ${endpoint}: Live fetch failed (${result.error}). Attempting DB fallback...`)
+  const cached = await getPortalData(endpoint)
+  
+  if (cached.success) {
+     return NextResponse.json({
+        success: true,
+        data: cached.data,
+        isCached: true,
+        updatedAt: cached.updatedAt,
+        message: 'Portal not connected. Showing latest archived data.'
+     })
   }
   
-  return NextResponse.json(result)
+  // If even DB has nothing, return the original error
+  return NextResponse.json(result, { status: 401 })
 }
 
 export async function POST(req: Request) {

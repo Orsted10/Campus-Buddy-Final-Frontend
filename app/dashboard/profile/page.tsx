@@ -18,9 +18,9 @@ async function ProfileContent() {
         <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
           <AlertCircle className="w-8 h-8 text-primary" />
         </div>
-        <h2 className="text-2xl font-bold">Portal Not Synced</h2>
+        <h2 className="text-2xl font-bold">Portal Sync Required</h2>
         <p className="text-muted-foreground max-w-md">
-          You need to sync your CULKO portal to view your academic student ID details.
+          {profileResult.error || "You need to sync your CULKO portal to view your academic student ID details."}
         </p>
       </div>
     )
@@ -28,6 +28,9 @@ async function ProfileContent() {
 
   const profile = profileResult.data || {}
   const subjects = attendanceResult.success ? attendanceResult.data : []
+  const isCached = profileResult.isCached || attendanceResult.isCached
+  const lastSync = profileResult.updatedAt || attendanceResult.updatedAt
+
 
   return (
     <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-8 pb-20">
@@ -38,7 +41,21 @@ async function ProfileContent() {
         </div>
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Student Identity</h1>
-          <p className="text-muted-foreground mt-1">Verified academic profile & university records</p>
+          <div className="flex items-center gap-2 mt-1">
+            <p className="text-muted-foreground">Verified academic profile & university records</p>
+            <span className="text-muted-foreground mx-1">•</span>
+            {isCached ? (
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/20 text-[10px] font-medium text-amber-500">
+                <div className="w-1 h-1 rounded-full bg-amber-500 animate-pulse" />
+                Archived {lastSync ? `(${new Date(lastSync).toLocaleDateString()})` : ''}
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-medium text-emerald-500">
+                <div className="w-1 h-1 rounded-full bg-emerald-500" />
+                Live
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

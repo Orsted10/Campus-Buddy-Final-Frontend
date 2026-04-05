@@ -17,15 +17,17 @@ export default async function MarksPage() {
         <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
           <AlertCircle className="w-8 h-8 text-primary" />
         </div>
-        <h2 className="text-2xl font-bold">Portal Not Synced</h2>
+        <h2 className="text-2xl font-bold">Portal Sync Required</h2>
         <p className="text-muted-foreground max-w-md">
-          You need to sync your CULKO portal to view your structured marks and grades.
+          {result.error || "You need to sync your CULKO portal to view your structured marks and grades."}
         </p>
       </div>
     )
   }
 
   const subjects = result.data || []
+  const isCached = result.isCached
+  const lastSync = result.updatedAt
 
   return (
     <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-8 relative">
@@ -37,9 +39,23 @@ export default async function MarksPage() {
           <div className="absolute inset-0 bg-primary/20 rounded-2xl blur-xl group-hover:bg-primary/30 transition-all" />
           <Award className="w-8 h-8 text-primary relative z-10" />
         </div>
-        <div>
+        <div className="flex flex-col">
           <h1 className="text-3xl md:text-4xl font-black tracking-tight text-white">Grades & Marks</h1>
-          <p className="text-muted-foreground mt-2 font-medium">Detailed evaluation breakdowns grouped by subject</p>
+          <div className="flex items-center gap-2 mt-2">
+            <p className="text-muted-foreground font-medium">Detailed evaluation breakdowns grouped by subject</p>
+            <span className="text-muted-foreground mx-1">•</span>
+            {isCached ? (
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/20 text-[10px] font-medium text-amber-500">
+                <div className="w-1 h-1 rounded-full bg-amber-500 animate-pulse" />
+                Archived {lastSync ? `(${new Date(lastSync).toLocaleDateString()})` : ''}
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-medium text-emerald-500">
+                <div className="w-1 h-1 rounded-full bg-emerald-500" />
+                Live
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
