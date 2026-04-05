@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
-
-const SCRAPER = (process.env.SCRAPER_URL || 'http://localhost:8000').replace(/\/$/, '')
+import { completeCULKOLogin } from '@/lib/culko/scraper'
 
 export async function POST(req: Request) {
   try {
@@ -9,26 +8,23 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'sessionId and captchaText required' }, { status: 400 })
     }
 
-    // Fires the submission in background on Render — returns immediately
-    const response = await fetch(`${SCRAPER}/api/interactive/submit`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionId, captchaText }),
-      signal: AbortSignal.timeout(8000),
-    })
+    // Extract password and state from the combined "sessionId" string
+    const sessionObj = JSON.parse(sessionId)
+    const password = sessionObj.password
+    
+    // Call internal Node.js scraper finalize
+    const result = await completeCULKOLogin(password, captchaText, sessionId)
 
-    if (!response.ok) {
-      const text = await response.text()
-      throw new Error(`Scraper returned ${response.status}: ${text}`)
+    if (!result.success) {
+      return NextResponse.json({ error: result.error || 'Login failed' }, { status: 401 })
     }
 
-    const data = await response.json()
-    return NextResponse.json(data)
+    return NextResponse.json({ status: 'done', success: true })
 
   } catch (error: any) {
-    console.error('Error in login submit proxy:', error)
+    console.error('Error in login submit:', error)
     return NextResponse.json(
-      { error: `Backend unavailable: ${error.message}` },
+      { error: `Internal scraper error: ${error.message}` },
       { status: 500 }
     )
   }

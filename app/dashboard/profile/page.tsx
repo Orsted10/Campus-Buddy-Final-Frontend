@@ -75,8 +75,19 @@ async function ProfileContent() {
                    <p className="text-lg font-bold text-primary">{profile.semester}</p>
                 </div>
                 <div className="text-center border-l border-border/50">
+                   <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">CGPA</p>
+                   <p className="text-lg font-bold text-cyber-green">✨ {profile.cgpa}</p>
+                </div>
+              </div>
+
+              <div className="w-full grid grid-cols-2 gap-4 pt-2">
+                <div className="text-center">
+                   <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">SGPA</p>
+                   <p className="text-sm font-bold opacity-80">{profile.sgpa}</p>
+                </div>
+                <div className="text-center border-l border-border/50">
                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Blood Group</p>
-                   <p className="text-lg font-bold text-red-500">{profile.bloodGroup}</p>
+                   <p className="text-sm font-bold text-red-500">{profile.bloodGroup}</p>
                 </div>
               </div>
             </div>
@@ -85,7 +96,7 @@ async function ProfileContent() {
           <Card className="border-border/50 bg-card/30 backdrop-blur-sm overflow-hidden">
              <CardHeader className="pb-2">
                 <CardTitle className="text-xs uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                  <MapPin className="w-3.5 h-3.5" /> Permanent Address
+                   <MapPin className="w-3.5 h-3.5" /> Permanent Address
                 </CardTitle>
              </CardHeader>
              <CardContent>
@@ -120,7 +131,7 @@ async function ProfileContent() {
                     <div className="overflow-hidden">
                        <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">University Email</p>
                        <p className="text-sm font-bold mt-1 truncate">{profile.email}</p>
-                       <p className="text-xs text-muted-foreground mt-0.5">Secured Internal Mail</p>
+                       <p className="text-xs text-muted-foreground mt-0.5">Contact: {profile.mobile}</p>
                     </div>
                  </CardContent>
               </Card>

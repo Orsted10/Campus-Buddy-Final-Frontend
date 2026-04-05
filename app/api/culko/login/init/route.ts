@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
-
-const SCRAPER = (process.env.SCRAPER_URL || 'http://localhost:8000').replace(/\/$/, '')
+import { initCULKOLogin } from '@/lib/culko/scraper'
 
 export async function POST(req: Request) {
   try {
@@ -9,27 +8,29 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'UID and password required' }, { status: 400 })
     }
 
-    // Fire the init request to Render — it returns IMMEDIATELY with a sessionId
-    // because the browser automation runs in a background thread on the Render server.
-    const response = await fetch(`${SCRAPER}/api/interactive/init`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ uid, password }),
-      signal: AbortSignal.timeout(10000), // Only needs 1-2s — just to start the job
-    })
+    // Call internal Node.js scraper (No browser, no Render needed!)
+    const result = await initCULKOLogin(uid)
 
-    if (!response.ok) {
-      const text = await response.text()
-      throw new Error(`Scraper returned ${response.status}: ${text}`)
+    if (!result.success) {
+      return NextResponse.json({ error: result.error }, { status: 500 })
     }
 
-    const data = await response.json()
-    return NextResponse.json(data)
+    // We store the password along with the session state in "sessionId" string
+    // to pass it through to the next synchronous call without server-side state.
+    const combinedSession = JSON.parse(result.sessionData!)
+    combinedSession.password = password
+    const sessionId = JSON.stringify(combinedSession)
+
+    return NextResponse.json({
+      status: 'captcha_ready',
+      captchaImage: result.captchaImg,
+      sessionId
+    })
 
   } catch (error: any) {
-    console.error('Error in login init proxy:', error)
+    console.error('Error in login init:', error)
     return NextResponse.json(
-      { error: `Backend unavailable: ${error.message}` },
+      { error: `Internal scraper error: ${error.message}` },
       { status: 500 }
     )
   }

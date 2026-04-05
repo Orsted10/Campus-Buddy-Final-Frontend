@@ -1,10 +1,163 @@
-'use server'
-
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import * as cheerio from 'cheerio'
 
 const BASE_URL = 'https://student.culko.in'
+
+// Helper to extract ASP.NET hidden fields
+function extractASPState(html: string) {
+  const $ = cheerio.load(html)
+  return {
+    viewstate: $('#__VIEWSTATE').val() as string || '',
+    eventvalidation: $('#__EVENTVALIDATION').val() as string || '',
+    viewstategenerator: $('#__VIEWSTATEGENERATOR').val() as string || ''
+  }
+}
+
+// Helper to extract cookies from response
+function extractCookies(response: Response): Record<string, string> {
+  const setCookie = response.headers.get('set-cookie')
+  if (!setCookie) return {}
+  
+  const jar: Record<string, string> = {}
+  setCookie.split(',').forEach(c => {
+    const pair = c.split(';')[0].trim().split('=')
+    if (pair.length === 2) {
+      jar[pair[0]] = pair[1]
+    }
+  })
+  return jar
+}
+
+// Merge cookies
+function mergeCookies(existing: Record<string, string>, next: Record<string, string>): Record<string, string> {
+  return { ...existing, ...next }
+}
+
+// Serialize cookies for fetch
+function serializeCookies(jar: Record<string, string>): string {
+  return Object.entries(jar).map(([k, v]) => `${k}=${v}`).join('; ')
+}
+
+export async function initCULKOLogin(uid: string) {
+  try {
+    let jar: Record<string, string> = {}
+
+    // 1. Initial GET
+    const initialRes = await fetch(`${BASE_URL}/Login.aspx`, {
+      method: 'GET',
+      headers: { 'User-Agent': 'Mozilla/5.0' }
+    })
+    jar = mergeCookies(jar, extractCookies(initialRes))
+    const initialHtml = await initialRes.text()
+    const state1 = extractASPState(initialHtml)
+
+    // 2. POST txtUserId
+    const formData = new URLSearchParams()
+    formData.append('__VIEWSTATE', state1.viewstate)
+    formData.append('__EVENTVALIDATION', state1.eventvalidation)
+    formData.append('__VIEWSTATEGENERATOR', state1.viewstategenerator)
+    formData.append('txtUserId', uid)
+    formData.append('btnNext', 'Next')
+
+    const step1Res = await fetch(`${BASE_URL}/Login.aspx`, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Cookie': serializeCookies(jar),
+        'User-Agent': 'Mozilla/5.0'
+      },
+      redirect: 'manual'
+    })
+
+    const redirectUrl = step1Res.headers.get('location')
+    if (!redirectUrl) throw new Error('Failed to get redirect after entering UID')
+
+    jar = mergeCookies(jar, extractCookies(step1Res))
+
+    // 3. GET Redirected Page (Password & Captcha)
+    const finalUrl = redirectUrl.startsWith('http') ? redirectUrl : `${BASE_URL}/${redirectUrl}`
+    const step2Res = await fetch(finalUrl, {
+      method: 'GET',
+      headers: {
+        'Cookie': serializeCookies(jar),
+        'User-Agent': 'Mozilla/5.0'
+      }
+    })
+    jar = mergeCookies(jar, extractCookies(step2Res))
+    const step2Html = await step2Res.text()
+    const state2 = extractASPState(step2Html)
+
+    // 4. GET CAPTCHA image
+    const captchaRes = await fetch(`${BASE_URL}/GenerateCaptcha.aspx`, {
+      headers: {
+        'Cookie': serializeCookies(jar),
+        'User-Agent': 'Mozilla/5.0'
+      }
+    })
+    jar = mergeCookies(jar, extractCookies(captchaRes))
+    const captchaBuffer = await captchaRes.arrayBuffer()
+    const captchaB64 = Buffer.from(captchaBuffer).toString('base64')
+
+    return {
+      success: true,
+      captchaImg: `data:image/png;base64,${captchaB64}`,
+      sessionData: JSON.stringify({ jar, state: state2, url: finalUrl })
+    }
+  } catch (error) {
+    console.error('initCULKOLogin error:', error)
+    return { success: false, error: 'Failed to initiate login handshake' }
+  }
+}
+
+export async function completeCULKOLogin(password: string, captcha: string, sessionData: string) {
+  try {
+    const { jar, state, url } = JSON.parse(sessionData)
+
+    // POST Final Credentials
+    const formData = new URLSearchParams()
+    formData.append('__VIEWSTATE', state.viewstate)
+    formData.append('__EVENTVALIDATION', state.eventvalidation)
+    formData.append('__VIEWSTATEGENERATOR', state.viewstategenerator)
+    formData.append('txtLoginPassword', password)
+    formData.append('txtcaptcha', captcha)
+    formData.append('btnLogin', 'Login')
+
+    const response = await fetch(url, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Cookie': serializeCookies(jar),
+        'User-Agent': 'Mozilla/5.0'
+      },
+      redirect: 'manual'
+    })
+
+    const finalJar = mergeCookies(jar, extractCookies(response))
+    
+    // Check if successful (usually it redirects to dashboard or says "Success")
+    if (response.status === 302 || response.status === 200) {
+      // Save to cookies
+      const cookieStore = await cookies()
+      cookieStore.set('culko_session', JSON.stringify(finalJar), {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 60 * 60 * 24 // 24 hours
+      })
+
+      return { success: true }
+    }
+
+    return { success: false, error: 'Login failed - likely incorrect CAPTCHA or password' }
+  } catch (error) {
+    console.error('completeCULKOLogin error:', error)
+    return { success: false, error: 'Connection error during authentication' }
+  }
+}
 
 interface AttendanceRecord {
   name: string
@@ -29,9 +182,6 @@ export async function fetchCULKOData(endpoint: 'attendance' | 'marks' | 'timetab
     const cookieStore = await cookies()
     const culkoCookies = cookieStore.get('culko_session')
     
-    console.log('Checking for CULKO session...')
-    console.log('Cookie exists:', !!culkoCookies)
-    
     if (!culkoCookies) {
       return {
         success: false,
@@ -41,7 +191,6 @@ export async function fetchCULKOData(endpoint: 'attendance' | 'marks' | 'timetab
     
     // Parse cookies
     const sessionCookies = JSON.parse(culkoCookies.value)
-    console.log('Session cookies loaded:', Object.keys(sessionCookies).length, 'cookies')
     
     // Make request to CULKO
     const response = await fetchCULKOResource(endpoint, sessionCookies)
@@ -69,14 +218,12 @@ async function fetchCULKOResource(endpoint: string, cookies: Record<string, stri
   
   const url = BASE_URL + endpointMap[endpoint]
   
-  console.log(`Fetching ${endpoint} from: ${url}`)
-  
   const response = await fetch(url, {
     headers: {
       'Cookie': Object.entries(cookies)
         .map(([k, v]) => `${k}=${v}`)
         .join('; '),
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      'User-Agent': 'Mozilla/5.0'
     }
   })
   
@@ -85,7 +232,6 @@ async function fetchCULKOResource(endpoint: string, cookies: Record<string, stri
   }
   
   const html = await response.text()
-  console.log(`Fetched ${endpoint}, HTML length: ${html.length}`)
   
   // Parse HTML based on endpoint - DIRECT HTML SCRAPING
   switch (endpoint) {
@@ -519,7 +665,7 @@ function parseProfile(html: string): any {
     name: 'Student', uid: 'Unknown', semester: 'Unknown', email: 'Unknown',
     bloodGroup: 'Unknown', program: 'Unknown', dob: 'Unknown', 
     admissionYear: 'Unknown', address: 'Unknown', fathersName: 'Unknown', 
-    mothersName: 'Unknown' 
+    mothersName: 'Unknown', cgpa: 'N/A', sgpa: 'N/A', mobile: 'Unknown'
   }
   try {
     const $ = cheerio.load(html)
@@ -538,7 +684,7 @@ function parseProfile(html: string): any {
     $('table tr').each((_, tr) => {
        const cells = $(tr).find('td, th')
        for(let i=0; i < cells.length - 1; i++) {
-          const txt = $(cells[i]).text().toLowerCase().replace(/:/g, '').trim()
+          const txt = $(cells[i]).text().toLowerCase().replace(/[:.]/g, '').trim()
           const nextTxt = $(cells[i+1]).text().trim()
           if (!nextTxt) continue
           
@@ -549,10 +695,13 @@ function parseProfile(html: string): any {
           else if (txt === 'semester' || txt === 'current semester' || txt.includes('sem')) profile.semester = nextTxt
           else if (txt === 'blood group') profile.bloodGroup = nextTxt
           else if (txt === 'program code' || txt === 'program') profile.program = nextTxt
-          else if (txt === 'd.o.b.' || txt === 'dob' || txt === 'date of birth') profile.dob = nextTxt
+          else if (txt === 'dob' || txt === 'date of birth' || txt === 'd.o.b') profile.dob = nextTxt
           else if (txt === 'admission year') profile.admissionYear = nextTxt
           else if (txt === 'address' || txt === 'permanent address') profile.address = nextTxt
           else if (txt === 'email' || txt === 'email id') profile.email = nextTxt
+          else if (txt === 'cgpa' || txt.includes('cumulative gpa')) profile.cgpa = nextTxt
+          else if (txt === 'sgpa' || txt.includes('semester gpa')) profile.sgpa = nextTxt
+          else if (txt === 'mobile' || txt === 'phone' || txt.includes('contact')) profile.mobile = nextTxt
        }
     })
     

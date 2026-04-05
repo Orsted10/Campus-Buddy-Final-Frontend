@@ -1,8 +1,6 @@
 @import "tailwindcss";
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap');
 
-@custom-variant dark (&:where(.dark, .dark *));
-
 :root {
   /* === LIGHT THEME DEFAULTS === */
   --background: oklch(0.98 0.005 100);
@@ -57,6 +55,7 @@
 }
 
 @theme {
+  @custom-variant dark (&:where(.dark, .dark *));
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);

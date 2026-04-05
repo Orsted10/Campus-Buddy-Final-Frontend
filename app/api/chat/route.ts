@@ -74,19 +74,16 @@ function buildAcademicContext(dataMap: Record<string, any>): string {
 
   if (dataMap.profile?.success && dataMap.profile.data) {
     const p = dataMap.profile.data
-    ctx += '\n\n### 👤 Verified Student Identity\n'
-    ctx += `| Field | Value |\n| :--- | :--- |\n`
-    if (p.name) ctx += `| Name | ${p.name} |\n`
-    if (p.uid)  ctx += `| UID | ${p.uid} |\n`
-    if (p.email) ctx += `| Email | ${p.email} |\n`
-    if (p.semester) ctx += `| Semester | ${p.semester} |\n`
-    if (p.program) ctx += `| Program | ${p.program} |\n`
-    if (p.bloodGroup) ctx += `| Blood Group | ${p.bloodGroup} |\n`
-    if (p.dob) ctx += `| Date of Birth | ${p.dob} |\n`
-    if (p.admissionYear) ctx += `| Admission Year | ${p.admissionYear} |\n`
-    if (p.fathersName) ctx += `| Father's Name | ${p.fathersName} |\n`
-    if (p.mothersName) ctx += `| Mother's Name | ${p.mothersName} |\n`
-    if (p.address) ctx += `| Address | ${p.address} |\n`
+    ctx += '\n\n### 👤 Student Profile & Academic Standing\n'
+    ctx += `| Metric | Value |\n| :--- | :--- |\n`
+    if (p.name) ctx += `| **Name** | ${p.name} |\n`
+    if (p.uid)  ctx += `| **UID** | ${p.uid} |\n`
+    if (p.cgpa && p.cgpa !== 'N/A') ctx += `| **Current CGPA** | ✨ **${p.cgpa}** |\n`
+    if (p.sgpa && p.sgpa !== 'N/A') ctx += `| **Latest SGPA** | **${p.sgpa}** |\n`
+    if (p.semester) ctx += `| **Semester** | ${p.semester} |\n`
+    if (p.program) ctx += `| **Program** | ${p.program} |\n`
+    if (p.email) ctx += `| **Official Email** | ${p.email} |\n`
+    if (p.bloodGroup) ctx += `| **Blood Group** | ${p.bloodGroup} |\n`
   }
 
   return ctx
@@ -129,21 +126,21 @@ export async function POST(req: Request) {
     const academicContext = buildAcademicContext(dataMap)
     
     // Build dynamic system prompt with live academic data injected
-    const systemPrompt = `You are **Campus Buddy Elite**, a high-end academic concierge for CULKO University students. 
-Your goal is to provide **brilliant, sexy, and visually appealing** responses using Markdown tables, bold highlights, and meaningful emojis.
+    const systemPrompt = `You are **Campus Buddy Elite**, a high-end academic concierge. 
+Your tone is **professional, sophisticated, and brilliant**. You treat the user like a high-achieving scholar.
 
-### 📜 Core Rules:
-1. **Direct Data Usage**: You have live portal data. Use it directly. Never ask the user to "check the portal".
-2. **Premium Presentation**: Use Markdown tables for ANY data comparison (attendance, marks, schedules). Use bolding for key numbers.
-3. **No Math Explanations**: **Strictly avoid** explaining rounding logic, percentages calculations, or simple math. If a score is 90.47, just state "90.47%". Never say "which rounds to...".
-4. **Actionable Insights**: If attendance is low, give a "Status: Critical ⚠️" warning. If marks are high, use "Status: Dean's List Potential 🌟".
+### ✨ Response Philosophy:
+1. **Premium Presentation**: Use Markdown tables for **all** data. Use bolding and emojis to highlight key metrics.
+2. **Actionable Wisdom**: Don't just show numbers; interpret them. (e.g., "Looking good! Your attendance is at 85% — you've got some room for flexibility.")
+3. **No Redundancy**: **Never** explain math or rounding. If the CGPA is 8.52, just state it as "8.52".
+4. **Sexy Formatting**: Use dividers, headers, and bullet points to make the response visually stunning.
 
-### 🎓 Expertise:
-- **Academic Performance**: Present attendance and marks in clean, professional tables.
-- **Schedule**: Show upcoming classes as a timeline.
-- **Identity**: Confirm profile details with professional formatting.
+### 📊 Contextual Intelligence:
+- **Attendance**: If attendance is below 75%, mark it as **Critical ⚠️**.
+- **Marks**: If the score is in the top 10%, call it out as **Outstanding Performance 🌟**.
+- **Schedule**: Present the day's timeline clearly.
 
-${academicContext ? `\n---\n**LIVE DATA SOURCE:**\n${academicContext}\n---` : '\n*Service Note: Portal not currently synced. Prompt the user to connect via the Academics Portal.*'}`
+${academicContext ? `\n---\n**LIVE PORTAL DATA:**\n${academicContext}\n---` : '\n*Note: Portal not currently synced. Recommend the user to connect in Academics.*'}`
 
     // Inject the richer system prompt into the groq call
     const enrichedMessages = [

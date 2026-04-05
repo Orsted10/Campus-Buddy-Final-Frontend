@@ -37,49 +37,10 @@ export default function CULKOConnectionManager() {
     } catch {}
   }
 
-  const stopPolling = () => {
-    if (pollRef.current) {
-      clearInterval(pollRef.current)
-      pollRef.current = null
-    }
-  }
-
-  const startPolling = (sid: string) => {
-    pollRef.current = setInterval(async () => {
-      try {
-        const res = await fetch(`/api/culko/login/status?sessionId=${sid}`)
-        const data = await res.json()
-
-        if (data.status === 'navigating' || data.status === 'starting') {
-          setStatusMsg('Navigating to CULKO portal...')
-        } else if (data.status === 'captcha_ready') {
-          stopPolling()
-          setCaptchaImage(data.captchaImage)
-          setStep('captcha')
-          toast.success('CAPTCHA loaded — type what you see!')
-        } else if (data.status === 'submitting') {
-          setStatusMsg('Verifying credentials...')
-          setStep('submitting')
-        } else if (data.status === 'done') {
-          stopPolling()
-          setIsConnected(true)
-          setStep('done')
-          toast.success('Connected to CULKO portal!')
-        } else if (data.status === 'error') {
-          stopPolling()
-          setStep('credentials')
-          toast.error(data.error || 'Login failed. Please try again.')
-        }
-      } catch (e) {
-        // network hiccup, keep polling
-      }
-    }, 2000)
-  }
-
   const handleInit = async () => {
     if (!uid.trim() || !password.trim()) return
     setStep('waiting')
-    setStatusMsg('Starting browser...')
+    setStatusMsg('Connecting to portal...')
 
     try {
       const res = await fetch('/api/culko/login/init', {
@@ -88,12 +49,15 @@ export default function CULKOConnectionManager() {
         body: JSON.stringify({ uid, password }),
       })
       const data = await res.json()
-      if (!res.ok || !data.success) throw new Error(data.error || 'Failed to start')
+      
+      if (!res.ok) throw new Error(data.error || 'Failed to connect')
 
-      const sid = data.sessionId
-      setSessionId(sid)
-      setStatusMsg('Navigating to CULKO portal...')
-      startPolling(sid)
+      if (data.status === 'captcha_ready') {
+        setSessionId(data.sessionId)
+        setCaptchaImage(data.captchaImage)
+        setStep('captcha')
+        toast.success('CAPTCHA loaded!')
+      }
     } catch (e: any) {
       setStep('credentials')
       toast.error(e.message || 'Could not connect to scraper backend')
@@ -103,7 +67,7 @@ export default function CULKOConnectionManager() {
   const handleSubmitCaptcha = async () => {
     if (!captchaText.trim() || !sessionId) return
     setStep('submitting')
-    setStatusMsg('Verifying credentials...')
+    setStatusMsg('Verifying...')
 
     try {
       const res = await fetch('/api/culko/login/submit', {
@@ -112,19 +76,21 @@ export default function CULKOConnectionManager() {
         body: JSON.stringify({ sessionId, captchaText }),
       })
       const data = await res.json()
-      if (!res.ok || !data.success) throw new Error(data.error || 'Submission failed')
+      
+      if (!res.ok) throw new Error(data.error || 'Login failed')
 
-      // Now poll for done/error
-      startPolling(sessionId)
+      if (data.status === 'done') {
+        setIsConnected(true)
+        setStep('done')
+        toast.success('Connected to CULKO portal!')
+      }
     } catch (e: any) {
-      setStep('credentials')
-      stopPolling()
-      toast.error(e.message || 'CAPTCHA submission failed')
+      setStep('captcha')
+      toast.error(e.message || 'Verification failed. Try again.')
     }
   }
 
   const handleReset = () => {
-    stopPolling()
     setStep('credentials')
     setCaptchaImage(null)
     setCaptchaText('')
