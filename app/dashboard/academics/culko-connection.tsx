@@ -1,277 +1,300 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Textarea } from '@/components/ui/textarea'
+import { useState, useEffect, useRef } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
-import { ExternalLink, Save, RefreshCw, Loader2, GraduationCap, Calendar, Clock } from 'lucide-react'
+import {
+  ExternalLink, RefreshCw, Loader2, GraduationCap,
+  Calendar, CheckCircle2, Link2, Terminal, Eye, EyeOff, AlertCircle
+} from 'lucide-react'
+
+type Step = 'credentials' | 'waiting' | 'captcha' | 'submitting' | 'done'
 
 export default function CULKOConnectionManager() {
   const [uid, setUid] = useState('')
   const [password, setPassword] = useState('')
+  const [showPwd, setShowPwd] = useState(false)
   const [captchaImage, setCaptchaImage] = useState<string | null>(null)
   const [captchaText, setCaptchaText] = useState('')
   const [sessionId, setSessionId] = useState<string | null>(null)
-  const [loginStep, setLoginStep] = useState<'credentials' | 'captcha'>('credentials')
-  const [isLoading, setIsLoading] = useState(false)
+  const [step, setStep] = useState<Step>('credentials')
   const [isConnected, setIsConnected] = useState(false)
-  // Keep just connection checking logic
+  const [statusMsg, setStatusMsg] = useState('Starting browser...')
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
   useEffect(() => {
-    checkConnectionStatus()
+    checkConnection()
+    return () => { if (pollRef.current) clearInterval(pollRef.current) }
   }, [])
 
-  const checkConnectionStatus = async () => {
+  const checkConnection = async () => {
     try {
-      const response = await fetch('/api/culko?endpoint=profile')
-      if (response.ok) {
-        const data = await response.json()
-        if (data.success) {
+      const res = await fetch('/api/culko?endpoint=profile')
+      if (res.ok) {
+        const data = await res.json()
+        if (data.success) setIsConnected(true)
+      }
+    } catch {}
+  }
+
+  const stopPolling = () => {
+    if (pollRef.current) {
+      clearInterval(pollRef.current)
+      pollRef.current = null
+    }
+  }
+
+  const startPolling = (sid: string) => {
+    pollRef.current = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/culko/login/status?sessionId=${sid}`)
+        const data = await res.json()
+
+        if (data.status === 'navigating' || data.status === 'starting') {
+          setStatusMsg('Navigating to CULKO portal...')
+        } else if (data.status === 'captcha_ready') {
+          stopPolling()
+          setCaptchaImage(data.captchaImage)
+          setStep('captcha')
+          toast.success('CAPTCHA loaded — type what you see!')
+        } else if (data.status === 'submitting') {
+          setStatusMsg('Verifying credentials...')
+          setStep('submitting')
+        } else if (data.status === 'done') {
+          stopPolling()
           setIsConnected(true)
+          setStep('done')
+          toast.success('Connected to CULKO portal!')
+        } else if (data.status === 'error') {
+          stopPolling()
+          setStep('credentials')
+          toast.error(data.error || 'Login failed. Please try again.')
         }
+      } catch (e) {
+        // network hiccup, keep polling
       }
-    } catch (error) {
-      console.error('Connection check failed:', error)
+    }, 2000)
+  }
+
+  const handleInit = async () => {
+    if (!uid.trim() || !password.trim()) return
+    setStep('waiting')
+    setStatusMsg('Starting browser...')
+
+    try {
+      const res = await fetch('/api/culko/login/init', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ uid, password }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.success) throw new Error(data.error || 'Failed to start')
+
+      const sid = data.sessionId
+      setSessionId(sid)
+      setStatusMsg('Navigating to CULKO portal...')
+      startPolling(sid)
+    } catch (e: any) {
+      setStep('credentials')
+      toast.error(e.message || 'Could not connect to scraper backend')
     }
   }
 
-  // Monitor & Manual handlers removed as per user request to simplify
+  const handleSubmitCaptcha = async () => {
+    if (!captchaText.trim() || !sessionId) return
+    setStep('submitting')
+    setStatusMsg('Verifying credentials...')
 
-  const handleAutomatedLoginInit = async () => {
     try {
-      setIsLoading(true)
-      
-      const response = await fetch('/api/culko/login/init', {
+      const res = await fetch('/api/culko/login/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ uid, password })
+        body: JSON.stringify({ sessionId, captchaText }),
       })
-      
-      const data = await response.json()
-      
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || 'Failed to initiate login')
-      }
-      
-      if (data.requireCaptcha) {
-        setCaptchaImage(data.captchaImage)
-        setSessionId(data.sessionId)
-        setLoginStep('captcha')
-        toast.success('Please solve the CAPTCHA')
-        // Fallback if somehow it logged in without captcha
-        setIsConnected(true)
-        toast.success('Connected automatically!')
-      }
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to connect to CULKO')
-      console.error(error)
-    } finally {
-      setIsLoading(false)
+      const data = await res.json()
+      if (!res.ok || !data.success) throw new Error(data.error || 'Submission failed')
+
+      // Now poll for done/error
+      startPolling(sessionId)
+    } catch (e: any) {
+      setStep('credentials')
+      stopPolling()
+      toast.error(e.message || 'CAPTCHA submission failed')
     }
   }
 
-  const handleAutomatedLoginSubmit = async () => {
-    try {
-      setIsLoading(true)
-      
-      const response = await fetch('/api/culko/login/submit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId, captchaText })
-      })
-      
-      const data = await response.json()
-      
-      if (!response.ok || !data.success) {
-        // Reset process on failure
-        setLoginStep('credentials')
-        setCaptchaImage(null)
-        setSessionId(null)
-        setCaptchaText('')
-        throw new Error(data.error || 'Failed to login with CAPTCHA')
-      }
-      
-      setIsConnected(true)
-      setLoginStep('credentials') // reset for future
-      toast.success('CULKO session connected automatically!')
-      
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to connect to CULKO')
-      console.error(error)
-    } finally {
-      setIsLoading(false)
-    }
+  const handleReset = () => {
+    stopPolling()
+    setStep('credentials')
+    setCaptchaImage(null)
+    setCaptchaText('')
+    setSessionId(null)
+  }
+
+  const inputClass = "w-full border border-white/8 text-white placeholder:text-muted-foreground/50 rounded-xl px-4 py-3 text-sm font-medium outline-none focus:border-primary focus:ring-1 focus:ring-primary/40 transition-all"
+  const inputStyle = { backgroundColor: 'oklch(0.14 0.018 120)' }
+
+  if (isConnected) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="glass rounded-2xl p-8 max-w-xl mx-auto text-center space-y-6 border border-primary/20 glow-olive-sm"
+      >
+        <div className="w-16 h-16 rounded-full bg-primary/15 flex items-center justify-center mx-auto">
+          <CheckCircle2 className="w-8 h-8 text-primary" />
+        </div>
+        <div>
+          <h3 className="text-xl font-black text-white">Portal Synced!</h3>
+          <p className="text-muted-foreground mt-2 text-sm">
+            Your session is active. Attendance, marks, and timetable are live.
+          </p>
+        </div>
+        <div className="flex justify-center gap-3 flex-wrap">
+          <button
+            onClick={() => window.location.href = '/dashboard/attendance'}
+            className="glass border border-white/10 text-white font-semibold px-5 py-2.5 rounded-xl text-sm flex items-center gap-2 hover:border-primary/30 transition-all"
+          >
+            <GraduationCap className="w-4 h-4 text-primary" /> Attendance
+          </button>
+          <button
+            onClick={() => window.location.href = '/dashboard/marks'}
+            className="glass border border-white/10 text-white font-semibold px-5 py-2.5 rounded-xl text-sm flex items-center gap-2 hover:border-primary/30 transition-all"
+          >
+            <Calendar className="w-4 h-4 text-primary" /> Marks
+          </button>
+        </div>
+        <button
+          onClick={() => setIsConnected(false)}
+          className="text-xs text-muted-foreground hover:text-destructive transition-colors"
+        >
+          Disconnect session
+        </button>
+      </motion.div>
+    )
   }
 
   return (
-    <Card className="max-w-2xl mx-auto">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <ExternalLink className="w-5 h-5" />
-          CULKO Portal Connection
-        </CardTitle>
-        <CardDescription>
-          Connect to Chandigarh University Lucknow student portal to fetch attendance, marks, and timetable
-        </CardDescription>
-      </CardHeader>
-      
-      <CardContent className="space-y-4">
-        {!isConnected ? (
-          <>
-            <div className="space-y-2">
-              <h3 className="font-semibold">Automated Login</h3>
-              <p className="text-sm text-muted-foreground">
-                Enter your CULKO credentials. We will show you the CAPTCHA to solve, then finish the login for you!
-              </p>
-              <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground mt-2">
-                <li>Enter your UID (e.g., 25LBCS3067)</li>
-                <li>Enter your password</li>
-                <li>Click "Connect to CULKO"</li>
-                <li>Solve the CAPTCHA image shown to you</li>
-              </ol>
+    <div className="glass rounded-2xl p-6 max-w-xl mx-auto border border-white/8 space-y-6">
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center">
+          <Link2 className="w-5 h-5 text-primary" />
+        </div>
+        <div>
+          <h3 className="font-black text-white">CULKO Portal Sync</h3>
+          <p className="text-xs text-muted-foreground">Automated login — just solve the CAPTCHA</p>
+        </div>
+      </div>
+
+      {/* How it works */}
+      <div className="flex gap-3 text-xs text-muted-foreground">
+        {['Enter UID + Password', 'Solve CAPTCHA', 'Data goes live'].map((t, i) => (
+          <div key={i} className="flex items-center gap-1.5">
+            <span className="w-4 h-4 rounded-full bg-primary/20 text-primary font-bold text-[10px] flex items-center justify-center shrink-0">{i + 1}</span>
+            <span>{t}</span>
+          </div>
+        ))}
+      </div>
+
+      <AnimatePresence mode="wait">
+        {/* ── CREDENTIALS STEP ── */}
+        {step === 'credentials' && (
+          <motion.div key="creds" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">UID</label>
+              <input type="text" placeholder="25LBCS3067" value={uid} onChange={e => setUid(e.target.value)} className={inputClass} style={inputStyle} />
             </div>
-            
-            {loginStep === 'credentials' ? (
-              <>
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-sm font-medium mb-1 block">UID</label>
-                    <input
-                      type="text"
-                      placeholder="25LBCS3067"
-                      value={uid}
-                      onChange={(e) => setUid(e.target.value)}
-                      className="w-full px-3 py-2 border rounded-md bg-background"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="text-sm font-medium mb-1 block">Password</label>
-                    <input
-                      type="password"
-                      placeholder="Your password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="w-full px-3 py-2 border rounded-md bg-background"
-                    />
-                  </div>
-                </div>
-                
-                <Button 
-                  onClick={handleAutomatedLoginInit} 
-                  disabled={isLoading || !uid.trim() || !password.trim()} 
-                  className="w-full"
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Navigating to portal...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="w-4 h-4 mr-2" />
-                      Connect to CULKO
-                    </>
-                  )}
-                </Button>
-              </>
-            ) : (
-              <>
-                <div className="space-y-3 bg-muted p-4 rounded-lg flex flex-col items-center">
-                  <p className="font-medium">Solve CAPTCHA</p>
-                  {captchaImage ? (
-                    <img src={captchaImage} alt="CULKO CAPTCHA" className="border rounded bg-white p-2 w-48" />
-                  ) : (
-                    <div className="w-48 h-12 bg-gray-200 animate-pulse rounded" />
-                  )}
-                  
-                  <div className="w-full mt-2">
-                    <input
-                      type="text"
-                      placeholder="Enter characters"
-                      value={captchaText}
-                      onChange={(e) => setCaptchaText(e.target.value)}
-                      className="w-full px-3 py-2 border rounded-md bg-background text-center text-lg tracking-widest font-mono"
-                      autoComplete="off"
-                      autoFocus
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && captchaText.trim()) {
-                          handleAutomatedLoginSubmit()
-                        }
-                      }}
-                    />
-                  </div>
-                </div>
-                
-                <div className="flex gap-2">
-                  <Button 
-                    variant="outline"
-                    onClick={() => {
-                      setLoginStep('credentials')
-                      setCaptchaImage(null)
-                      setSessionId(null)
-                    }}
-                    disabled={isLoading}
-                    className="flex-1"
-                  >
-                    Cancel
-                  </Button>
-                  <Button 
-                    onClick={handleAutomatedLoginSubmit} 
-                    disabled={isLoading || !captchaText.trim()} 
-                    className="flex-1"
-                  >
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Logging in...
-                      </>
-                    ) : (
-                      'Submit & Login'
-                    )}
-                  </Button>
-                </div>
-              </>
-            )}
-          </>
-        ) : (
-          <div className="space-y-6 text-center py-4">
-            <div className="flex justify-center">
-              <div className="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center">
-                <ExternalLink className="w-8 h-8 text-green-500" />
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Password</label>
+              <div className="relative">
+                <input type={showPwd ? 'text' : 'password'} placeholder="Your portal password" value={password} onChange={e => setPassword(e.target.value)} className={`${inputClass} pr-12`} style={inputStyle}
+                  onKeyDown={e => { if (e.key === 'Enter') handleInit() }}
+                />
+                <button type="button" onClick={() => setShowPwd(!showPwd)} className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white transition-colors">
+                  {showPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
             </div>
-            <div>
-              <h3 className="text-xl font-bold">Portal Synced Successfully</h3>
-              <p className="text-muted-foreground mt-2">
-                Your authentication cookie is active. You can now access your live academic data.
-              </p>
-            </div>
-            
-            <div className="mt-6 flex justify-center gap-4">
-              <Button onClick={() => window.location.href = '/dashboard/attendance'} variant="outline">
-                <GraduationCap className="w-4 h-4 mr-2" />
-                View Attendance
-              </Button>
-              <Button onClick={() => window.location.href = '/dashboard/marks'} variant="outline">
-                <Calendar className="w-4 h-4 mr-2" />
-                View Marks
-              </Button>
-            </div>
-
-            <Button 
-              onClick={() => {
-                setIsConnected(false)
-                setSessionId(null)
-              }} 
-              variant="ghost"
-              className="text-red-500 hover:text-red-600 hover:bg-red-50"
+            <motion.button
+              onClick={handleInit}
+              disabled={!uid.trim() || !password.trim()}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="w-full bg-primary text-background font-black py-3.5 rounded-xl flex items-center justify-center gap-2 glow-olive-sm disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              Disconnect Session
-            </Button>
-          </div>
+              <Terminal className="w-4 h-4" /> Connect to CULKO
+            </motion.button>
+          </motion.div>
         )}
-      </CardContent>
-    </Card>
+
+        {/* ── WAITING STEP ── */}
+        {step === 'waiting' && (
+          <motion.div key="wait" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-center py-8 space-y-4">
+            <div className="relative mx-auto w-16 h-16">
+              <div className="absolute inset-0 rounded-full border-2 border-primary/20" />
+              <div className="absolute inset-0 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+            </div>
+            <div>
+              <p className="font-bold text-white">{statusMsg}</p>
+              <p className="text-xs text-muted-foreground mt-1">This takes 15–30 seconds. Portal is loading...</p>
+            </div>
+            <button onClick={handleReset} className="text-xs text-muted-foreground hover:text-destructive transition-colors mt-4">Cancel</button>
+          </motion.div>
+        )}
+
+        {/* ── CAPTCHA STEP ── */}
+        {step === 'captcha' && (
+          <motion.div key="captcha" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-4">
+            <div className="rounded-xl overflow-hidden border border-white/10 bg-white p-3 flex items-center justify-center">
+              {captchaImage ? (
+                <img src={captchaImage} alt="CAPTCHA" className="max-h-20 object-contain" />
+              ) : (
+                <div className="w-48 h-16 bg-white/10 animate-pulse rounded" />
+              )}
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Type the CAPTCHA</label>
+              <input
+                type="text"
+                placeholder="Enter characters exactly"
+                value={captchaText}
+                onChange={e => setCaptchaText(e.target.value)}
+                autoFocus
+                className={`${inputClass} text-center text-xl tracking-[0.5em] font-mono`}
+                style={inputStyle}
+                onKeyDown={e => { if (e.key === 'Enter' && captchaText.trim()) handleSubmitCaptcha() }}
+              />
+            </div>
+            <div className="flex gap-3">
+              <button onClick={handleReset} className="flex-1 glass border border-white/10 text-white font-semibold py-3 rounded-xl text-sm hover:border-white/20 transition-all">Cancel</button>
+              <motion.button
+                onClick={handleSubmitCaptcha}
+                disabled={!captchaText.trim()}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="flex-1 bg-primary text-background font-black py-3 rounded-xl text-sm disabled:opacity-40 glow-olive-sm"
+              >
+                Submit & Login
+              </motion.button>
+            </div>
+          </motion.div>
+        )}
+
+        {/* ── SUBMITTING STEP ── */}
+        {step === 'submitting' && (
+          <motion.div key="submit" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-center py-8 space-y-4">
+            <div className="relative mx-auto w-16 h-16">
+              <div className="absolute inset-0 rounded-full border-2 border-primary/20" />
+              <div className="absolute inset-0 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+            </div>
+            <div>
+              <p className="font-bold text-white">{statusMsg}</p>
+              <p className="text-xs text-muted-foreground mt-1">Almost done, logging you in...</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   )
 }
