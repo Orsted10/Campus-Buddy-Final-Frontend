@@ -768,138 +768,98 @@ function parseProfile(html: string): any {
     name: 'Student', uid: 'Unknown', semester: 'Unknown', email: 'Unknown',
     bloodGroup: 'Unknown', program: 'Unknown', dob: 'Unknown', 
     admissionYear: 'Unknown', address: 'Unknown', fathersName: 'Unknown', 
-    mothersName: 'Unknown', cgpa: 'N/A', sgpa: 'N/A', mobile: 'Unknown'
+    mothersName: 'Unknown', cgpa: 'N/A', sgpa: 'N/A', mobile: 'Unknown',
+    religion: 'Unknown', caste: 'Unknown'
   }
   try {
     const $ = cheerio.load(html)
-    
-    // STRATEGY 1: ID Based Search (Common ASP.NET labels in CU/CULKO portals)
-    const idMap: Record<string, keyof typeof profile> = {
-      'lblStudentName': 'name',
-      'lblFullName': 'name',
-      'lblSTDFirstName': 'name',
-      'lblEnrollNo': 'uid',
-      'lblUID': 'uid',
-      'lblRegNo': 'uid',
-      'lblSemester': 'semester',
-      'lblSem': 'semester',
-      'lblCurrentSemester': 'semester',
-      'lblCurrentSem': 'semester',
-      'lblEmail': 'email',
-      'lblEmailID': 'email',
-      'lblEmailId': 'email',
-      'lblStudentEmail': 'email',
-      'lblProgName': 'program',
-      'lblCourse': 'program',
-      'lblCourseName': 'program',
-      'lblProgram': 'program',
-      'lblMobile': 'mobile',
-      'lblStudentMobile': 'mobile',
-      'lblMobileNo': 'mobile',
-      'lblDOB': 'dob',
-      'lblDateOfBirth': 'dob',
-      'lblBirthDate': 'dob',
-      'lblFatherName': 'fathersName',
-      'lblFathersName': 'fathersName',
-      'lblMotherName': 'mothersName',
-      'lblMothersName': 'mothersName',
-      'lblAddress': 'address',
-      'lblPermanentAddress': 'address',
-      'lblBloodGroup': 'bloodGroup',
-      'lblAdmissionYear': 'admissionYear'
+
+    // ── EXACT ID MAP (from debug endpoint, CULKO Unnao portal) ──
+    const exactIds: Record<string, keyof typeof profile> = {
+      'lbstuUID':                               'uid',
+      'ContentPlaceHolder1_lblName':            'name',
+      'ContentPlaceHolder1_lblFathername':      'fathersName',
+      'ContentPlaceHolder1_lblMothername':      'mothersName',
+      'ContentPlaceHolder1_lblDob':             'dob',
+      'ContentPlaceHolder1_lblAdmissionYear':   'admissionYear',
+      'ContentPlaceHolder1_lblCurrentSemester': 'semester',
+      'ContentPlaceHolder1_lblBloodGroup':      'bloodGroup',
+      'ContentPlaceHolder1_lblProgramCode':     'program',
+      'ContentPlaceHolder1_lblAddress':         'address',
+      'ContentPlaceHolder1_lblReligion':        'religion',
+      'ContentPlaceHolder1_lblCaste':           'caste',
     }
 
-    Object.entries(idMap).forEach(([id, field]) => {
-      // Use [id$="..."] (ends-with) to handle ASP.NET control prefixes
-      // e.g. ContentPlaceHolder1_frmStudentProfile_lblSemester
-      const val = $(`#${id}`).text().trim() 
-             || $(`[id$="${id}"]`).text().trim()
-             || $(`[id*="_${id}"]`).text().trim()
-      if (val && val !== 'Unknown' && val !== 'Student' && val.length > 1) {
-        if (field === 'name') {
-           profile[field] = val.replace(/^Hello,?\s*/i, '').trim()
-        } else {
-           profile[field] = val
-        }
+    Object.entries(exactIds).forEach(([id, field]) => {
+      const val = $(`#${id}`).text().trim()
+      if (val && val.length > 0) {
+        profile[field] = field === 'name' ? val.replace(/^Hello,?\s*/i, '').trim() : val
       }
     })
 
-    // STRATEGY 2: Find name in common headers if Strategy 1 failed
-    if (profile.name === 'Student' || profile.name.includes('Hello')) {
-      const nameElem = $('div, span, h1, h2, h3').filter((_, el) => {
-        const cls = $(el).attr('class') || ''
-        const id = $(el).attr('id') || ''
-        const txt = $(el).text()
-        return (cls.toLowerCase().includes('name') || id.toLowerCase().includes('name')) && (txt.includes(',') || txt.length > 5)
-      }).first()
-      
-      if (nameElem.length > 0) {
-        profile.name = nameElem.text().replace(/^Hello,?/i, '').trim()
-      }
-    }
-    
-    // STRATEGY 3: Robust Table Search (matching labels text)
-    $('table tr').each((_, tr) => {
-       const cells = $(tr).find('td, th')
-       for(let i=0; i < cells.length - 1; i++) {
-          const txt = $(cells[i]).text().toLowerCase().replace(/[:.]/g, '').trim()
-          let nextTxt = $(cells[i+1]).text().trim()
-          
-          if (!nextTxt || nextTxt.length < 2) continue
-          
-          // Clean up value (sometimes it has multiple labels)
-          if (nextTxt.includes(':')) nextTxt = nextTxt.split(':')[1].trim()
-          if (!nextTxt) continue
+    // ── CONTACTS GRID: Extract Student's own mobile & email ──
+    // The grid has Contact Type rows: Father (0), Mother (1), Student (2)
+    // We iterate all contact rows to find the "Student" one
+    let studentMobile = 'Unknown'
+    let studentEmail = 'Unknown'
+    let fatherMobile = 'Unknown'
+    let motherMobile = 'Unknown'
 
-          if (txt === 'uid' || txt.includes('enrollment') || txt === 'student id' || txt === 'roll no' || txt === 'registration no') profile.uid = nextTxt
-          else if (txt === 'name' || txt === 'student name') { if (profile.name === 'Student' || !profile.name) profile.name = nextTxt; }
-          else if (txt === 'father\'s name' || txt === 'father name' || txt.includes('father')) profile.fathersName = nextTxt
-          else if (txt === 'mother\'s name' || txt === 'mother name' || txt.includes('mother')) profile.mothersName = nextTxt
-          else if (txt === 'semester' || txt === 'current semester' || txt.includes('sem')) profile.semester = nextTxt
-          else if (txt === 'blood group') profile.bloodGroup = nextTxt
-          else if (txt === 'program code' || txt === 'program' || txt === 'course') profile.program = nextTxt
-          else if (txt === 'dob' || txt === 'date of birth' || txt === 'd.o.b' || txt === 'birth date') profile.dob = nextTxt
-          else if (txt === 'admission year') profile.admissionYear = nextTxt
-          else if (txt === 'address' || txt === 'permanent address' || txt === 'residence address') profile.address = nextTxt
-          else if (txt === 'email' || txt === 'email id' || txt === 'student email' || txt === 'university email') profile.email = nextTxt
-          else if ((txt === 'mobile' || txt === 'phone' || txt.includes('contact')) && nextTxt.length > 5) {
-             // Only capture mobile if it looks like a number or isn't just a label typo
-             if (/\d/.test(nextTxt)) profile.mobile = nextTxt
-          }
-       }
-    })
-    
-    // Final Polish
-    if (profile.name && profile.name.includes(',')) {
-       // If it was "Hello,Ankan", this handles it. If it was "Last,First", it picks the right part.
-       const parts = profile.name.split(',')
-       profile.name = parts.length > 1 ? parts[1].trim() : parts[0].trim()
+    let i = 0
+    while (true) {
+      const contactType = $(`#ContentPlaceHolder1_gvStudentContacts_lblContactType_${i}`).text().trim()
+      if (!contactType) break
+      const mobile = $(`#ContentPlaceHolder1_gvStudentContacts_lblMobile_${i}`).text().trim()
+      const email = $(`#ContentPlaceHolder1_gvStudentContacts_lblemailid_${i}`).text().trim()
+
+      if (contactType.toLowerCase() === 'student') {
+        studentMobile = mobile || studentMobile
+        studentEmail = email || studentEmail
+      } else if (contactType.toLowerCase() === 'father') {
+        fatherMobile = mobile || fatherMobile
+      } else if (contactType.toLowerCase() === 'mother') {
+        motherMobile = mobile || motherMobile
+      }
+      i++
     }
-    
-    // Fallback regex for UID (Move UP so email guess can use it)
-    if (!profile.uid || String(profile.uid).toLowerCase().includes('unknown')) {
-      const textAll = $('body').text()
-      const uidMatch = textAll.match(/\b\d{2}[A-Za-z]+\d{4,5}\b/i) // e.g. 25LBCS3067
-      if (uidMatch) profile.uid = uidMatch[0].toUpperCase()
+
+    if (studentMobile !== 'Unknown') profile.mobile = studentMobile
+    if (studentEmail !== 'Unknown') profile.email = studentEmail
+
+    // ── FALLBACKS for older portal versions ──
+    // If still unknown try suffix-match selectors
+    if (profile.uid === 'Unknown') {
+      const val = $('[id$="lbstuUID"]').text().trim() || $('[id$="lblUID"]').text().trim() || $('[id$="lblEnrollNo"]').text().trim()
+      if (val) profile.uid = val
     }
-    
-    // Guess email if unknown
-    const isEmailUnknown = !profile.email || String(profile.email).toLowerCase().includes('unknown') || profile.email.length < 5
-    if (isEmailUnknown && profile.uid && !String(profile.uid).toLowerCase().includes('unknown')) {
-       profile.email = profile.uid.toLowerCase() + "@culkomail.in"
+    if (profile.semester === 'Unknown') {
+      const val = $('[id$="lblCurrentSemester"]').text().trim() || $('[id$="lblSemester"]').text().trim()
+      if (val) profile.semester = val
+    }
+    if (profile.dob === 'Unknown') {
+      const val = $('[id$="lblDob"]').text().trim() || $('[id$="lblDOB"]').text().trim() || $('[id$="lblDateOfBirth"]').text().trim()
+      if (val) profile.dob = val
+    }
+
+    // ── EMAIL GUESS if still unknown ──
+    const isEmailUnknown = !profile.email || profile.email === 'Unknown' || profile.email.length < 5
+    if (isEmailUnknown && profile.uid !== 'Unknown') {
+      profile.email = profile.uid.toLowerCase() + '@culkomail.in'
+    }
+
+    // ── UID REGEX FALLBACK ──
+    if (profile.uid === 'Unknown') {
+      const bodyText = $('body').text()
+      const m = bodyText.match(/\b\d{2}[A-Za-z]+\d{4,5}\b/i)
+      if (m) profile.uid = m[0].toUpperCase()
     }
 
     profile.mobile = formatContacts(profile.mobile)
-    
-    // Clean up "Unknown" strings for cleaner display
-    Object.keys(profile).forEach(key => {
-       if (typeof profile[key] === 'string' && profile[key].toLowerCase().includes('unknown')) {
-          profile[key] = 'Unknown'
-       }
-    })
 
   } catch (e) {
     console.error('Error parsing profile:', e)
   }
   return profile
 }
+
+
