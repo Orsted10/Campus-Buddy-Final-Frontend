@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap');
 
 @custom-variant dark (&:where(.dark, .dark *));
 
@@ -24,27 +25,30 @@
   --color-input: oklch(0.14 0.018 120);
   --color-ring: oklch(0.72 0.18 130);
 
-  /* Extended Palette */
-  --color-olive:         oklch(0.72 0.18 130);
-  --color-olive-dark:    oklch(0.45 0.14 130);
-  --color-olive-glow:    oklch(0.80 0.22 140);
-  --color-cyber-green:   oklch(0.79 0.23 155);
-  --color-surface-1:     oklch(0.11 0.014 120);
-  --color-surface-2:     oklch(0.14 0.018 120);
-  --color-surface-3:     oklch(0.18 0.022 118);
-  
+  /* Extended Design Tokens */
+  --color-surface-1: oklch(0.11 0.014 120);
+  --color-surface-2: oklch(0.14 0.018 120);
+  --color-surface-3: oklch(0.18 0.022 118);
+  --color-olive: oklch(0.72 0.18 130);
+  --color-olive-dark: oklch(0.45 0.14 130);
+  --color-olive-glow: oklch(0.80 0.22 140);
+  --color-cyber-green: oklch(0.79 0.23 155);
+
   /* Border Radius */
-  --radius-sm:   6px;
-  --radius-md:   12px;
-  --radius-lg:   16px;
-  --radius-xl:   24px;
-  --radius-2xl:  32px;
+  --radius-sm:  6px;
+  --radius-md:  12px;
+  --radius-lg:  16px;
+  --radius-xl:  24px;
+  --radius-2xl: 32px;
 
   /* Fonts */
-  --font-sans: 'Inter', 'SF Pro Display', system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
 }
 
+/* =====================
+   BASE STYLES
+   ===================== */
 @layer base {
   * {
     border-color: var(--color-border);
@@ -59,144 +63,135 @@
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
-    /* Subtle mesh grid background */
-    background-image:
-      linear-gradient(rgba(180, 220, 100, 0.03) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(180, 220, 100, 0.03) 1px, transparent 1px);
-    background-size: 40px 40px;
     min-height: 100vh;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Hide scrollbars but keep functionality */
-  .scrollbar-hide::-webkit-scrollbar { display: none; }
-  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-
-  /* Custom thin scrollbar for content areas */
+  /* Thin scrollbars */
   ::-webkit-scrollbar { width: 4px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: oklch(0.30 0.04 120); border-radius: 99px; }
   ::-webkit-scrollbar-thumb:hover { background: oklch(0.72 0.18 130); }
 }
 
-@layer utilities {
-  /* === GLASS PANELS === */
-  .glass {
-    background: rgba(255, 255, 255, 0.03);
-    backdrop-filter: blur(16px) saturate(1.5);
-    -webkit-backdrop-filter: blur(16px) saturate(1.5);
-    border: 1px solid rgba(180, 220, 100, 0.08);
-  }
+/* =====================
+   CUSTOM UTILITIES (Tailwind v4 @utility syntax)
+   ===================== */
 
-  .glass-strong {
-    background: rgba(255, 255, 255, 0.055);
-    backdrop-filter: blur(32px) saturate(2);
-    -webkit-backdrop-filter: blur(32px) saturate(2);
-    border: 1px solid rgba(180, 220, 100, 0.12);
-  }
-
-  /* LEGACY COMPAT */
-  .glass-panel { @apply glass; }
-  .glass-panel-hover { @apply glass-strong; }
-
-  /* === OLIVE GLOWS === */
-  .glow-olive {
-    box-shadow: 0 0 20px rgba(160, 210, 80, 0.25), 0 0 60px rgba(160, 210, 80, 0.1);
-  }
-
-  .glow-olive-sm {
-    box-shadow: 0 0 10px rgba(160, 210, 80, 0.2);
-  }
-
-  .glow-cyber {
-    box-shadow: 0 0 20px rgba(100, 220, 140, 0.25), 0 0 60px rgba(100, 220, 140, 0.1);
-  }
-
-  /* === TEXT === */
-  .text-gradient {
-    background: linear-gradient(135deg, oklch(0.85 0.2 130) 0%, oklch(0.72 0.18 150) 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-
-  .text-gradient-cyber {
-    background: linear-gradient(135deg, oklch(0.90 0.22 140) 0%, oklch(0.70 0.25 120) 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-
-  /* === MESH AMBIENT BG ORBS === */
-  .mesh-bg::before {
-    content: '';
-    position: fixed;
-    top: -20%;
-    left: -10%;
-    width: 60vw;
-    height: 60vw;
-    background: radial-gradient(circle, rgba(160, 210, 80, 0.07) 0%, transparent 70%);
-    border-radius: 50%;
-    pointer-events: none;
-    z-index: 0;
-  }
-  .mesh-bg::after {
-    content: '';
-    position: fixed;
-    bottom: -20%;
-    right: -10%;
-    width: 50vw;
-    height: 50vw;
-    background: radial-gradient(circle, rgba(100, 200, 140, 0.06) 0%, transparent 70%);
-    border-radius: 50%;
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  /* === TERMINAL-STYLE BADGE === */
-  .badge-tech {
-    font-family: var(--font-mono);
-    font-size: 0.65rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    background: rgba(160, 210, 80, 0.1);
-    border: 1px solid rgba(160, 210, 80, 0.25);
-    color: oklch(0.82 0.2 135);
-    padding: 2px 8px;
-    border-radius: 99px;
-  }
-
-  /* === ANIMATED BORDER === */
-  .border-glow-animate {
-    border: 1px solid transparent;
-    background-clip: padding-box;
-    position: relative;
-  }
-  .border-glow-animate::before {
-    content: '';
-    position: absolute;
-    inset: -1px;
-    border-radius: inherit;
-    background: linear-gradient(135deg, rgba(160,210,80,0.4), rgba(100,200,140,0.1), transparent);
-    z-index: -1;
-  }
-
-  /* === STATUS === */
-  .status-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: oklch(0.72 0.22 140);
-    box-shadow: 0 0 6px oklch(0.72 0.22 140);
-    animation: pulse-dot 2s ease-in-out infinite;
-  }
-
-  @keyframes pulse-dot {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.6; transform: scale(0.85); }
+@utility scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
   }
 }
 
-/* Google Fonts - Inter */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap');
+/* Glass morphism */
+@utility glass {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(16px) saturate(1.5);
+  -webkit-backdrop-filter: blur(16px) saturate(1.5);
+  border: 1px solid rgba(180, 220, 100, 0.08);
+}
+
+@utility glass-strong {
+  background: rgba(255, 255, 255, 0.055);
+  backdrop-filter: blur(32px) saturate(2);
+  -webkit-backdrop-filter: blur(32px) saturate(2);
+  border: 1px solid rgba(180, 220, 100, 0.12);
+}
+
+/* Legacy compat alias */
+@utility glass-panel {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(16px) saturate(1.5);
+  -webkit-backdrop-filter: blur(16px) saturate(1.5);
+  border: 1px solid rgba(180, 220, 100, 0.08);
+}
+
+/* Glow effects */
+@utility glow-olive {
+  box-shadow: 0 0 20px rgba(160, 210, 80, 0.25), 0 0 60px rgba(160, 210, 80, 0.1);
+}
+
+@utility glow-olive-sm {
+  box-shadow: 0 0 10px rgba(160, 210, 80, 0.2);
+}
+
+@utility glow-cyber {
+  box-shadow: 0 0 20px rgba(100, 220, 140, 0.25), 0 0 60px rgba(100, 220, 140, 0.1);
+}
+
+/* Gradient text */
+@utility text-gradient {
+  background: linear-gradient(135deg, oklch(0.85 0.2 130) 0%, oklch(0.72 0.18 150) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+@utility text-gradient-cyber {
+  background: linear-gradient(135deg, oklch(0.90 0.22 140) 0%, oklch(0.70 0.25 120) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Mesh ambient background orbs */
+@utility mesh-bg {
+  position: relative;
+  /* Subtle grid lines */
+  background-image:
+    linear-gradient(rgba(180, 220, 100, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(180, 220, 100, 0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* Animated border glow */
+@utility border-glow-animate {
+  border: 1px solid transparent;
+  background-clip: padding-box;
+  position: relative;
+}
+
+/* Terminal/tech badge */
+@utility badge-tech {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: rgba(160, 210, 80, 0.1);
+  border: 1px solid rgba(160, 210, 80, 0.25);
+  color: oklch(0.82 0.2 135);
+  padding: 2px 8px;
+  border-radius: 99px;
+}
+
+/* Pulsing status dot */
+@utility status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: oklch(0.72 0.22 140);
+  box-shadow: 0 0 6px oklch(0.72 0.22 140);
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+/* Neon glow (legacy compat) */
+@utility neon-glow {
+  box-shadow: 0 0 15px rgba(160, 210, 80, 0.3), 0 0 30px rgba(160, 210, 80, 0.1);
+}
+
+/* =====================
+   KEYFRAME ANIMATIONS
+   ===================== */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(0.85); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-8px); }
+}
