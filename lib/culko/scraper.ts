@@ -213,7 +213,8 @@ async function fetchCULKOResource(endpoint: string, cookies: Record<string, stri
     attendance: '/frmStudentCourseWiseAttendanceSummary.aspx?type=etgkYfqBdH1fSfc255iYGw==',
     marks: '/frmStudentMarksView.aspx',
     timetable: '/frmMyTimeTable.aspx',
-    profile: '/frmStudentProfile.aspx'
+    profile: '/frmStudentProfile.aspx',
+    result: '/result.aspx'
   }
   
   const url = BASE_URL + endpointMap[endpoint]
@@ -247,10 +248,56 @@ async function fetchCULKOResource(endpoint: string, cookies: Record<string, stri
     case 'timetable':
       return parseTimetable(html)
     case 'profile':
-      return parseProfile(html)
+      const profile = parseProfile(html)
+      // Also fetch and add result data for CGPA (it's on result.aspx per user)
+      try {
+        const resUrl = BASE_URL + '/result.aspx'
+        const resResponse = await fetch(resUrl, {
+           headers: {
+             'Cookie': Object.entries(cookies).map(([k, v]) => `${k}=${v}`).join('; '),
+             'User-Agent': 'Mozilla/5.0'
+           }
+        })
+        if (resResponse.ok) {
+          const resHtml = await resResponse.text()
+          const stats = parseResult(resHtml)
+          profile.cgpa = stats.cgpa
+          profile.sgpa = stats.sgpa
+        }
+      } catch (e) {
+        console.error('Result fetch failed:', e)
+      }
+      return profile
     default:
       throw new Error(`Unknown endpoint: ${endpoint}`)
   }
+}
+
+function parseResult(html: string): any {
+  let stats = { cgpa: 'N/A', sgpa: 'N/A' }
+  try {
+    const $ = cheerio.load(html)
+    const text = $('body').text()
+    
+    // Look for CGPA patterns in text
+    const cgpaMatch = text.match(/CGPA\s*[:\-]?\s*([\d.]+)/i)
+    if (cgpaMatch) stats.cgpa = cgpaMatch[1]
+    
+    const sgpaMatch = text.match(/Current\s*SGPA\s*[:\-]?\s*([\d.]+)/i) || text.match(/SGPA\s*[:\-]?\s*([\d.]+)/i)
+    if (sgpaMatch) stats.sgpa = sgpaMatch[1]
+
+    // If still N/A, check table/span specifically
+    if (stats.cgpa === 'N/A') {
+      $('td, span, label, th').each((_, el) => {
+        const t = $(el).text().toLowerCase()
+        if (t === 'cgpa' || t.includes('cumulative')) {
+          const val = $(el).next().text().trim() || $(el).parent().next().text().trim()
+          if (/^[\d.]+$/.test(val)) stats.cgpa = val
+        }
+      })
+    }
+  } catch {}
+  return stats
 }
 
 async function fetchAttendanceViaAjax(url: string, cookies: Record<string, string>) {
@@ -670,24 +717,63 @@ function parseProfile(html: string): any {
   try {
     const $ = cheerio.load(html)
     
-    // Find name
-    const nameElem = $('div, span, h1, h2, h3').filter((_, el) => {
-      const cls = $(el).attr('class') || ''
-      return cls.toLowerCase().includes('name') || cls.toLowerCase().includes('user')
-    }).first()
-    
-    if (nameElem.length > 0) {
-      profile.name = nameElem.text().trim()
+    // STRATEGY 1: ID Based Search (Common ASP.NET labels in these portals)
+    const idMap: Record<string, keyof typeof profile> = {
+      'lblStudentName': 'name',
+      'lblFullName': 'name',
+      'lblEnrollNo': 'uid',
+      'lblUID': 'uid',
+      'lblRegNo': 'uid',
+      'lblSemester': 'semester',
+      'lblSem': 'semester',
+      'lblEmail': 'email',
+      'lblEmailID': 'email',
+      'lblProgName': 'program',
+      'lblCourse': 'program',
+      'lblMobile': 'mobile',
+      'lblStudentMobile': 'mobile',
+      'lblDOB': 'dob',
+      'lblDateOfBirth': 'dob',
+      'lblFatherName': 'fathersName',
+      'lblMotherName': 'mothersName',
+      'lblAddress': 'address',
+      'lblPermanentAddress': 'address',
+      'lblBloodGroup': 'bloodGroup'
+    }
+
+    Object.entries(idMap).forEach(([id, field]) => {
+      const val = $(`#${id}`).text().trim() || $(`span[id*="${id}"]`).text().trim()
+      if (val && val !== 'Unknown' && val !== 'Student' && val.length > 1) {
+        profile[field] = val
+      }
+    })
+
+    // STRATEGY 2: Find name in common headers/class names
+    if (profile.name === 'Student') {
+      const nameElem = $('div, span, h1, h2, h3').filter((_, el) => {
+        const cls = $(el).attr('class') || ''
+        const id = $(el).attr('id') || ''
+        const txt = $(el).text()
+        return (cls.toLowerCase().includes('name') || id.toLowerCase().includes('name')) && txt.includes(',')
+      }).first()
+      
+      if (nameElem.length > 0) {
+        profile.name = nameElem.text().replace(/^Hello,?/i, '').trim()
+      }
     }
     
-    // Advanced table parsing
+    // STRATEGY 3: Robust Table Search (matching labels text)
     $('table tr').each((_, tr) => {
        const cells = $(tr).find('td, th')
        for(let i=0; i < cells.length - 1; i++) {
           const txt = $(cells[i]).text().toLowerCase().replace(/[:.]/g, '').trim()
-          const nextTxt = $(cells[i+1]).text().trim()
-          if (!nextTxt) continue
+          let nextTxt = $(cells[i+1]).text().trim()
           
+          if (!nextTxt || nextTxt.length < 2) continue
+          
+          // Clean up value (sometimes it has multiple labels)
+          if (nextTxt.includes(':')) nextTxt = nextTxt.split(':')[1].trim()
+
           if (txt === 'uid' || txt.includes('enrollment') || txt === 'student id' || txt === 'roll no') profile.uid = nextTxt
           else if (txt === 'name' || txt === 'student name') { if (profile.name === 'Student') profile.name = nextTxt; }
           else if (txt === 'father\'s name' || txt === 'father name') profile.fathersName = nextTxt
@@ -699,13 +785,11 @@ function parseProfile(html: string): any {
           else if (txt === 'admission year') profile.admissionYear = nextTxt
           else if (txt === 'address' || txt === 'permanent address') profile.address = nextTxt
           else if (txt === 'email' || txt === 'email id') profile.email = nextTxt
-          else if (txt === 'cgpa' || txt.includes('cumulative gpa')) profile.cgpa = nextTxt
-          else if (txt === 'sgpa' || txt.includes('semester gpa')) profile.sgpa = nextTxt
           else if (txt === 'mobile' || txt === 'phone' || txt.includes('contact')) profile.mobile = nextTxt
        }
     })
     
-    // Fallback regex for UID if table failed
+    // Fallback regex for UID
     if (profile.uid === 'Unknown') {
       const textAll = $('body').text()
       const uidMatch = textAll.match(/\b\d{2}[A-Za-z]+\d{4,5}\b/i) // e.g. 25LBCS3067
