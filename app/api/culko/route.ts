@@ -16,38 +16,14 @@ export async function GET(req: Request) {
     )
   }
   
-  console.log(`[GET] ${endpoint}: Attempting live fetch...`)
+  // fetchCULKOData handles: live fetch → save to DB → fallback to DB
+  // The isCached flag tells us which path was taken
   const result = await fetchCULKOData(endpoint)
   
   if (result.success) {
-    console.log(`[GET] ${endpoint}: Live fetch successful. Syncing to DB...`)
-    // Save to DB in the background
-    savePortalData(endpoint, result.data).catch(err => 
-      console.error(`Background sync failed for ${endpoint}:`, err)
-    )
-    
-    return NextResponse.json({
-      ...result,
-      isCached: false,
-      updatedAt: new Date().toISOString()
-    })
-  }
-
-  // FALLBACK: Try to get from DB if portal fetch failed (e.g. session expired)
-  console.warn(`[GET] ${endpoint}: Live fetch failed (${result.error}). Attempting DB fallback...`)
-  const cached = await getPortalData(endpoint)
-  
-  if (cached.success) {
-     return NextResponse.json({
-        success: true,
-        data: cached.data,
-        isCached: true,
-        updatedAt: cached.updatedAt,
-        message: 'Portal not connected. Showing latest archived data.'
-     })
+    return NextResponse.json(result) // passes isCached correctly
   }
   
-  // If even DB has nothing, return the original error
   return NextResponse.json(result, { status: 401 })
 }
 

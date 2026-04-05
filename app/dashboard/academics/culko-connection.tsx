@@ -32,9 +32,18 @@ export default function CULKOConnectionManager() {
       const res = await fetch('/api/culko?endpoint=profile')
       if (res.ok) {
         const data = await res.json()
-        if (data.success) setIsConnected(true)
+        // Only mark as connected if we got LIVE data, not cached
+        if (data.success && data.isCached === false) {
+          setIsConnected(true)
+        } else {
+          setIsConnected(false)
+        }
+      } else {
+        setIsConnected(false)
       }
-    } catch {}
+    } catch {
+      setIsConnected(false)
+    }
   }
 
   const handleInit = async () => {
