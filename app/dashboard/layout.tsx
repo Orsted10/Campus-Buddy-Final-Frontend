@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { useAuthStore } from '@/store/useAuthStore'
 import Sidebar from '@/components/shared/Sidebar'
 import Topbar from '@/components/shared/Topbar'
-import { AnimatePresence } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
 import { PageTransition } from '@/components/shared/PageTransition'
 
 export default function DashboardLayout({
@@ -16,12 +16,31 @@ export default function DashboardLayout({
   const router = useRouter()
   const pathname = usePathname()
   const user = useAuthStore((state) => state.user)
+  const hasHydrated = useAuthStore((state) => state._hasHydrated)
 
   useEffect(() => {
-    if (!user) {
+    // Only redirect AFTER zustand has hydrated from localStorage
+    // This prevents the flash-redirect on page refresh
+    if (hasHydrated && !user) {
       router.push('/login')
     }
-  }, [user, router])
+  }, [user, router, hasHydrated])
+
+  // Show a loading screen while zustand is reading from localStorage
+  if (!hasHydrated) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="text-center space-y-4"
+        >
+          <div className="w-12 h-12 rounded-full border-2 border-primary border-t-transparent animate-spin mx-auto" />
+          <p className="text-muted-foreground text-sm">Loading your session...</p>
+        </motion.div>
+      </div>
+    )
+  }
 
   if (!user) {
     return null

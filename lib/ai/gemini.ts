@@ -3,7 +3,7 @@ import { SYSTEM_PROMPT } from './systemPrompt'
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GEMINI_API_KEY || '')
 
-export async function chatWithGemini(messages: Array<{ role: string; content: string }>) {
+export async function chatWithGemini(messages: Array<{ role: string; content: string }>, customSystemPrompt?: string) {
   try {
     const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
 
@@ -21,7 +21,7 @@ export async function chatWithGemini(messages: Array<{ role: string; content: st
       },
     })
 
-    const result = await chat.sendMessage(SYSTEM_PROMPT)
+    const result = await chat.sendMessage(customSystemPrompt || SYSTEM_PROMPT)
     const response = await result.response
     const text = response.text()
 
@@ -33,6 +33,7 @@ export async function chatWithGemini(messages: Array<{ role: string; content: st
     console.error('Gemini API error:', error)
     return {
       success: false,
+      content: '',
       error: error instanceof Error ? error.message : 'Unknown error',
     }
   }

@@ -4,10 +4,9 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/hooks/useAuth'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { motion } from 'framer-motion'
 import { toast } from 'sonner'
+import { Eye, EyeOff, ArrowRight, UserPlus } from 'lucide-react'
 
 export default function SignupPage() {
   const [formData, setFormData] = useState({
@@ -18,25 +17,23 @@ export default function SignupPage() {
     studentId: '',
     role: 'student' as 'student' | 'admin' | 'hostel_staff',
   })
+  const [showPwd, setShowPwd] = useState(false)
   const [loading, setLoading] = useState(false)
   const { signUp } = useAuth()
   const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-
     if (formData.password !== formData.confirmPassword) {
       toast.error('Passwords do not match')
       return
     }
-
     if (formData.password.length < 6) {
       toast.error('Password must be at least 6 characters')
       return
     }
 
     setLoading(true)
-
     try {
       const { error } = await signUp(
         formData.email,
@@ -45,132 +42,132 @@ export default function SignupPage() {
         formData.role,
         formData.studentId
       )
-
       if (error) {
         toast.error(error.message)
       } else {
-        toast.success('Account created! Please check your email to verify.')
+        toast.success('Account created! Check your email to verify.')
         router.push('/login')
       }
-    } catch (error) {
+    } catch {
       toast.error('An error occurred during signup')
     } finally {
       setLoading(false)
     }
   }
 
+  const inputClass = "w-full border border-white/8 text-white placeholder:text-muted-foreground/50 rounded-xl px-4 py-3 text-sm font-medium outline-none focus:border-primary focus:ring-1 focus:ring-primary/40 transition-all"
+  const inputStyle = { backgroundColor: 'oklch(0.14 0.018 120)' }
+
   return (
-    <Card className="w-full">
-      <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl font-bold text-center">Create Account</CardTitle>
-        <CardDescription className="text-center">
-          Join Campus Buddy today
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <label htmlFor="fullName" className="text-sm font-medium">
-              Full Name
-            </label>
-            <Input
-              id="fullName"
-              type="text"
-              placeholder="John Doe"
-              value={formData.fullName}
-              onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-              required
-            />
-          </div>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+      className="glass-strong rounded-3xl p-8 w-full border border-white/10 shadow-2xl"
+    >
+      {/* Header */}
+      <div className="text-center mb-7">
+        <div className="w-14 h-14 rounded-2xl bg-primary mx-auto flex items-center justify-center mb-4 glow-olive-sm">
+          <UserPlus className="w-7 h-7 text-background" />
+        </div>
+        <h1 className="text-2xl font-black text-white">Create Account</h1>
+        <p className="text-muted-foreground text-sm mt-1">Join Campus Buddy — free forever</p>
+      </div>
 
-          <div className="space-y-2">
-            <label htmlFor="email" className="text-sm font-medium">
-              Email
-            </label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="student@university.edu"
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              required
-            />
-          </div>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Full Name */}
+        <div className="space-y-1.5">
+          <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Full Name</label>
+          <input
+            type="text"
+            placeholder="Ankan Bhattacharjee"
+            value={formData.fullName}
+            onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+            required
+            className={inputClass}
+            style={inputStyle}
+          />
+        </div>
 
-          <div className="space-y-2">
-            <label htmlFor="studentId" className="text-sm font-medium">
-              Student ID (Optional)
-            </label>
-            <Input
-              id="studentId"
-              type="text"
-              placeholder="STU123456"
-              value={formData.studentId}
-              onChange={(e) => setFormData({ ...formData, studentId: e.target.value })}
-            />
-          </div>
+        {/* Email */}
+        <div className="space-y-1.5">
+          <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">CULKO Email</label>
+          <input
+            type="email"
+            placeholder="25lbcs3067@culkomail.in"
+            value={formData.email}
+            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+            required
+            className={inputClass}
+            style={inputStyle}
+          />
+        </div>
 
-          <div className="space-y-2">
-            <label htmlFor="role" className="text-sm font-medium">
-              Role
-            </label>
-            <select
-              id="role"
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-              value={formData.role}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  role: e.target.value as 'student' | 'admin' | 'hostel_staff',
-                })
-              }
-            >
-              <option value="student">Student</option>
-              <option value="admin">Admin</option>
-              <option value="hostel_staff">Hostel Staff</option>
-            </select>
-          </div>
+        {/* Student UID */}
+        <div className="space-y-1.5">
+          <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Student UID</label>
+          <input
+            type="text"
+            placeholder="25LBCS3067"
+            value={formData.studentId}
+            onChange={(e) => setFormData({ ...formData, studentId: e.target.value })}
+            className={inputClass}
+            style={inputStyle}
+          />
+        </div>
 
-          <div className="space-y-2">
-            <label htmlFor="password" className="text-sm font-medium">
-              Password
-            </label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="••••••••"
+        {/* Password */}
+        <div className="space-y-1.5">
+          <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Password</label>
+          <div className="relative">
+            <input
+              type={showPwd ? 'text' : 'password'}
+              placeholder="Min 6 characters"
               value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
               required
+              className={`${inputClass} pr-12`}
+              style={inputStyle}
             />
+            <button type="button" onClick={() => setShowPwd(!showPwd)} className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white transition-colors">
+              {showPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
           </div>
+        </div>
 
-          <div className="space-y-2">
-            <label htmlFor="confirmPassword" className="text-sm font-medium">
-              Confirm Password
-            </label>
-            <Input
-              id="confirmPassword"
-              type="password"
-              placeholder="••••••••"
-              value={formData.confirmPassword}
-              onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-              required
-            />
-          </div>
+        {/* Confirm Password */}
+        <div className="space-y-1.5">
+          <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Confirm Password</label>
+          <input
+            type="password"
+            placeholder="Repeat your password"
+            value={formData.confirmPassword}
+            onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+            required
+            className={inputClass}
+            style={inputStyle}
+          />
+        </div>
 
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? 'Creating account...' : 'Sign Up'}
-          </Button>
+        <motion.button
+          type="submit"
+          disabled={loading}
+          whileHover={{ scale: 1.02, boxShadow: '0 0 20px rgba(160,210,80,0.3)' }}
+          whileTap={{ scale: 0.98 }}
+          className="w-full bg-primary text-background font-black py-3.5 rounded-xl flex items-center justify-center gap-2 glow-olive-sm hover:glow-olive transition-all disabled:opacity-60 disabled:cursor-not-allowed mt-2"
+        >
+          {loading ? 'Creating account...' : (
+            <><span>Create Account</span> <ArrowRight className="w-4 h-4" /></>
+          )}
+        </motion.button>
+      </form>
 
-          <p className="text-center text-sm text-muted-foreground">
-            Already have an account?{' '}
-            <Link href="/login" className="text-primary hover:underline font-medium">
-              Sign in
-            </Link>
-          </p>
-        </form>
-      </CardContent>
-    </Card>
+      <p className="text-center text-sm text-muted-foreground mt-6">
+        Already have an account?{' '}
+        <Link href="/login" className="text-primary font-bold hover:text-white transition-colors">
+          Sign in
+        </Link>
+      </p>
+    </motion.div>
   )
 }

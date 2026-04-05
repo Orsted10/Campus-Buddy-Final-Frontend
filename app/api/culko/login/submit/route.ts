@@ -1,75 +1,35 @@
 import { NextResponse } from 'next/server'
-import path from 'path'
-import fs from 'fs'
 
 export async function POST(req: Request) {
   try {
     const { sessionId, captchaText } = await req.json()
     
     if (!sessionId || !captchaText) {
-      return NextResponse.json({ error: 'sessionId and captchaText required' }, { status: 400 })
+      return NextResponse.json({ error: 'Session ID and CAPTCHA text required' }, { status: 400 })
     }
     
-    console.log(`[Session ${sessionId}] Received CAPTCHA text, sending to Python backend...`)
+    const scraperUrl = process.env.SCRAPER_URL || 'http://localhost:8000'
+    const targetEndpoint = `${scraperUrl.replace(/\/$/, '')}/api/interactive/submit`
     
-    const sessionsDir = path.join(process.cwd(), '.sessions')
-    const inputPath = path.join(sessionsDir, `${sessionId}_input.txt`)
-    const resultPath = path.join(sessionsDir, `${sessionId}_result.json`)
+    console.log(`[Proxy] Forwarding login submit to Scraper API: ${targetEndpoint}`)
     
-    // Write input file for python to unblock
-    fs.writeFileSync(inputPath, captchaText)
+    const response = await fetch(targetEndpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId, captchaText }),
+      // Set a long timeout since validation and subsequent cookie retrieval takes ~20-30s
+      signal: AbortSignal.timeout(120000) 
+    })
     
-    // Poll for the result
-    let waitTime = 0
-    while (waitTime < 60) { // 60 seconds max to finish login
-      if (fs.existsSync(resultPath)) {
-        try {
-          const resultRaw = fs.readFileSync(resultPath, 'utf8')
-          const result = JSON.parse(resultRaw)
-          
-          // Clean up
-          fs.unlinkSync(resultPath)
-          
-          if (result.success && result.cookies) {
-             const response = NextResponse.json({ 
-                success: true,
-                message: 'Login successful via interactive automation'
-              })
-              
-              response.cookies.set('culko_session', JSON.stringify(result.cookies), {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: 'lax',
-                maxAge: 60 * 60 * 24 * 7, // 7 days
-                path: '/'
-              })
-              
-              return response
-          } else {
-             return NextResponse.json({
-               success: false,
-               error: result.error || 'Login failed invalid CAPTCHA or Password'
-             }, { status: 401 })
-          }
-        } catch (e) {
-          console.error('Failed to parse result:', e)
-          return NextResponse.json({ error: 'Failed to parse result' }, { status: 500 })
-        }
-      }
-      
-      await new Promise(r => setTimeout(r, 1000))
-      waitTime++
+    if (!response.ok) {
+      throw new Error(`Scraper API returned ${response.status}: ${await response.text()}`)
     }
     
-    // Clean up input path just in case
-    if (fs.existsSync(inputPath)) {
-      fs.unlinkSync(inputPath)
-    }
+    const data = await response.json()
+    return NextResponse.json(data)
     
-    return NextResponse.json({ error: 'Timeout waiting for login result' }, { status: 504 })
-    
-  } catch (error) {
-    console.error('Error in login submit:', error)
-    return NextResponse.json({ error: 'Failed to submit login' }, { status: 500 })
+  } catch (error: any) {
+    console.error('Error in login submit proxy:', error)
+    return NextResponse.json({ error: `Failed to connect to Scraper Backend: ${error.message}` }, { status: 500 })
   }
 }
