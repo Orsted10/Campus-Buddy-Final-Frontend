@@ -717,44 +717,57 @@ function parseProfile(html: string): any {
   try {
     const $ = cheerio.load(html)
     
-    // STRATEGY 1: ID Based Search (Common ASP.NET labels in these portals)
+    // STRATEGY 1: ID Based Search (Common ASP.NET labels in CU/CULKO portals)
     const idMap: Record<string, keyof typeof profile> = {
       'lblStudentName': 'name',
       'lblFullName': 'name',
+      'lblSTDFirstName': 'name',
       'lblEnrollNo': 'uid',
       'lblUID': 'uid',
       'lblRegNo': 'uid',
       'lblSemester': 'semester',
       'lblSem': 'semester',
+      'lblCurrentSemester': 'semester',
       'lblEmail': 'email',
       'lblEmailID': 'email',
+      'lblEmailId': 'email',
       'lblProgName': 'program',
       'lblCourse': 'program',
+      'lblCourseName': 'program',
       'lblMobile': 'mobile',
       'lblStudentMobile': 'mobile',
+      'lblMobileNo': 'mobile',
       'lblDOB': 'dob',
       'lblDateOfBirth': 'dob',
       'lblFatherName': 'fathersName',
+      'lblFathersName': 'fathersName',
       'lblMotherName': 'mothersName',
+      'lblMothersName': 'mothersName',
       'lblAddress': 'address',
       'lblPermanentAddress': 'address',
-      'lblBloodGroup': 'bloodGroup'
+      'lblBloodGroup': 'bloodGroup',
+      'lblAdmissionYear': 'admissionYear'
     }
 
     Object.entries(idMap).forEach(([id, field]) => {
-      const val = $(`#${id}`).text().trim() || $(`span[id*="${id}"]`).text().trim()
+      const val = $(`#${id}`).text().trim() || $(`span[id*="${id}"]`).text().trim() || $(`label[id*="${id}"]`).text().trim()
       if (val && val !== 'Unknown' && val !== 'Student' && val.length > 1) {
-        profile[field] = val
+        // Special cleanup for name
+        if (field === 'name') {
+           profile[field] = val.replace(/^Hello,?/i, '').trim()
+        } else {
+           profile[field] = val
+        }
       }
     })
 
-    // STRATEGY 2: Find name in common headers/class names
-    if (profile.name === 'Student') {
+    // STRATEGY 2: Find name in common headers if Strategy 1 failed
+    if (profile.name === 'Student' || profile.name.includes('Hello')) {
       const nameElem = $('div, span, h1, h2, h3').filter((_, el) => {
         const cls = $(el).attr('class') || ''
         const id = $(el).attr('id') || ''
         const txt = $(el).text()
-        return (cls.toLowerCase().includes('name') || id.toLowerCase().includes('name')) && txt.includes(',')
+        return (cls.toLowerCase().includes('name') || id.toLowerCase().includes('name')) && (txt.includes(',') || txt.length > 5)
       }).first()
       
       if (nameElem.length > 0) {
@@ -773,6 +786,7 @@ function parseProfile(html: string): any {
           
           // Clean up value (sometimes it has multiple labels)
           if (nextTxt.includes(':')) nextTxt = nextTxt.split(':')[1].trim()
+          if (!nextTxt) continue
 
           if (txt === 'uid' || txt.includes('enrollment') || txt === 'student id' || txt === 'roll no') profile.uid = nextTxt
           else if (txt === 'name' || txt === 'student name') { if (profile.name === 'Student') profile.name = nextTxt; }
@@ -785,7 +799,10 @@ function parseProfile(html: string): any {
           else if (txt === 'admission year') profile.admissionYear = nextTxt
           else if (txt === 'address' || txt === 'permanent address') profile.address = nextTxt
           else if (txt === 'email' || txt === 'email id') profile.email = nextTxt
-          else if (txt === 'mobile' || txt === 'phone' || txt.includes('contact')) profile.mobile = nextTxt
+          else if ((txt === 'mobile' || txt === 'phone' || txt.includes('contact')) && nextTxt.length > 5) {
+             // Only capture mobile if it looks like a number or isn't just a label typo
+             if (/\d/.test(nextTxt)) profile.mobile = nextTxt
+          }
        }
     })
     
