@@ -208,8 +208,12 @@ export async function fetchCULKOData(endpoint: 'attendance' | 'marks' | 'timetab
     // Make request to CULKO
     const response = await fetchCULKOResource(endpoint, sessionCookies)
     
-    // Sync to DB in background
-    savePortalData(endpoint, response).catch(e => console.error(`Sync error:`, e))
+    // MUST await - fire-and-forget is killed by serverless before it resolves
+    try {
+      await savePortalData(endpoint, response)
+    } catch (syncErr) {
+      console.error(`[fetchCULKOData] Sync error for ${endpoint}:`, syncErr)
+    }
     
     return {
       success: true,
@@ -806,11 +810,14 @@ function parseProfile(html: string): any {
     }
 
     Object.entries(idMap).forEach(([id, field]) => {
-      const val = $(`#${id}`).text().trim() || $(`span[id*="${id}"]`).text().trim() || $(`label[id*="${id}"]`).text().trim()
+      // Use [id$="..."] (ends-with) to handle ASP.NET control prefixes
+      // e.g. ContentPlaceHolder1_frmStudentProfile_lblSemester
+      const val = $(`#${id}`).text().trim() 
+             || $(`[id$="${id}"]`).text().trim()
+             || $(`[id*="_${id}"]`).text().trim()
       if (val && val !== 'Unknown' && val !== 'Student' && val.length > 1) {
-        // Special cleanup for name
         if (field === 'name') {
-           profile[field] = val.replace(/^Hello,?/i, '').trim()
+           profile[field] = val.replace(/^Hello,?\s*/i, '').trim()
         } else {
            profile[field] = val
         }
