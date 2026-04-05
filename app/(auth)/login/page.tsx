@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/hooks/useAuth'
@@ -13,8 +13,15 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [showPwd, setShowPwd] = useState(false)
   const [loading, setLoading] = useState(false)
-  const { signIn, signInWithGoogle } = useAuth()
+  const { signIn, signInWithGoogle, user } = useAuth()
   const router = useRouter()
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (user) {
+      router.replace('/dashboard')
+    }
+  }, [user, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

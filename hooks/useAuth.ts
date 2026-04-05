@@ -175,15 +175,24 @@ export function useAuth() {
 
   const signOut = async () => {
     try {
-      // Clear portal session
+      // Clear portal session first
       await fetch('/api/culko/logout').catch(() => {})
       
+      // Supabase signout
       const { error } = await supabase.auth.signOut()
       if (error) throw error
-      clearUser()
-      router.push('/login')
+      
+      // Clear all local zustand state
+      const { reset } = useAuthStore.getState()
+      reset()
+      
+      // Hard redirect to login to ensure clean state
+      window.location.href = '/login'
       return { error: null }
     } catch (error: any) {
+      // Even if error, try to clear store and redirect
+      useAuthStore.getState().reset()
+      window.location.href = '/login'
       return { error }
     }
   }
