@@ -1,0 +1,1447 @@
+
+
+
+<!DOCTYPE html>
+
+<html lang="en">
+<head><meta charset="utf-8" /><meta name="theme-color" content="#ce3333" /><meta http-equiv="X-UA-Compatible" content="IE=edge" /><meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests" /><meta name="viewport" content="width=device-width, initial-scale=1" /><link rel="dns-prefetch" href="https://student.culko.in" /><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" /><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" /><link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&amp;family=Nunito:ital,wght@0,200..1000;1,200..1000&amp;family=Poppins:wght@300;400;500;600&amp;family=Roboto:ital,wght@0,100..900;1,100..900&amp;display=swap" rel="stylesheet" /><title>
+	Chandigarh University Management System |  Unnao Campus
+</title><link rel="stylesheet" href="assets/css/bootstrap.min.css" /><link rel="stylesheet" href="assets/css/font-awesome.min.css" /><link rel="stylesheet" href="assets/css/style.css" /><link rel="stylesheet" href="assets/css/material-btn.css" /><link rel="stylesheet" href="assets/css/responsive.css" /><link rel="stylesheet" href="assets/css/style.css" /><link rel="stylesheet" href="assets/css/style-new.css" /><link rel="stylesheet" href="n-css/sidenav.css" /><link rel="stylesheet" href="n-css/scrollbar.css" /><link rel="stylesheet" href="css/toastr8.min.css" /><link rel="stylesheet" href="css/sweet-alert.css" /><link rel="stylesheet" href="Scripts/jquery-ui.css" /><link href="css/apprise.min.css" rel="stylesheet" /><link rel="stylesheet" href="Help/help-css.css" /><link rel="stylesheet" href="assets/css/live-video.css" />
+
+
+    <script src="Scripts/apprise-1.5.min.js"></script>
+    <script type="text/javascript" src="Scripts/jquery-2.0.3.min.js"></script>
+    <script type="text/javascript" src="Scripts/sweet-alert.min.js"></script>
+    <!-- Bootstrap JS and dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
+    <!--- Analytics CUCHD --->
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-108822757-1"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+
+        gtag('config', 'UA-108822757-1');
+    </script>
+
+
+
+    <style>
+        body, html {
+            height: 100%;
+            width: 100%;
+        }
+
+        #div_exam img {
+            width: 100%;
+        }
+
+        #div_exam {
+            width: 146px;
+            position: absolute;
+            left: 0;
+            top: 10px;
+        }
+
+        .header-right {
+            position: relative;
+        }
+
+        #menu-loading {
+            /*position: absolute;
+            top: 9px;
+            left: 50%;*/
+            display: none;
+            width: 20px;
+            height: 20px;
+        }
+        .loading{ top: 16px; left: 50%; }
+        #short_links .col-sm-3 {
+            width: 20%;
+        }
+
+        .logo {
+            position: relative;
+        }
+        .logo i {
+            position: absolute;
+            top: 50%;
+            right: -30px;
+            width: 20px;
+            height: 20px;
+            line-height: 20px;
+            border-radius: 50%;
+            transform: translateY(-50%);
+            font-size: 36px;
+        }
+        #footer {
+            position: relative;
+        }
+        #a_bugreport {
+            /*position: absolute;
+            right: 13px;
+            bottom: 28px;*/
+            color: red;
+            font-size: 13px;
+        }
+        div[id*="divUniEmail"] {
+            position: absolute;
+            top: 102px;
+            background: #fff;
+            padding: 10px;
+            height: auto;
+            z-index: 99;
+            border-radius: 10px;
+            border: 1px solid #cecece;
+            z-index: 999999;
+            right: 10px;
+            transition: all 0.4s ease-in-out 0s;
+            -webkit-transition: all 0.4s ease-in-out 0s;
+            display: none;
+            width:calc(100% - 20px);
+        }
+        div[id*="div_OE"] {
+            /*position: relative;
+            z-index:999;*/
+        }
+        #short_links {
+            overflow: visible !important;
+        }
+        @media only screen and (max-width: 767px) {
+            #short_links .col-sm-3 {
+                width: 50%;
+            }
+            #short_links .col-sm-3:last-child {
+                padding-right: 7px;
+            }
+            div[id*="divUniEmail"]{
+                width:310px;
+            }
+        }
+        /* 22-08-2023 */
+        #divChangePassword input[type="submit"], 
+        #divChangePassword input[type="button"],
+        #divChangeWifiPassword input[type="submit"], 
+        #divChangeWifiPassword input[type="button"]{
+            padding: 0px !important;
+        }
+        input[type=submit], input[type=button] {
+            padding: 7px 15px !important;
+        }
+
+        /*header {
+            background: #fff;
+            box-shadow: none;
+            border-bottom: 1px solid #dadbdd;
+        }*/
+
+        .page-search {
+            padding: 13px 30px;
+    }
+        .header-left {
+            /*width: 260px;
+                border-right: 1px solid #dadbdd;
+            padding: 7px 0;*/
+        }
+
+        .user-profile-link h6 {
+            color: #405189;
+        }
+
+        .header-right {
+            padding: 0;
+        }
+        .user-profile-link > span {
+            height: 38px;
+            width: 38px;
+        }
+
+
+        .user-dropdown {
+            width: 190px;
+            background: #fff;
+            box-shadow: none;
+            top: 74px;
+            padding: 0;
+            box-shadow: 0 5px 10px rgba(30,32,37,.12);
+        }
+        .user-dropdown ul li a {
+            padding: 10px 10px;
+            font-size: 14px;
+        }
+        .user-dropdown ul li a:hover{
+            background: #f1f1f1;
+            color: #333;
+        }
+
+        .user-profile-link small.uid{
+            display: block;
+            margin-top: 2px;
+        }
+
+        .setting-dropdown {
+            width: 210px;
+            background: #fff;
+            box-shadow: none;
+            top: 52px;
+            right: -11px;
+            padding: 0;
+            box-shadow: 0 5px 10px rgba(30,32,37,.12);
+        }
+
+        .setting-dropdown ul li{
+            margin: 0 !important;
+        }
+        .setting-dropdown ul li a {
+            padding: 10px 10px;
+            font-size: 14px;
+        }
+        .setting-dropdown ul li a:hover{
+            background: #f1f1f1;
+            color: #333;
+        }
+
+        .info-icon{
+            width: auto;
+        }
+        .home-links ul li,
+        .all-notifications ul>li{
+            margin-left: 25px;
+        }
+
+
+        /*.main-wrapper {
+            background: #f3f3f9;
+            padding: 72px 0 0 260px;
+        }
+        .inner-wrapper {
+            padding: 30px 15px;
+        }*/
+        .page-search-input input[type="text"] {
+            height: 48px;
+            width: 100%;
+            border-radius: 30px;
+            background-color: rgba(228, 228, 228, 0.5);
+            padding: 0 25px;
+            color: #000;
+            transition: all 0.4s ease-in-out 0s;
+            -webkit-transition: all 0.4s ease-in-out 0s;
+            border: 1px solid #fff;
+        }
+
+        /*.uims-sidebar {
+            width: 260px;
+            background: #fff;
+            box-shadow: none;
+            padding-top: 75px;
+            border-right: 1px solid #dadbdd;
+        }*/
+        .uims-sidebar li {
+            border-bottom: 0;
+        }
+        .uims-sidebar li a {
+            color: #fff;
+            font-size: 14px;
+            line-height: 17px;
+            padding:15px;
+            position: relative;
+            font-weight: normal;
+            border-radius:30px;
+        }
+        .uims-sidebar li a span.arrow {
+            position: absolute;
+            right: 5px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        .uims-sidebar ul .sub-menu li{
+            background-color: transparent;
+            border-color: #f5f5f5;
+            border: 0;
+        }
+        .uims-sidebar ul .sub-menu li a{
+            position: relative;
+            color: #fff;
+        }
+        .uims-sidebar ul .sub-menu li a::before {
+            content: '';
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 7px;
+            height: 2px;
+            background: #fff;
+        }
+        .uims-sidebar ul ul {
+            padding: 0;
+            /*border-bottom: 1px solid #fff;*/
+        }
+        .uims-sidebar ul ul li a {
+            display: block;
+            padding: 12px 16px 12px 35px;
+            line-height: 16px;
+            font-size: 14px;
+        }
+        .menu-content li[aria-expanded="true"] a {
+            background-color: #B80101;
+            color: #fff !important;
+        }
+        li[aria-expanded="true"] a .arrow::before {
+            transform: rotate(90deg);
+        }
+        .uims-sidebar li a:hover {
+            background-color:#B80101;
+        }
+        .uims-sidebar ul ul ul {
+            padding: 0;
+        }
+
+        .user-profile-link {
+            background: #f1f1f1;
+            padding: 18px 20px;
+        }
+
+        .shortLinks {
+            display: flex;
+            justify-content: space-between;
+            margin: 0 -10px;
+        }
+        /*.shortLinks__item:first-child{
+            padding-left: 0;
+        }
+        .shortLinks__item:last-child{
+            padding-right: 0;
+        }*/
+        .shortLinks__item {
+            width: 100%;
+            padding: 0 10px;
+        }
+        .shortLinks__item a {
+            width: 100%;
+            background: #fff;
+            padding: 20px;
+            position: relative;
+        }
+        .shortLinks__item a span {
+            position: absolute;
+            right: 20px;
+            bottom: 20px;
+            background: #e5f3fe;
+            width: 40px;
+            height: 40px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .shortLinks__item a h6 {
+            font-size: 16px;
+            color: #354781;
+            font-weight: 600;
+        }
+        .shortLinks__item a small {
+            font-size: 12px;
+            border-bottom: 2px solid #ddd;
+            color: #333;
+            display: inline-block;
+            text-transform: uppercase;
+            margin-top: 15px;
+        }
+
+        #loader img{
+            border-radius: 50%;
+            width: 35px
+        }
+        footer {
+            /*padding: 20px 0;
+            background: #f3f3f9;
+            margin-top: 0;
+            border-top: 1px solid #ddd;*/
+        }
+
+        .uims-sidebar.swipe {
+            left: -275px;
+        }
+
+        .box-shadow-common {
+            box-shadow: rgba(100,98,92,.06) 0 0 15px 4px;
+            border: 0;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        body {
+            background: #F7F7F5 !important;
+        }
+
+        /*table#rAttachments {
+            background: #f1f1f1 !important;
+        }*/
+        table#rAttachments td{
+            padding: 0!important;
+        }
+        #divChangePassword,
+        #divChangeWifiPassword{
+            background-color: rgba(30, 30, 30, 50%) !important;
+        }
+
+        #divChangePassword .modal-content,
+        #divChangeWifiPassword .modal-content {
+            border-radius: 10px;
+            box-shadow: rgba(100,98,92,.06) 0 0 15px 4px;
+        }
+
+        #divChangePassword input[type=text], 
+        #divChangePassword select, 
+        #divChangePassword input[type=password], 
+        #divChangePassword textarea,
+        #divChangeWifiPassword input[type=text], 
+        #divChangeWifiPassword select, 
+        #divChangeWifiPassword input[type=password], 
+        #divChangeWifiPassword textarea {
+            height: 43px;
+            border-radius: 6px;
+            padding: 0 14px;
+        }
+
+        #divChangePassword input[type=submit], 
+        #divChangePassword input[type=button],
+        #divChangeWifiPassword input[type=submit], 
+        #divChangeWifiPassword input[type=button] {
+            font-size: 14px;
+            cursor: pointer;
+            width: 100%;
+            height: 43px;
+            border-radius: 6px;
+            font-weight: 600;
+            line-height: 43px;
+        }
+        #divChangePassword .modal-header,
+        #divChangeWifiPassword .modal-header {
+            background: #fff;
+            border: 0;
+            padding:10px;
+        }
+        #divChangePassword .modal-header h4,
+        #divChangeWifiPassword .modal-header h4 {
+            color: #333;
+            font-weight: 600;
+        }
+        #divChangePassword .modal-header .close,
+        #divChangeWifiPassword .modal-header .close {
+            color: #999;
+            right: 5px;
+            position: relative;
+            top: 4px;
+        }
+
+        #divChangePassword .modal-body,
+        #divChangeWifiPassword .modal-body {
+            padding: 10px 20px 15px;
+        }
+
+        #divChangePassword .modal-dialog,
+        #divChangeWifiPassword .modal-dialog {
+            max-width: 400px;
+            margin: 40px auto;
+            padding: 0 20px;
+            width: 100%;
+        }
+        .form_header {
+            background: #B80101;
+            padding: 12px;
+            border-bottom: 0;
+            text-align: center;
+            margin: 0;
+            line-height: 18px;
+            font-size: 18px;
+            color: #fff;
+            border-radius: 10px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        } 
+        table{
+            background: #fff !important;
+                border-color: #ddd;
+        }
+        table th {
+            padding: 0;
+            background-color: #eeeeee !important;
+            font-weight: 500 !important;
+            padding: 3px 10px !important;
+            font-size: 14px !important;
+        }
+        table th:hover{ background-color: #eeeeee !important; }
+        table td {
+            padding: 3px 10px;
+        }
+
+        .NavigationSearchPC {
+	        background: #fff;
+	        left: 0;
+	        right: 0;
+	        top: 0;
+            width:100%;
+	        padding-top: 52px;
+        }
+        .divUniEmail{ color:#232323; }
+        .modal { z-index:1060; }
+        .modal.fade .modal-dialog{ transition: transform .35s ease-out; }
+        .modal-backdrop.in{ opacity:.5; }
+        .modal.fade.in .modal-dialog{ transform: translate(0,0); }
+        .modal.fade.in { opacity: 1; }
+        .fade{ transition: opacity .35s linear; }
+        .nav-tabMessage li a{ padding:10px 15px; border-radius:5px 5px 0 0; }
+        .nav-tabMessage li{ display:flex; }
+        /*.modal.show .modal-dialog{ border:10px solid green; }*/
+        @media only screen and (min-width: 1920px){
+            .inner-wrapper{
+                max-width: 1920px;
+                margin: auto;
+            }
+        }
+        @media only screen and (max-width: 1365px){
+            .page-search {
+                width: 37%;
+            }
+            /*.main-wrapper {
+                padding-left: 0;
+            }*/
+            .uims-sidebar {
+                /*left: -265px;*/
+            }
+            .uims-sidebar.swipe {
+                left: 0;
+                z-index: 9999;
+            }
+            .modal-backdrop{
+                    background-color: rgb(30 30 30 / 37%) !important;
+            }
+        }
+        @media only screen and (max-width: 1199px){
+            .page-search {
+                padding: 13px 0;
+                width: 30%;
+            }
+            .home-links ul li, .all-notifications ul>li {
+                margin-left: 20px;
+            }
+            .shortLinks {
+                flex-direction: row;
+                flex-wrap: wrap;
+            }
+            .shortLinks__item {
+                width: 33%;
+                padding: 0 10px;
+            }
+        }
+        @media only screen and (max-width: 991px){
+            .info-icon svg,
+            .home-links svg{
+                width: 16px;
+                height: 16px;
+            }
+            .home-links ul li, .all-notifications ul>li {
+                margin-left: 15px;
+            }
+            .home-links > ul > li > a{
+                font-size: 0
+            }
+            .page-search-input input[type="text"]{
+                padding-right: 40px
+            }
+            /*#txtUserSearch001_PC {
+                background-position: 92% center;
+            }*/
+            .user-profile-link {
+                background: transparent;
+            }
+            .page-search {
+                width: 36%;
+            }
+        }
+        @media only screen and (max-width: 767px){
+            .page-search {
+                position: absolute;
+                display: none;
+                width: 100% !important;
+                top: 45px;
+                background: #fff;
+                padding: 8px 13px;
+            }
+            .page-search.open{
+                display: block
+            } 
+            .all-notifications, .home-links {
+                position: relative;
+                top: 0;
+                right: 0;
+            }
+            .header-right{
+                width: auto;
+            }
+            header::before{
+                display: none !important;
+            }
+
+            .shortLinks__item {
+                width: 50%;
+                padding: 0 10px;
+            }
+            /*.row {
+                margin-right: -15px !important;
+                margin-left: -15px !important;
+            }*/
+            .all-notifications{
+                width: auto;
+            }
+
+            .mob-search {
+                display: inline-block !important;
+            }
+            .mob-search svg{
+                width: 16px;
+                height: 16px;
+            }
+        }
+
+        @media only screen and (max-width: 575px){
+            .user-n-mob {
+                display: block;
+            }
+            .user-profile-link h6{
+                display: none
+            }
+            .user-n-mob h5{
+                font-size: 14px;
+                font-weight: 500;
+                color: #405189;
+            }
+            .user-n-mob h5 small{
+                display: block;
+                margin-top: 2px;
+            }
+        }
+
+
+        @media only screen and (max-width: 479px){
+            .shortLinks__item a span {
+                position: relative;
+                margin-top: 15px;
+                display: block;
+                left: 0;
+                bottom: 0;
+            }
+            .shortLinks__item a span svg {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%,-50%);
+            }
+            .shortLinks__item{
+                margin-bottom: 20px;
+            }
+            .shortLinks__item a{
+                height: 100%;
+                margin-bottom: 0;
+            }
+
+            /*.header-left {
+                width: 116px;
+                text-align: right;
+            }*/
+            .logo {
+                width: 70px;
+            }
+            .user-profile-link {
+                padding: 7px 10px;
+                margin-left: 0;
+            }
+            .info-icon svg, .home-links svg {
+                width: 14px;
+                height: 14px;
+            }
+            .mob-search svg{
+                width: 14px;
+                height: 14px;
+            }
+            .home-links ul li, .all-notifications ul>li {
+                margin-left: 10px;
+            }
+            .home-links ul li:first-child, .all-notifications ul>li:first-child{
+                margin-left: 0 !important;
+            }
+            .user-profile-link > span {
+                margin: 0;
+            }
+            .all-notifications, .home-links {
+                margin-top: 5px;
+            }
+            .main-wrapper {
+                padding-top: 72px;
+            }
+            .inner-wrapper {
+                padding: 0 15px;
+            }
+            .all-notifications {
+                margin-right: 15px;
+            }
+            .user-dropdown{
+                top: 51px;
+            }
+            .setting-dropdown {
+                top: 34px;
+            }
+        }
+
+
+        /* 22-08-2023 */
+    </style>
+    
+      
+</head>
+<body class="body-gradient">
+    <form method="post" action="./frmMyTimeTable.aspx" id="form1">
+<div class="aspNetHidden">
+<input type="hidden" name="__EVENTTARGET" id="__EVENTTARGET" value="" />
+<input type="hidden" name="__EVENTARGUMENT" id="__EVENTARGUMENT" value="" />
+<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="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" />
+</div>
+
+<script type="text/javascript">
+//<![CDATA[
+var theForm = document.forms['form1'];
+if (!theForm) {
+    theForm = document.form1;
+}
+function __doPostBack(eventTarget, eventArgument) {
+    if (!theForm.onsubmit || (theForm.onsubmit() != false)) {
+        theForm.__EVENTTARGET.value = eventTarget;
+        theForm.__EVENTARGUMENT.value = eventArgument;
+        theForm.submit();
+    }
+}
+//]]>
+</script>
+
+
+<script src="/WebResource.axd?d=pynGkmcFUV13He1Qd6_TZPq3HaZr2PUdbYniTyCZWQerr8wwVfNZHSaVFb4PngwIEXnszWZGXzZTXgGQ1iRJ9Q2&amp;t=638774887141545536" type="text/javascript"></script>
+
+
+<script src="/ScriptResource.axd?d=D9drwtSJ4hBA6O8UhT6CQh3Y8nY4nhn-sbcXorRHtj0cBE5I40ap3pm5ZhBLjISGJGHNCO3jE-8UUnTJUCdI9PFb-ROrRgR9gFoNavG67iuXd43wgajodstUMhLg1vnACp0EIr0g130ggVzyoWHnoxdI7KRfrcuvaLralQk01qk1&amp;t=ffffffffacea8b1a" type="text/javascript"></script>
+<script type="text/javascript">
+//<![CDATA[
+if (typeof(Sys) === 'undefined') throw new Error('ASP.NET Ajax client-side framework failed to load.');
+//]]>
+</script>
+
+<script src="/ScriptResource.axd?d=JnUc-DEDOM5KzzVKtsL1tdNhMGMooJ95FrQOhCiulFF25Cl3gpR-57cckv1m6GobAssTaZGZ8HkgoLQWr90wXoSDPGyUobU2rLgDYbcJqHlvbPExbdsIQVK4KVP9Q8IsRKhDdAHM0Sy2sg22bfR0UpKuVgayOTI7x5WW_FzraVke-GSWRCv2E5NPpfdUP7fE0&amp;t=ffffffffacea8b1a" type="text/javascript"></script>
+<script src="/ScriptResource.axd?d=V7lYofBNDiSYOgSlDiTISpWQzXwHkdwb_MyQo9JoDqXv1GErNGoxyxvNBawo0CpmimIDli_6RgRpuDdKbSQ7C8nsqLCX_bEw4eHA_psm0-9G62oXZC3EhjXGt49l_xn_oUPP_hQ2MtNdqhDi3389qgJr4l0F3NCMtJ751pfp9nU1&amp;t=ffffffff9b7d03cf" type="text/javascript"></script>
+<script src="/ScriptResource.axd?d=8HBMVpJM49mm80uR-ggjY9_O4NHujT-HsBEsHUjCcGslRgkZk7NZQJq1InktUR18D6otBlNrtHuIil5S3XKZBNLBoizi068Jdo28ymNIsnXZgqnmzzPGMZSD4J9Tyqzz3HniSQox53H456DZyV3FyQ2&amp;t=ffffffff9b7d03cf" type="text/javascript"></script>
+<script src="/ScriptResource.axd?d=vQR2N7McTtmzjONdj8pDQPdvnkuSyfYQAvJvDncncxIDqvSbUk7HwZWSmo6cHtvIwRVO-wHw4VjG_biYk0fJNAJel_Bu4t7YIEyS4U19SRYjIDC2iVKmpC6glilG3MgWvusRDgsvJ-Y69-ByrgfswbMplKgFDDZy65jmdJYy7AM1&amp;t=ffffffff9b7d03cf" type="text/javascript"></script>
+<script src="/ScriptResource.axd?d=8CjII1v0OLoMNKf5zGXmemIk3OzZlcpC2D0DaIe6EdALuOS1S4p0g2jtrkaaKB7KNyn9U1-OOXUlpQaQCwNGBoxjO1694M0VPAa9vUZ2wFLhl-__QFn8KUh1NnDDknG3QkLOk5jCXH45FT2L4dgUM8FGG5cbyofdu0oLRNERZm81&amp;t=ffffffff9b7d03cf" type="text/javascript"></script>
+<script src="/ScriptResource.axd?d=yoepU9WTnNLBrovfoMoPb7Koo3z_0NFPum7qDjpzw8cl7PKoNog8KvJ4diNqXzMRNAPpm2L7mIXnzizbAvX4QISmDHJ-19WNQFlOkTYmhOQSXyVtxRdkVyuN02T7YaAAUij1lETDwdLrwOURi-wWHM5C8Hbav2-aSp9a1pw6H9ipsRRGHW3W_zzG3eJWTuXRUMBRHpzSTgNReOINmv2lsA2&amp;t=ffffffff9b7d03cf" type="text/javascript"></script>
+<div class="aspNetHidden">
+
+	<input type="hidden" name="__VIEWSTATEGENERATOR" id="__VIEWSTATEGENERATOR" value="2AD1C328" />
+	<input type="hidden" name="__EVENTVALIDATION" id="__EVENTVALIDATION" value="Yznep7skqlTknwCw+3FH5LvMelDLmOLQMpLT/+74Rczig6tQxc8pyJctZEm/94sqYR4+Dma27Ok4gYqSj3q/cGH+RNC990u2rKZsxJ4bnYsf5ZRd9rY0rSIXLagXT0yqZ5FDpk+YQqBDBtBnNdrVtpZSfSVtcGHYYoT43kYD8G+eSr2+TFnZA0QxEIWDyMxUmgd1w3ZtaEkdu0E+YiEER28S/pHMyMIp+QFwXwjlYH8W5NEleKxGF5UQvtxRan8BmPncpI+UB1PPDcfRV2OJMonruLZd6MRKzFNdMHi0uqghrL8D4W1J5gqidJIdnQATSgemBpA/pq2W8Pkk2P2ucG/xc09lUK0OF/ww7J9OT4BZVvyaxQp/oONcwkUP66JZmPgGf3dbKu60Nf5He8cGky96/MvwCFhvuEbm/BZN0+ap4dghKKZCQaS/h81XHFE5" />
+</div>
+        <input type="hidden" name="ctl00$hfInfoMessage" id="hfInfoMessage" />
+        <input type="hidden" name="ctl00$hfUserTheme" id="hfUserTheme" />
+        <input type="hidden" name="ctl00$hfWindowScroll" id="hfWindowScroll" />
+
+        <input type="hidden" name="ctl00$hfMessagePageNumber" id="hfMessagePageNumber" />
+        <input type="hidden" name="ctl00$hfIsNewMessage" id="hfIsNewMessage" />
+        <input type="hidden" name="ctl00$hfAlertPageNumber" id="hfAlertPageNumber" />
+        <input type="hidden" name="ctl00$hfIsNewAlert" id="hfIsNewAlert" />
+        <input type="hidden" name="ctl00$hfAlertsCount" id="hfAlertsCount" />
+        <input type="hidden" name="ctl00$hfMessagesCount" id="hfMessagesCount" />
+        <input type="hidden" name="ctl00$hfIsMobile" id="hfIsMobile" />
+
+         
+        <input type="hidden" name="ctl00$hfbytes" id="hfbytes" />
+        <input type="hidden" name="ctl00$hfname" id="hfname" />
+        
+        <script type="text/javascript">
+//<![CDATA[
+Sys.WebForms.PageRequestManager._initialize('ctl00$ScriptManager1', 'form1', [], [], [], 90, 'ctl00');
+//]]>
+</script>
+
+        <div id="loader-wrapper">
+            <div id="loader">
+                <img src="assets/uploads/loader.gif" alt="Loading" />
+                <p>Loading...</p>
+            </div>
+        </div>
+        <div class="main-wrapper" id="mainWrap">
+            <header id="header" class="position-fixed header d-flex">
+                
+                <div class="topbar d-flex position-absolute" id="myElement">
+                    <div class="header-left bg-transparent">
+                        <button class="navbar-toggler position-absolute collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#uims_sidebar" aria-controls="uims_sidebar" aria-expanded="false" aria-label="Toggle navigation" onclick="slideLeft()">
+                            
+                            <img id="Image1" class="img-fluid" alt="logo" src="../assets/upload-images/icon-hamburger.svg" />
+                        </button>
+                        <a class="navbar-brand"><img class="img-fluid" src="../assets/upload-images/logo-main-black.png" width="100" /></a>
+                    </div>
+                    <div class="ms-auto d-flex outer-area">
+                        <div class="search-bar d-flex">
+                            <div class="search-form d-flex align-items-center">
+                                <span id="s-total-search" class="total-results position-absolute"></span>
+                                <input type="text" name="query" class="search-result" placeholder="Search here" autocomplete="off" id="txtUserSearch001_PC" />
+                                <img src="assets/uploads/loader.gif" class="loading position-absolute" id="menu-loading" />
+                                <div class="NavigationSearchPC position-absolute">
+                                </div>
+                            </div>
+                        </div>
+                        <nav class="header-nav ms-auto">
+                            
+                            <ul class="d-flex align-items-center">
+                                <li class="nav-item d-block d-lg-none" id="searchBox">
+                                    <a class="nav-link nav-icon d-flex justify-content-center align-items-center search-icon search-bar-toggle" href="#" >
+                                        <img src="../assets/upload-images/icon-search.svg" alt="Search" />
+                                    </a>
+                                </li>
+                                <li class="nav-item dropdown">
+                                    <a class="nav-link nav-icon d-flex nav-settings justify-content-center align-items-center" id="div_NotiCount" href="#" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <img src="../assets/upload-images/icon-notifications.svg" alt="Notifications" />
+                                        <span class="other-notify badge badge-number badge-red align-items-center justify-content-center" id="spanNoti_Count">0</span>
+                                    </a>          
+                                    <ul class="dropdown-menu dropdown-menu-end dropdown-menu-arrow notifications" id="noti_content">
+                                        <li class="dropdown-header d-flex">
+                                            You have 0 new notifications
+                                            <a href="#"><span class="badge d-flex rounded-pill bg-primary p-2 ms-2">View all</span></a>
+                                        </li>
+                                        
+                                        <li>
+                                            <hr class="dropdown-divider">
+                                        </li>
+                                        <li class="dropdown-footer">
+                                            <a href="#">Show all notifications</a>
+                                        </li>
+                                    </ul>
+                                </li>
+                                <li class="nav-item dropdown">
+                                    <a href="StudentHome.aspx" id="aHome" class="nav-link nav-icon d-flex align-items-center justify-content-center" data-bs-toggle="dropdown">
+                                        <img src="../assets/upload-images/icon-messages.svg" alt="Messages" />
+                                        <span class="badge badge-number d-flex align-items-center justify-content-center">0</span>
+                                    </a>
+                                    <ul class="dropdown-menu dropdown-menu-end dropdown-menu-arrow messages">
+                                        <li class="dropdown-header">
+                                            You have 0 new messages
+                                            <a href="#"><span class="badge rounded-pill bg-primary p-2 ms-2">View all</span></a>
+                                        </li>
+                                        <li>
+                                            <hr class="dropdown-divider">
+                                        </li>                                        
+                                        <li>
+                                            <hr class="dropdown-divider">
+                                        </li>
+                                        <li class="dropdown-footer">
+                                            <a href="#">Show all messages</a>
+                                        </li>
+                                    </ul>
+                                </li>
+                                <li class="nav-item dropdown">
+                                    <a class="nav-link nav-icon nav-library d-flex align-items-center justify-content-center" href="#" id="div_LibCount">
+                                        <img src="../assets/upload-images/icon-books.svg" alt="Messages" />
+                                        <span class="badge badge-number badge-light d-flex align-items-center justify-content-center" id="spanLib_Count">0</span>
+                                    </a>
+                                    
+                                </li>
+                                
+                                <li class="nav-item dropdown pe-3 userInfo">
+                                    <a class="nav-link nav-profile d-flex align-items-center pe-0" href="#" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <div class="d-none d-md-block dropdown-toggle position-relative ps-2">
+                                            <div class="u-name d-flex">
+                                                <span>Hello,</span>Ankan
+                                            </div>
+                                            <small class="uid">25LBCS3067</small>
+                                        </div>
+                                        <img src="data:image;base64,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" id="imgFullProfilePic" alt="Profile" class="rounded-circle" />
+                                    </a>
+                                    <ul class="dropdown-menu dropdown-menu-end dropdown-menu-arrow profile">
+                                        <li class="dropdown-header d-flex flex-column">
+                                            <h6>Ankan Bhattacharjee</h6>
+                                        </li>
+                                        <li class="user-n-mob">
+                                            <h5></h5>
+                                        </li>
+                                        
+                                        <li>
+                                            <hr class="dropdown-divider">
+                                        </li>
+                                        <li id="liProfile">
+                                            <a class="dropdown-item d-flex align-items-center" href="frmStudentProfile.aspx">
+                                                <i class="bi bi-person"></i>
+                                                <span>My Profile</span>
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <hr class="dropdown-divider">
+                                        </li>
+                                        <li>
+                                            <a id="LinkButton2" class="dropdown-item d-flex align-items-center" href="javascript:__doPostBack(&#39;ctl00$LinkButton2&#39;,&#39;&#39;)">
+                                                <i class="bi bi-gear"></i>
+                                                <span>Account Settings</span>
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <hr class="dropdown-divider">
+                                        </li>
+                                        <li>
+                                            <a id="LinkButton3" class="dropdown-item d-flex align-items-center" href="javascript:__doPostBack(&#39;ctl00$LinkButton3&#39;,&#39;&#39;)" style="text-decoration: none;">
+                                                <i class="bi bi-lock"></i>
+                                                <span>Change Password</span>
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <hr class="dropdown-divider">
+                                        </li>
+                                        <li id="liWifiPassword" class="message-item d-flex">
+                                            <a id="lbtnChangeWifiPassword" class="dropdown-item d-flex align-items-center" href="javascript:__doPostBack(&#39;ctl00$lbtnChangeWifiPassword&#39;,&#39;&#39;)" style="text-decoration: none;">
+                                                <i class="bi bi-wifi"></i>
+                                                <span>Change Internet Password</span>
+                                            </a>
+                                        </li>
+							            
+                                        <li>
+                                            <hr class="dropdown-divider">
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item d-flex align-items-center" onclick="Logout()">
+                                                <i class="bi bi-box-arrow-right"></i>
+                                                <span>Sign Out</span>
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </li>
+                            </ul>
+                        </nav>
+                    </div>
+                </div>
+            </header>
+            <div id="uims_sidebar" class="uims-sidebar d-lg-block sidebar leftSidebar leftSidebar-collapse position-fixed collapse">
+	            <div class="mobile-header align-items-center d-flex d-lg-none justify-content-between">
+		            <a class="navbar-brand"><img class="img-fluid" src="/assets/upload-images/logo-main.png" width="165" /></a>
+		            <button class="navbar-toggler d-lg-none navbar-toggler collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#uims_sidebar" aria-controls="uims_sidebar" aria-expanded="false" aria-label="Toggle navigation" onclick="slideLeft()">
+			            <span class="navbar-toggler-icon"><img src="/assets/upload-images/icon-close.svg" /></span>
+		            </button>
+	            </div>
+                <div class="header-left">
+                    <button class="navbar-toggler position-absolute d-none d-lg-none collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#uims_sidebar" aria-controls="uims_sidebar" aria-expanded="false" aria-label="Toggle navigation" onclick="slideLeft()">
+                        
+                        <img id="img_logo" class="img-fluid" alt="logo" src="assets\uploads\login-logo-main.png" />
+                    </button>
+                    <button class="navbar-toggler position-absolute d-none d-sm-none d-lg-block collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#uims_sidebar" aria-controls="uims_sidebar" aria-expanded="false" aria-label="Toggle navigation" onclick="slideLeft()">
+                        <span class="navbar-toggler-icon"><img src="../assets/upload-images/icon-hamburger-white.svg" class="img-fluid" /></span>
+                    </button>
+                    <a class="navbar-brand d-none d-lg-block" href="StudentHome.aspx"><img class="img-fluid" src="../assets/upload-images/logo-main.png" width="165" /></a>
+                </div>
+	            <div class="scroll-bar">
+		            <ul id="menu-content" class="nav flex-column menu-content collapse out" id="menu-content">
+			            
+					            <li data-toggle="collapse" data-target='#3563' class="collapsed">
+						            <a href='javascript:void(0);' class="a-uims-nav">
+							            Academics<span class="arrow"></span></a>
+						            
+					            </li>
+					            <ul id='3563' class='sub-menu collapse'><li><a class='a-uims-nav' href='javascript:void(0);'>Department of Life Long(DLL)</a></li><li><a class='a-uims-nav' href='frmStudentCourseWiseAttendanceSummary.aspx?type=etgkYfqBdH1fSfc255iYGw=='>My Attendance</a></li><li><a class='a-uims-nav' href='frmStudentWinningCampAttendanceSummary.aspx?type=etgkYfqBdH1fSfc255iYGw=='>My Attendance ACP/Winning Camp</a></li><li><a class='a-uims-nav' href='frmMyCourse.aspx'>My Courses and Lecture Plan</a></li><li><a class='a-uims-nav' href='frmMyTimeTable.aspx'>My Time Table</a></li><li><a class='a-uims-nav' href='frmWinningCampMyTimetable.aspx'>My Time Table ACP/Winning Camp</a></li><li><a class='a-uims-nav' href='javascript:void(0);'>Project</a></li><li><a class='a-uims-nav' href='frmResourceLibrary.aspx'>Resource Library</a></li><li data-toggle='collapse' data-target='#4138' class='collapsed'><a class='a-uims-nav' href='javascript:void(0);'>Social Internship<span class='arrow'></span></a></li><ul id='4138' class='sub-menu collapse'><li><a class='a-uims-nav' href='frmStudentDailyDiary.aspx '>Daily Diary</a></li><li><a class='a-uims-nav' href='frmStudentSocialInternshipEntry.aspx'>Model Selection & Activity Upload</a></li><li><a class='a-uims-nav' href='frmStudentSocialInternshipEntryPart2.aspx'>Model Selection Part 2 & Activity Upload</a></li></ul></ul>
+				            
+					            <li data-toggle="collapse" data-target='#2403' class="collapsed">
+						            <a href='javascript:void(0);' class="a-uims-nav">
+							            Accounts<span class="arrow"></span></a>
+						            
+					            </li>
+					            <ul id='2403' class='sub-menu collapse'><li><a class='a-uims-nav' href='frmAccountsStudentReceiptList.aspx'>Accounts Reciept</a></li><li><a class='a-uims-nav' href='frmAccountStudentDetails.aspx'>Accounts Statement/ Fee Payment</a></li></ul>
+				            
+					            <li data-toggle="collapse" data-target='#3566' class="collapsed">
+						            <a href='javascript:void(0);' class="a-uims-nav">
+							            Administration<span class="arrow"></span></a>
+						            
+					            </li>
+					            <ul id='3566' class='sub-menu collapse'><li data-toggle='collapse' data-target='#4214' class='collapsed'><a class='a-uims-nav' href='javascript:void(0);'>Centre for Global Education (CGE)<span class='arrow'></span></a></li><ul id='4214' class='sub-menu collapse'><li><a class='a-uims-nav' href='frmCentreForGlobalEducationCGE_ISTP.aspx'>International Short-Term Program (ISTP)</a></li><li><a class='a-uims-nav' href='frmCentreForGlobalEducationCGE_ITP.aspx'>International Transfer Program (ITP)</a></li><li><a class='a-uims-nav' href='frmCentreForGlobalEducationCGE_SEP.aspx'>Semester Exchange Program (SEP)</a></li><li><a class='a-uims-nav' href='frmCentreForGlobalEducationCGE_USA.aspx'>USA</a></li></ul><li><a class='a-uims-nav' href='frmStudentComplaintAgainstHarassment.aspx'>Complaint Against Harassment</a></li><li><a class='a-uims-nav' href='frmStudentAdmissionDocumentsUpload.aspx'>Document Upload</a></li><li><a class='a-uims-nav' href='frmInternationalStudentBasicInformation.aspx'>International Student Application Form </a></li><li><a class='a-uims-nav' href='frmICTSServices.aspx'>ITP (International Transfer Program) Services</a></li><li><a class='a-uims-nav' href='frmInternationalProgramEnrolment.aspx'>OIR Enrollment Form</a></li><li><a class='a-uims-nav' href='frmOIRServices.aspx'>OIR Services</a></li><li><a class='a-uims-nav' href='frmUploadInternationalStudentMedicalInsurance.aspx'>University Medical Insurance</a></li></ul>
+				            
+					            <li data-toggle="collapse" data-target='#2850' class="collapsed">
+						            <a href='frmLoanLetterApplication.aspx' class="a-uims-nav">
+							            Apply for Loan Documents<span class="arrow"></span></a>
+						            
+					            </li>
+					            
+				            
+					            <li data-toggle="collapse" data-target='#3880' class="collapsed">
+						            <a href='frmAppCounsellingTherapyClinicRegistration.aspx' class="a-uims-nav">
+							            Counseling Therapy Clinic Registration<span class="arrow"></span></a>
+						            
+					            </li>
+					            
+				            
+					            <li data-toggle="collapse" data-target='#3713' class="collapsed">
+						            <a href='javascript:void(0);' class="a-uims-nav">
+							            DCPD<span class="arrow"></span></a>
+						            
+					            </li>
+					            <ul id='3713' class='sub-menu collapse'><li><a class='a-uims-nav' href='frmCareerOptionOther.aspx?Type=QGVcrLuOjfitECW4+veVzA=='>Career Options by DCPD</a></li><li data-toggle='collapse' data-target='#3714' class='collapsed'><a class='a-uims-nav' href='javascript:void(0);'>Evening CUCAT<span class='arrow'></span></a></li><ul id='3714' class='sub-menu collapse'><li><a class='a-uims-nav' href='frmMockTestNew.aspx'>Mock Test</a></li><li><a class='a-uims-nav' href='frmStuQuestionSolution.aspx'>View Question Solution</a></li></ul></ul>
+				            
+					            <li data-toggle="collapse" data-target='#4193' class="collapsed">
+						            <a href='frmDLLMOOCCoordinatorList.aspx' class="a-uims-nav">
+							            DLL MOOC Coordinator List<span class="arrow"></span></a>
+						            
+					            </li>
+					            
+				            
+					            <li data-toggle="collapse" data-target='#2342' class="collapsed">
+						            <a href='javascript:void(0);' class="a-uims-nav">
+							            E Library<span class="arrow"></span></a>
+						            
+					            </li>
+					            <ul id='2342' class='sub-menu collapse'><li><a class='a-uims-nav' href='frmOpenAuthentication.aspx?id=PA8f2gBZPN2G5vACgUpS8q8aPNbtEWoFpGvx9fSSTn5SBSUkvaW1F4+WDbeuEVgrByLqYAw71dFjOnpINJQkb1nS/VwF0vUGdaNa/ZxXLbPWzD1EDuitwgCqnL4LzayY'>EBSCO eBook Academic Collection</a></li><li><a class='a-uims-nav' href='frmOpenAuthentication.aspx?id=PA8f2gBZPN2G5vACgUpS8q8aPNbtEWoFpGvx9fSSTn5SBSUkvaW1F4+WDbeuEVgrByLqYAw71dFjOnpINJQkb1nS/VwF0vUGdaNa/ZxXLbMj6WG9aUk6g/X7ApvmbBzR'>EBSCO Management Collection</a></li><li><a class='a-uims-nav' href='frmOpenAuthentication.aspx?id=PA8f2gBZPN2G5vACgUpS8q8aPNbtEWoFpGvx9fSSTn5SBSUkvaW1F4+WDbeuEVgrByLqYAw71dFjOnpINJQkb1nS/VwF0vUGdaNa/ZxXLbMa+4YBf7yAR+H/jNSXzgUV'>EBSCOhost  E-Journal Access(Art and Architecture)</a></li><li><a class='a-uims-nav' href='frmOpenAuthentication.aspx?id=QV5dHL7jXjFoMfhJzyRSB8mHytDcqoV5f4Wom3J0nlRXzfF6WI0M1CH0kkL/8BpGYTEyZlvrVdogWC2fw3Akc8lFubnuUo4BnEATg248VJXkQapuALK1TryDjmoT7t3eOXYb07XbuxPD2oE+obUlNg=='>IEEE</a></li><li><a class='a-uims-nav' href='frmOpenAuthentication.aspx?id=QV5dHL7jXjFoMfhJzyRSB8mHytDcqoV5f4Wom3J0nlRXzfF6WI0M1CH0kkL/8BpGQpb7uMfdWl8yF4aRUmP6Zsn6AQJaRnEB7/gtSzVR1p585pFZUqCcLP0Md1FrzDxE'>J-Gate (Science & Technology)</a></li><li><a class='a-uims-nav' href='frmOpenAuthentication.aspx?id=QV5dHL7jXjFoMfhJzyRSB8mHytDcqoV5f4Wom3J0nlRXzfF6WI0M1CH0kkL/8BpGQpb7uMfdWl8yF4aRUmP6Zsn6AQJaRnEB7/gtSzVR1p585pFZUqCcLP0Md1FrzDxE'>J-Gate (Soc. Science and Humanities)</a></li><li><a class='a-uims-nav' href='frmOpenAuthentication.aspx?id=PA8f2gBZPN2G5vACgUpS8q8aPNbtEWoFpGvx9fSSTn5rGd65jzE8cRuauaYj2tJnH0PJZ8oauJ+rb9nxzuaAexyENYqhaXlaXq/+C2p07L/8z27ruNOLpK4peo2XgI8A'>Publication Finder and Open Athens</a></li><li><a class='a-uims-nav' href='frmOpenAuthentication.aspx?id=nfiADxpckRxbzXbfgdwrIInRiQfwBTLb6/+Drz4Hfuu1f/+GiF1v7htWc6qZ4UfeZ8rCtYt+mAXwUTxgui+nIVYMH/X2+Mz5T0N9xRCq1O7h9QK5KPVsxhQgLnm25vNLWngZ7jKKbHleD9V5LzqaNEdPHmQrgYDKSejwnT8cE+y+fkzv+sKNmr1tKO6Ax8X20DEzMdIuHk6qSwoUsEES/mvO9tbVtnt1MFx0J9xqrshfF359RI86VFsSRY6J30wDg9WSMpPa4j3V28dJRMP5MvBH+hj+t0X5vazU4wBNAqs='>Web of Science</a></li></ul>
+				            
+					            <li data-toggle="collapse" data-target='#3565' class="collapsed">
+						            <a href='javascript:void(0);' class="a-uims-nav">
+							            Examination<span class="arrow"></span></a>
+						            
+					            </li>
+					            <ul id='3565' class='sub-menu collapse'><li><a class='a-uims-nav' href='FrmStudentFormsDetails.aspx'>Examaination Form Details</a></li><li><a class='a-uims-nav' href='frmStudentDatesheet.aspx'>My Date Sheet</a></li><li data-toggle='collapse' data-target='#4168' class='collapsed'><a class='a-uims-nav' href='javascript:void(0);'>Raise Query<span class='arrow'></span></a></li><ul id='4168' class='sub-menu collapse'><li><a class='a-uims-nav' href='StudentQueryMaster.aspx'>Student Query Master</a></li></ul><li data-toggle='collapse' data-target='#2190' class='collapsed'><a class='a-uims-nav' href='javascript:void(0);'>Result<span class='arrow'></span></a></li><ul id='2190' class='sub-menu collapse'><li><a class='a-uims-nav' href='result.aspx'>Result ( Regular )</a></li></ul><li><a class='a-uims-nav' href='frmAMCATStudentResult.aspx?type=6kjkaB6U01jsNZdSPYT2YA=='>Student AMCAT Result</a></li><li data-toggle='collapse' data-target='#2600' class='collapsed'><a class='a-uims-nav' href='javascript:void(0);'>Student Marks View<span class='arrow'></span></a></li><ul id='2600' class='sub-menu collapse'><li><a class='a-uims-nav' href='frmStudentReappearMarksView.aspx'>Student Marks View Reappear</a></li><li><a class='a-uims-nav' href='frmStudentMarksView.aspx'>Student Marks View Regular</a></li></ul><li><a class='a-uims-nav' href='frmStudentPracticleDateSheet.aspx'>Student Practical Date Sheet</a></li><li><a class='a-uims-nav' href='frmAMCATStudentResult.aspx?type=S4w6En2dn/RLwsoo51Osyw=='>Student Technical Result</a></li></ul>
+				            
+					            <li data-toggle="collapse" data-target='#4157' class="collapsed">
+						            <a href='javascript:void(0);' class="a-uims-nav">
+							            Hostel<span class="arrow"></span></a>
+						            
+					            </li>
+					            <ul id='4157' class='sub-menu collapse'><li><a class='a-uims-nav' href='frmStudenHostelDetails.aspx'>Details</a></li></ul>
+				            
+					            <li data-toggle="collapse" data-target='#3567' class="collapsed">
+						            <a href='javascript:void(0);' class="a-uims-nav">
+							            Library<span class="arrow"></span></a>
+						            
+					            </li>
+					            <ul id='3567' class='sub-menu collapse'><li><a class='a-uims-nav' href='frmLibraryRepository.aspx'>CU E-Repository </a></li></ul>
+				            
+					            <li data-toggle="collapse" data-target='#2185' class="collapsed">
+						            <a href='frmStudentProfile.aspx' class="a-uims-nav">
+							            My Profile<span class="arrow"></span></a>
+						            
+					            </li>
+					            
+				            
+					            <li data-toggle="collapse" data-target='#2199' class="collapsed">
+						            <a href='frmTakeTest.aspx' class="a-uims-nav">
+							            Online Test<span class="arrow"></span></a>
+						            
+					            </li>
+					            
+				            
+					            <li data-toggle="collapse" data-target='#4199' class="collapsed">
+						            <a href='javascript:void(0);' class="a-uims-nav">
+							            PhD<span class="arrow"></span></a>
+						            
+					            </li>
+					            
+				            
+					            <li data-toggle="collapse" data-target='#2932' class="collapsed">
+						            <a href='javascript:void(0);' class="a-uims-nav">
+							            Student Leave Application<span class="arrow"></span></a>
+						            
+					            </li>
+					            <ul id='2932' class='sub-menu collapse'><li><a class='a-uims-nav' href='frmStudentApplyDutyLeave.aspx'>Duty Leave</a></li><li><a class='a-uims-nav' href='frmStudentMedicalLeaveApply.aspx'>Medical Leave</a></li></ul>
+				            
+					            <li data-toggle="collapse" data-target='#2192' class="collapsed">
+						            <a href='javascript:void(0);' class="a-uims-nav">
+							            Student Relation Management System<span class="arrow"></span></a>
+						            
+					            </li>
+					            <ul id='2192' class='sub-menu collapse'><li><a class='a-uims-nav' href='frmStudentEventReview.aspx'>Event Review</a></li><li><a class='a-uims-nav' href='frmSWCRequest.aspx'>Online Student Care Center Requests</a></li><li><a class='a-uims-nav' href='frmTalentSearchProgram.aspx'>Talent Search Program</a></li></ul>
+				            
+					            <li data-toggle="collapse" data-target='#4194' class="collapsed">
+						            <a href='javascript:void(0);' class="a-uims-nav">
+							            TPP UILAH<span class="arrow"></span></a>
+						            
+					            </li>
+					            
+				            
+					            <li data-toggle="collapse" data-target='#4159' class="collapsed">
+						            <a href='javascript:void(0);' class="a-uims-nav">
+							            Transport<span class="arrow"></span></a>
+						            
+					            </li>
+					            <ul id='4159' class='sub-menu collapse'><li><a class='a-uims-nav' href='frmTransportDetails.aspx'>Details</a></li><li><a class='a-uims-nav' href='frmStudentTransportConsent.aspx'>Transport Consent</a></li><li><a class='a-uims-nav' href='frmStudentTransportConsent.aspx'>Transport Consent</a></li></ul>
+				            
+					            <li data-toggle="collapse" data-target='#4172' class="collapsed">
+						            <a href='javascript:void(0);' class="a-uims-nav">
+							            UCMC<span class="arrow"></span></a>
+						            
+					            </li>
+					            <ul id='4172' class='sub-menu collapse'><li data-toggle='collapse' data-target='#4178' class='collapsed'><a class='a-uims-nav' href='javascript:void(0);'>Competitive Exams Career Options<span class='arrow'></span></a></li><ul id='4178' class='sub-menu collapse'><li><a class='a-uims-nav' href='frmresources.aspx?type=3MjtO9wiGLhI6em0bw+XikP5Cb/RMH/7S57lk08Obqs='>Judicial Services Preparation</a></li></ul></ul>
+				            
+					            <li data-toggle="collapse" data-target='#4210' class="collapsed">
+						            <a href='frmStuUniformCollection.aspx' class="a-uims-nav">
+							            Uniform Management<span class="arrow"></span></a>
+						            
+					            </li>
+					            
+				            
+		            </ul>
+	            </div>
+            </div>
+            <div class="body-overlay"></div>
+            <div class="inner-wrapper">
+                <div id="short_links" class="d-flex content-boxes row g-3">
+                    <div class="col-sm-6 col-xl-3 col-6">
+                        <a href="frmImportantlink.aspx" id="div_top_1" class="bg-red d-flex card-info">
+                            <div class="card-icon rounded-circle red-box d-flex align-items-center justify-content-center">
+                                <img src="/assets/upload-images/icon-links.svg" alt="Important Links" class="img-fluid" />
+                            </div>
+                            <div class="d-flex flex-column cardBox justify-content-center">
+                                <h4>Important Links</h4>
+                                <span class="moreLink d-flex text-uppercase">Click Here</span>
+                            </div>
+                        </a>
+                    </div>
+                    
+                    <div class="col-sm-6 col-xl-3 col-6">
+                        <a href="https://www.culko.in/online-request/" id="div_top_3" class="card-info bg-blue d-flex">
+                            <div class="card-icon rounded-circle blue-box d-flex align-items-center justify-content-center">
+                                <img src="/assets/upload-images/icon-facilitation.svg" alt="Facilitation" class="img-fluid" id="Layer_1" />
+                            </div>
+                            <div class="d-flex flex-column cardBox justify-content-center">
+                                <h4>Student Facilitation</h4>
+                                <span class="moreLink d-flex text-uppercase">Click to View</span>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-sm-6 col-xl-3 col-6">
+                        <div id="div_top_5" class="d-flex">
+
+                            
+                            <a id="lbtnLMSSSO" class="d-flex card-info bg-yellow" href="javascript:__doPostBack(&#39;ctl00$lbtnLMSSSO&#39;,&#39;&#39;)">
+                                <div class="card-icon rounded-circle yellow-box d-flex align-items-center justify-content-center">
+                                    <img src="/assets/upload-images/icon-study.svg" alt="CU-LMS" class="img-fluid" />
+                                </div>
+                                <div class="d-flex flex-column cardBox justify-content-center">
+                                    <h4>CU-LMS</h4>
+                                    <span class="moreLink d-flex text-uppercase d-flex">My LMS</span>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <div class="col-sm-6 col-xl-3 col-6 d-none">
+                        <a href="frmSWCRequest.aspx" id="div_top_4" class="d-flex card-info bg-yellow">
+                            <div class="card-icon rounded-circle yellow-box d-flex align-items-center justify-content-center">
+                                <img src="/assets/upload-images/icon-antiragging.svg" alt="Anti Ragging" class="img-fluid" />
+                            </div>
+                            <div class="d-flex flex-column cardBox justify-content-center">
+                                <h4>Student Center</h4>
+                                <span class="moreLink d-flex text-uppercase d-flex">Get Help</span>
+                            </div>
+                        </a>
+                    </div>
+                   <div class="col-sm-6 col-xl-3 col-6 position-relative">
+                        <div id="div_OE" class="card-info emp-info d-flex card-thumb">
+                            <div class="card-icon rounded-circle email-box d-flex align-items-center justify-content-center">
+                                <img src="/assets/upload-images/icon-email-lg.svg" alt="Anti Ragging" class="img-fluid" width="40" />
+                            </div>
+                            <div class="d-flex flex-column cardBox justify-content-center">
+                                <h4>My University Email</h4>
+                                <span class="moreLink d-flex text-uppercase d-flex">View Details</span>
+                            </div>
+                        </div>
+                        <div id="divUniEmail" class="divUniEmail" style="display: none;">Dear Ankan Bhattacharjee, <br/><span style="display:block; margin-top:5px">Your EmailId: <b>25LBCS3067@culkomail.in</span></b> <span style="display:block; margin-top:10px">Password: <b>K!778522844822og</b></span> <span style="display:block; margin-top:10px">(One Time Password)</span><br/> To activate click <a style="display:block; padding:0" href="https://culkomail.in" target="_blank">https://culkomail.in</a>
+		   <p style="font-size:10px; font-style:italic;margin-top:5px">Note: This is one-time password for your outlook ID. You need to use your changed password every time you have to log in to your account</p></div>
+                    </div>
+                </div>
+                
+                    
+                    
+                    
+                    
+    <div class="form_header">My Time Table</div>
+     
+
+ <div>
+ <div>
+	<table class="table table-bordered table-hover" cellspacing="0" rules="all" border="1" id="ContentPlaceHolder1_grdMain" style="border-collapse:collapse;">
+		<tr>
+			<th scope="col">Timing</th><th scope="col">Mon</th><th scope="col">Tue</th><th scope="col">Wed</th><th scope="col">Thu</th><th scope="col">Fri</th><th scope="col">Sat</th><th scope="col">Sun</th>
+		</tr><tr>
+			<td>09:30 - 10:20 AM</td><td>25MTT-108:L::GP-All: By Sitaram Yadav(L100469) at Block-E-323
+</td><td>25CSH-102:P::GP-A: By Atul Kumar(L100143) at Block-E-210
+</td><td>25MTT-108:L::GP-All: By Sitaram Yadav(L100469) at Block-E-323
+</td><td>25CSH-119:L::GP-All: By Pramatma Vishwakarma(T1008) at Block-E-323
+</td><td>25CSH-114:L::GP-All: By Varun Gandhi(T1005) at Block-E-323
+</td><td>&nbsp;</td><td>&nbsp;</td>
+		</tr><tr>
+			<td>10:25 - 11:15 AM</td><td>25CST-116:L::GP-All: By Ghufran  Khan(T1004) at Block-E-323
+</td><td>25CSH-102:P::GP-A: By Atul Kumar(L100143) at Block-E-210
+</td><td>25CSH-119:L::GP-All: By Pramatma Vishwakarma(T1008) at Block-E-323
+</td><td>&nbsp;</td><td>25UCT-103:L::GP-All: By Pragyan Dangwal(L100296) at Block-E-323
+</td><td>&nbsp;</td><td>&nbsp;</td>
+		</tr><tr>
+			<td>12:15 - 1:05 PM</td><td>25CSH-102:P::GP-A: By Atul Kumar(L100143) at Block-E-210
+</td><td>25CST-116:L::GP-All: By Ghufran  Khan(T1004) at Block-E-323
+</td><td>25CST-123:L::GP-All: By Abhishek Kumar Tripathi(T1002) at Block-E-323
+</td><td>25UCT-103:L::GP-All: By Pragyan Dangwal(L100296) at Block-E-323
+</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td>
+		</tr><tr>
+			<td>11:20 - 12:10 PM</td><td>25CSH-102:P::GP-A: By Atul Kumar(L100143) at Block-E-210
+</td><td>25CSH-114:L::GP-All: By Varun Gandhi(T1005) at Block-E-323
+</td><td>25CSH-102:L::GP-All: By Atul Kumar(L100143) at Block-E-323
+</td><td>25CST-123:L::GP-All: By Abhishek Kumar Tripathi(T1002) at Block-E-323
+</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td>
+		</tr><tr>
+			<td>1:55 - 2:45 PM</td><td>25CSH-119:P::GP-A: By Pramatma Vishwakarma(T1008) at Block-E-323
+</td><td>25MTT-108:L::GP-All: By Sitaram Yadav(L100469) at Block-E-323
+</td><td>25CSH-114:L::GP-All: By Varun Gandhi(T1005) at Block-E-323
+</td><td>25DCP-151:P::GP-A: By Ankur Trivedi (L100630) at Block-E-319
+</td><td>25MTT-108:L::GP-All: By Sitaram Yadav(L100469) at Block-E-323
+</td><td>&nbsp;</td><td>&nbsp;</td>
+		</tr><tr>
+			<td>2:50 - 3:40 PM</td><td>25CSH-119:P::GP-A: By Pramatma Vishwakarma(T1008) at Block-E-323
+</td><td>25CSR-121:P::GP-A: By Abhimanyu Sharma (T1003) at Block-E-323
+</td><td>25CSR-121:P::GP-A: By Abhimanyu Sharma (T1003) at Block-E-323
+</td><td>25DCP-151:P::GP-A: By Ankur Trivedi (L100630) at Block-E-319
+</td><td>25CSH-114:P::GP-A: By Varun Gandhi(T1005) at Block-E-323
+</td><td>&nbsp;</td><td>&nbsp;</td>
+		</tr><tr>
+			<td>3:45 - 4:35 PM</td><td>25CSH-102:L::GP-All: By Atul Kumar(L100143) at Block-E-323-A
+</td><td>25CSR-121:P::GP-A: By Abhimanyu Sharma (T1003) at Block-E-323
+</td><td>25CSR-121:P::GP-A: By Abhimanyu Sharma (T1003) at Block-E-323
+</td><td>&nbsp;</td><td>25CSH-114:P::GP-A: By Varun Gandhi(T1005) at Block-E-323
+</td><td>&nbsp;</td><td>&nbsp;</td>
+		</tr>
+	</table>
+</div>
+ </div>
+
+ <div style="margin-top:20px">
+     <div>
+	<table cellspacing="0" rules="all" border="1" id="ContentPlaceHolder1_grdCourseDetail" style="border-collapse:collapse;">
+		<tr>
+			<th scope="col">Course Code</th><th scope="col">Title</th>
+		</tr><tr>
+			<td>25CSH-102</td><td>Computer Eco-System</td>
+		</tr><tr>
+			<td>25CSH-114</td><td>   	 Data Structures and Algorithms -I</td>
+		</tr><tr>
+			<td>25CSH-119</td><td>Programming in Python </td>
+		</tr><tr>
+			<td>25CSR-121</td><td>Project based Learning-II </td>
+		</tr><tr>
+			<td>25CST-116</td><td>Network Security</td>
+		</tr><tr>
+			<td>25CST-123</td><td>English Communication-II</td>
+		</tr><tr>
+			<td>25DCP-151</td><td>SOFT SKILLS - I</td>
+		</tr><tr>
+			<td>25MTT-108</td><td>Linear Algebra and Vector Calculus</td>
+		</tr><tr>
+			<td>25UCT-103</td><td>Universal Human Values</td>
+		</tr>
+	</table>
+</div>
+ </div>
+     
+
+                
+            </div>
+            <footer id="footer" class="footer d-flex flex-column">
+			    <div class="top-footer d-flex align-items-center justify-content-center flex-column">
+				    <a href="#"><img src="/assets/upload-images/logo-black.svg" class="img-fluid" alt="Chandigarh University" /></a>
+				    <ul class="social-icons d-flex">
+					    <li><a href="#"><img src="/assets/upload-images/icon-fb.svg" class="img-fluid" alt="Facebook" /></a></li>
+					    <li><a href="#"><img src="/assets/upload-images/icon-twitter.svg" class="img-fluid" alt="Twitter" /></a></li>
+					    <li><a href="#"><img src="/assets/upload-images/icon-vimeo.svg" class="img-fluid" alt="Vimeo" /></a></li>
+					    <li><a href="https://www.youtube.com/@Chandigarhuniversity"><img src="/assets/upload-images/icon-youtube.svg" class="img-fluid" alt="Youtube" width="30" /></a></li>
+				    </ul>
+			    </div>
+                <div class="text-end">
+                    <a href="bugreport.aspx" id="a_bugreport" title="Report a bug">Report a Bug  <i class="fa fa-bug" aria-hidden="true"></i></a>
+                </div>
+			    <div class="bottom-footer d-flex justify-content-between">
+					<div class="footer-txt">© 2025 Chandigarh University, Lucknow - Kanpur Highway-27, Unnao, Uttar Pradesh, India.</div>
+					<div class="footer-txt"><a href="tel:18002701411"><img src="/assets/upload-images/icon-phone.svg" class="img-fluid" width="15" alt="phone" />General Helpline No: 18002701411</a></div>
+					<div class="footer-txt"><a href="mailto:studentcare@culko.in"><img src="/assets/upload-images/icon-email.svg" class="img-fluid" width="15" alt="Email ID" />studentcare@culko.in</a></div>
+				</div>
+		    </footer>
+            
+        </div>
+
+        
+
+        <div id="div_help_popup" class="modal fade" role="dialog" style="z-index: 99999; background: rgba(255, 255, 255, 0.9); display:none;">
+            <div class="modal-dialog">
+
+                <!-- Modal content-->
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" onclick="OpenNewPopUp('0','div_help_popup')">&times;</button>
+                        <h4 class="modal-title text-center">UIMS HELP</h4>
+                    </div>
+                    <div id="help_content" style="height: 450px; overflow-y: scroll;" class="modal-body">
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        
+
+        
+
+        
+
+        
+        <!-- Modal -->
+
+        
+
+        
+
+        
+
+
+        
+
+        
+
+        
+
+
+
+
+        
+
+        <div id="div_libpopup" class="modal fade" role="dialog" style="z-index: 999999; background: rgba(255, 255, 255, 0.9); display:none;">
+            <div class="modal-dialog">
+
+                <!-- Modal content-->
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h4 class="modal-title text-center w-100">LIBRARY MESSAGES</h4>
+                        <button type="button" class="close" data-dismiss="modal" onclick="OpenNewPopUp('0','div_libpopup')">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <ul id="tabs" class="nav nav-tabs nav-tabMessage">
+                            <li class="active"><a data-toggle="tab" href="#t1">Pending</a></li>
+                            <li><a data-toggle="tab" href="#t2">History</a></li>
+                        </ul>
+                        <div id="div_lib_content">
+                        </div>
+                        <!-- Bootstrap Accordion -->
+                        <div class="panel-group" id="accordion" role="tablist" aria-multiselectable="true"></div>
+                        <!-- /Bootstrap Accordion -->
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        
+
+
+
+
+        
+
+        <div id="div_celebrations" class="sidenav" style="transition: all 0.5s ease 0s; width: 0px; z-index: 15;">
+            <div style="display: block; margin: auto; width: 100%;">
+
+                <div style="background: #fff;">
+                    <div class="div_celebrations_Popup">
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+
+
+
+        
+
+        <div id="divForcePopUp" class="divForcePopup modal fade" role="dialog" style="z-index: 99999; background: rgba(255, 255, 255, 0.9);">
+            <div class="modal-dialog" style="width: 98%; max-width:98%;">
+
+                <!-- Modal content-->
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" onclick="OpenNewPopUp('0','divForcePopUp')">×</button>
+                        <h4 class="modal-title text-center w-100">IMPORTANT INFORMATION</h4>
+                    </div>
+                    <div class="modal-body" id="divForcePopUp_content">
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        
+
+
+
+
+        
+        <div id="UpdateProgress1" style="display:none;">
+	
+                <div id="loader-wrapper">
+                    <div id="loader">
+                        <img src="assets/uploads/loader.gif">
+                        <p>Loading...</p>
+                    </div>
+                </div>
+            
+</div>
+        
+        
+
+
+        <script src="assets/js/bootstrap.min.js"></script>
+
+        <script type="text/javascript" src="assets/js/materialize.js"></script>
+        <script type="text/javascript" src="Scripts/UIMSHome4.0.js?version=4.2"></script>
+        <script type="text/javascript" src="n-js/jquery.scrollbar.js"></script>
+        <script type="text/javascript" src="Scripts/toastr8.min.js"></script>
+        <script type="text/javascript" src="Scripts/jquery-ui.js"></script>
+
+        
+
+
+        
+    <script>
+        $(".mob-search a").click(function(){
+            $(".page-search").toggleClass("open");
+        });
+    </script>
+    <script>
+        const myElement = document.getElementById('myElement');
+        const searchBox = document.getElementById('searchBox');
+        searchBox.addEventListener('click', function () {
+            myElement.classList.toggle('searchOuter');
+        });
+        function slideLeft() {
+            const mainWrap = document.getElementById('mainWrap');
+            mainWrap.classList.toggle('slideLeft');
+            const sidebarMenu = document.getElementById('uims_sidebars');
+            //uims_sidebar.classList.toggle('slideLeft');
+        }
+        function flip() {
+            $('.card-thumb').toggleClass('flipped');
+        }
+    </script>
+    
+
+<script type="text/javascript">
+//<![CDATA[
+Sys.Application.add_init(function() {
+    $create(Sys.UI._UpdateProgress, {"associatedUpdatePanelId":null,"displayAfter":0,"dynamicLayout":true}, null, null, $get("UpdateProgress1"));
+});
+Sys.Application.add_init(function() {
+    $create(AjaxControlToolkit.AlwaysVisibleControlBehavior, {"HorizontalSide":1,"VerticalSide":1,"id":"AlwaysVisibleControlExtender5"}, null, null, $get("UpdateProgress1"));
+});
+//]]>
+</script>
+</form>
+</body>
+</html>
