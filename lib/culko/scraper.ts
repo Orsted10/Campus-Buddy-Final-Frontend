@@ -264,6 +264,12 @@ async function fetchCULKOResource(endpoint: string, cookies: Record<string, stri
   
   const html = await response.text()
   
+  // SESSION VALIDATION: If the HTML contains login fields, the session is likely expired
+  if (html.includes('id="txtUserId"') || html.includes('Login.aspx') || html.includes('Session Expired')) {
+    console.error(`[fetchCULKOResource] Session for ${endpoint} has expired or is invalid. Redirecting to fallback.`)
+    throw new Error('Unauthorized or Session Expired')
+  }
+  
   // Parse HTML based on endpoint - DIRECT HTML SCRAPING
   switch (endpoint) {
     case 'attendance':
@@ -290,9 +296,12 @@ async function fetchCULKOResource(endpoint: string, cookies: Record<string, stri
         })
         if (resResponse.ok) {
           const resHtml = await resResponse.text()
-          const stats = parseResult(resHtml)
-          profile.cgpa = stats.cgpa
-          profile.sgpa = stats.sgpa
+          // Re-validate session for result page
+          if (!resHtml.includes('id="txtUserId"') && !resHtml.includes('Login.aspx')) {
+             const stats = parseResult(resHtml)
+             profile.cgpa = stats.cgpa
+             profile.sgpa = stats.sgpa
+          }
         }
       } catch (e) {
         console.error('Result fetch failed:', e)
@@ -835,17 +844,17 @@ function parseProfile(html: string): any {
           if (nextTxt.includes(':')) nextTxt = nextTxt.split(':')[1].trim()
           if (!nextTxt) continue
 
-          if (txt === 'uid' || txt.includes('enrollment') || txt === 'student id' || txt === 'roll no') profile.uid = nextTxt
-          else if (txt === 'name' || txt === 'student name') { if (profile.name === 'Student') profile.name = nextTxt; }
-          else if (txt === 'father\'s name' || txt === 'father name') profile.fathersName = nextTxt
-          else if (txt === 'mother\'s name' || txt === 'mother name') profile.mothersName = nextTxt
+          if (txt === 'uid' || txt.includes('enrollment') || txt === 'student id' || txt === 'roll no' || txt === 'registration no') profile.uid = nextTxt
+          else if (txt === 'name' || txt === 'student name') { if (profile.name === 'Student' || !profile.name) profile.name = nextTxt; }
+          else if (txt === 'father\'s name' || txt === 'father name' || txt.includes('father')) profile.fathersName = nextTxt
+          else if (txt === 'mother\'s name' || txt === 'mother name' || txt.includes('mother')) profile.mothersName = nextTxt
           else if (txt === 'semester' || txt === 'current semester' || txt.includes('sem')) profile.semester = nextTxt
           else if (txt === 'blood group') profile.bloodGroup = nextTxt
-          else if (txt === 'program code' || txt === 'program') profile.program = nextTxt
-          else if (txt === 'dob' || txt === 'date of birth' || txt === 'd.o.b') profile.dob = nextTxt
+          else if (txt === 'program code' || txt === 'program' || txt === 'course') profile.program = nextTxt
+          else if (txt === 'dob' || txt === 'date of birth' || txt === 'd.o.b' || txt === 'birth date') profile.dob = nextTxt
           else if (txt === 'admission year') profile.admissionYear = nextTxt
-          else if (txt === 'address' || txt === 'permanent address') profile.address = nextTxt
-          else if (txt === 'email' || txt === 'email id') profile.email = nextTxt
+          else if (txt === 'address' || txt === 'permanent address' || txt === 'residence address') profile.address = nextTxt
+          else if (txt === 'email' || txt === 'email id' || txt === 'student email' || txt === 'university email') profile.email = nextTxt
           else if ((txt === 'mobile' || txt === 'phone' || txt.includes('contact')) && nextTxt.length > 5) {
              // Only capture mobile if it looks like a number or isn't just a label typo
              if (/\d/.test(nextTxt)) profile.mobile = nextTxt
@@ -854,26 +863,34 @@ function parseProfile(html: string): any {
     })
     
     // Final Polish
-    if (profile.name.includes(',')) {
+    if (profile.name && profile.name.includes(',')) {
        // If it was "Hello,Ankan", this handles it. If it was "Last,First", it picks the right part.
        const parts = profile.name.split(',')
        profile.name = parts.length > 1 ? parts[1].trim() : parts[0].trim()
     }
     
-    // Guess email if unknown
-    if (profile.email === 'Unknown' && profile.uid !== 'Unknown') {
-       profile.email = profile.uid.toLowerCase() + "@culkomail.in"
-    }
-
-    profile.mobile = formatContacts(profile.mobile)
-
-    // Fallback regex for UID
-    if (profile.uid === 'Unknown') {
+    // Fallback regex for UID (Move UP so email guess can use it)
+    if (!profile.uid || String(profile.uid).toLowerCase().includes('unknown')) {
       const textAll = $('body').text()
       const uidMatch = textAll.match(/\b\d{2}[A-Za-z]+\d{4,5}\b/i) // e.g. 25LBCS3067
       if (uidMatch) profile.uid = uidMatch[0].toUpperCase()
     }
     
+    // Guess email if unknown
+    const isEmailUnknown = !profile.email || String(profile.email).toLowerCase().includes('unknown') || profile.email.length < 5
+    if (isEmailUnknown && profile.uid && !String(profile.uid).toLowerCase().includes('unknown')) {
+       profile.email = profile.uid.toLowerCase() + "@culkomail.in"
+    }
+
+    profile.mobile = formatContacts(profile.mobile)
+    
+    // Clean up "Unknown" strings for cleaner display
+    Object.keys(profile).forEach(key => {
+       if (typeof profile[key] === 'string' && profile[key].toLowerCase().includes('unknown')) {
+          profile[key] = 'Unknown'
+       }
+    })
+
   } catch (e) {
     console.error('Error parsing profile:', e)
   }

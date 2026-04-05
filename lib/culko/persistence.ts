@@ -7,7 +7,12 @@ export async function savePortalData(type: PortalDataType, data: any) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     
-    if (!user) return { success: false, error: 'Not authenticated' }
+    if (!user) {
+      console.warn(`[savePortalData] No user found, skipping sync for ${type}`)
+      return { success: false, error: 'Not authenticated' }
+    }
+
+    console.log(`[savePortalData] Syncing ${type} for user ${user.id}...`)
 
     const { error } = await supabase
       .from('portal_records')
@@ -20,10 +25,15 @@ export async function savePortalData(type: PortalDataType, data: any) {
         onConflict: 'user_id,type'
       })
 
-    if (error) throw error
+    if (error) {
+      console.error(`[savePortalData] Supabase error for ${type}:`, error.message)
+      throw error
+    }
+    
+    console.log(`[savePortalData] Successfully synced ${type} to Supabase.`)
     return { success: true }
   } catch (error) {
-    console.error(`Error saving ${type} to DB:`, error)
+    console.error(`[savePortalData] Critical Error for ${type}:`, error)
     return { success: false, error }
   }
 }
@@ -33,22 +43,31 @@ export async function getPortalData(type: PortalDataType) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     
-    if (!user) return { success: false, error: 'Not authenticated' }
+    if (!user) {
+      console.warn(`[getPortalData] No user found, skipping fetch for ${type}`)
+      return { success: false, error: 'Not authenticated' }
+    }
+
+    console.log(`[getPortalData] Fetching cached ${type} for user ${user.id}...`)
 
     const { data, error } = await supabase
       .from('portal_records')
       .select('*')
       .eq('user_id', user.id)
       .eq('type', type)
-      .single()
+      .maybeSingle() // Safer than single() which errors on no-rows
 
     if (error) {
-      if (error.code === 'PGRST116') { // No rows found
-        return { success: false, error: 'No cached data found', isCached: false }
-      }
+      console.error(`[getPortalData] Supabase error for ${type}:`, error.message)
       throw error
     }
 
+    if (!data) {
+      console.log(`[getPortalData] No cached records found for ${type}.`)
+      return { success: false, error: 'No cached data found', isCached: false }
+    }
+
+    console.log(`[getPortalData] Found cached ${type} (Last Updated: ${data.updated_at})`)
     return { 
       success: true, 
       data: data.data, 
@@ -56,7 +75,7 @@ export async function getPortalData(type: PortalDataType) {
       isCached: true 
     }
   } catch (error) {
-    console.error(`Error fetching ${type} from DB:`, error)
+    console.error(`[getPortalData] Critical Error for ${type}:`, error)
     return { success: false, error }
   }
 }
