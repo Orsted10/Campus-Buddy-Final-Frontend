@@ -707,6 +707,19 @@ function parseTimetable(html: string): any {
   return timetable
 }
 
+function formatContacts(raw: string): string {
+  if (!raw || raw === 'Unknown') return raw
+  // If it's a giant string of digits (stuck together)
+  const digits = raw.replace(/\D/g, '')
+  if (digits.length > 15) {
+     // Likely 3 numbers (10 digits each, or similar)
+     // Split every 10 digits if possible
+     const matches = digits.match(/.{1,10}/g)
+     return matches ? matches.join(' / ') : raw
+  }
+  return raw
+}
+
 function parseProfile(html: string): any {
   const profile: any = { 
     name: 'Student', uid: 'Unknown', semester: 'Unknown', email: 'Unknown',
@@ -728,17 +741,21 @@ function parseProfile(html: string): any {
       'lblSemester': 'semester',
       'lblSem': 'semester',
       'lblCurrentSemester': 'semester',
+      'lblCurrentSem': 'semester',
       'lblEmail': 'email',
       'lblEmailID': 'email',
       'lblEmailId': 'email',
+      'lblStudentEmail': 'email',
       'lblProgName': 'program',
       'lblCourse': 'program',
       'lblCourseName': 'program',
+      'lblProgram': 'program',
       'lblMobile': 'mobile',
       'lblStudentMobile': 'mobile',
       'lblMobileNo': 'mobile',
       'lblDOB': 'dob',
       'lblDateOfBirth': 'dob',
+      'lblBirthDate': 'dob',
       'lblFatherName': 'fathersName',
       'lblFathersName': 'fathersName',
       'lblMotherName': 'mothersName',
@@ -806,6 +823,12 @@ function parseProfile(html: string): any {
        }
     })
     
+    // Final Polish
+    if (profile.name.includes(',')) {
+       profile.name = profile.name.split(',')[1].trim() || profile.name.split(',')[0].trim()
+    }
+    profile.mobile = formatContacts(profile.mobile)
+
     // Fallback regex for UID
     if (profile.uid === 'Unknown') {
       const textAll = $('body').text()
