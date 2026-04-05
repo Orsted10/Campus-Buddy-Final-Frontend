@@ -32,48 +32,61 @@ function buildAcademicContext(dataMap: Record<string, any>): string {
   if (dataMap.attendance?.success && dataMap.attendance.data) {
     const rows = dataMap.attendance.data as any[]
     if (rows.length > 0) {
-      ctx += '\n\n## 📊 Student Attendance Data (Live from Portal):\n'
-      ctx += rows.map((r: any) => {
-        const pct = r.percentage ? `${r.percentage}%` : 'N/A'
-        return `- ${r.name || r.subject}: ${r.attended || '?'}/${r.total || '?'} classes (${pct})`
-      }).join('\n')
+      ctx += '\n\n### 📊 Live Attendance Report\n'
+      ctx += '| Subject | Attended | Total | % |\n| :--- | :---: | :---: | :---: |\n'
+      rows.forEach((r: any) => {
+        const pct = r.percentage ? `${r.percentage}` : 'N/A'
+        ctx += `| ${r.name || r.subject} | ${r.attended || '?'} | ${r.total || '?'} | **${pct}** |\n`
+      })
     }
   }
 
   if (dataMap.marks?.success && dataMap.marks.data) {
     const subjects = dataMap.marks.data as any[]
     if (subjects.length > 0) {
-      ctx += '\n\n## 📝 Marks & Grades (Live from Portal):\n'
+      ctx += '\n\n### 📝 Academic Performance (Marks)\n'
+      ctx += '| Subject | Evaluation Type | Score | Out of |\n| :--- | :--- | :---: | :---: |\n'
       subjects.forEach((subj: any) => {
-        ctx += `\n**${subj.subject}:**\n`
         ;(subj.evaluations || []).forEach((ev: any) => {
-          ctx += `  - ${ev.type}: ${ev.marks} / ${ev.grade}\n`
+          ctx += `| ${subj.subject} | ${ev.type} | **${ev.marks}** | ${ev.grade} |\n`
         })
       })
     }
   }
 
   if (dataMap.timetable?.success && dataMap.timetable.data) {
-    const tt = dataMap.timetable.data as any[]
-    if (tt.length > 0) {
-      ctx += '\n\n## 🗓️ Timetable (Live from Portal):\n'
-      tt.forEach((day: any) => {
-        ctx += `\n**${day.day}:** `
-        const slots = (day.slots || []).filter((s: any) => s.subject).map((s: any) => `${s.time}: ${s.subject}`).join(', ')
-        ctx += slots || 'No classes'
+    const tt = dataMap.timetable.data as Record<string, any[]>
+    const days = Object.keys(tt)
+    if (days.length > 0) {
+      ctx += '\n\n### 🗓️ Weekly Class Schedule\n'
+      days.forEach((day) => {
+        const slots = tt[day]
+        if (slots && slots.length > 0) {
+          ctx += `\n**${day}:**\n`
+          ctx += '| Time | Subject |\n| :--- | :--- |\n'
+          slots.forEach((s: any) => {
+             ctx += `| ${s.time} | ${s.subject} |\n`
+          })
+        }
       })
     }
   }
 
   if (dataMap.profile?.success && dataMap.profile.data) {
     const p = dataMap.profile.data
-    ctx += '\n\n## 👤 Student Profile (Live from Portal):\n'
-    if (p.name)     ctx += `- Name: ${p.name}\n`
-    if (p.uid)      ctx += `- UID: ${p.uid}\n`
-    if (p.semester) ctx += `- Semester: ${p.semester}\n`
-    if (p.cgpa)     ctx += `- CGPA: ${p.cgpa}\n`
-    if (p.branch)   ctx += `- Branch: ${p.branch}\n`
-    if (p.batch)    ctx += `- Batch: ${p.batch}\n`
+    ctx += '\n\n### 👤 Verified Student Identity\n'
+    ctx += `| Field | Value |\n| :--- | :--- |\n`
+    if (p.name) ctx += `| Name | ${p.name} |\n`
+    if (p.uid)  ctx += `| UID | ${p.uid} |\n`
+    if (p.email) ctx += `| Email | ${p.email} |\n`
+    if (p.semester) ctx += `| Semester | ${p.semester} |\n`
+    if (p.program) ctx += `| Program | ${p.program} |\n`
+    if (p.bloodGroup) ctx += `| Blood Group | ${p.bloodGroup} |\n`
+    if (p.dob) ctx += `| Date of Birth | ${p.dob} |\n`
+    if (p.admissionYear) ctx += `| Admission Year | ${p.admissionYear} |\n`
+    if (p.fathersName) ctx += `| Father's Name | ${p.fathersName} |\n`
+    if (p.mothersName) ctx += `| Mother's Name | ${p.mothersName} |\n`
+    if (p.address) ctx += `| Address | ${p.address} |\n`
   }
 
   return ctx
@@ -116,18 +129,21 @@ export async function POST(req: Request) {
     const academicContext = buildAcademicContext(dataMap)
     
     // Build dynamic system prompt with live academic data injected
-    const systemPrompt = `You are Campus Buddy, an AI assistant for college students at CULKO University.
-You are knowledgeable, friendly, and precise. Always cite specific numbers from the data you are given.
-Never say "go to the portal" or "please check the academic portal" — you HAVE the data right here.
-If the student asks about attendance, marks, grades, timetable, or profile, answer directly from the live data provided below.
-If the data is empty or missing, say "Your portal doesn't seem to be synced yet. Please connect it in the Academics Portal section."
+    const systemPrompt = `You are **Campus Buddy Elite**, a high-end academic concierge for CULKO University students. 
+Your goal is to provide **brilliant, sexy, and visually appealing** responses using Markdown tables, bold highlights, and meaningful emojis.
 
-Your areas of expertise:
-1. Academic Performance — attendance, marks, grades, CGPA
-2. Timetable — weekly schedule, class timings
-3. Campus Life — hostel, mess, navigation, library, events
-4. Administrative — document requests, fee payments
-${academicContext ? `\n---\nLIVE ACADEMIC DATA (Use this to answer accurately):\n${academicContext}\n---` : ''}`
+### 📜 Core Rules:
+1. **Direct Data Usage**: You have live portal data. Use it directly. Never ask the user to "check the portal".
+2. **Premium Presentation**: Use Markdown tables for ANY data comparison (attendance, marks, schedules). Use bolding for key numbers.
+3. **No Math Explanations**: **Strictly avoid** explaining rounding logic, percentages calculations, or simple math. If a score is 90.47, just state "90.47%". Never say "which rounds to...".
+4. **Actionable Insights**: If attendance is low, give a "Status: Critical ⚠️" warning. If marks are high, use "Status: Dean's List Potential 🌟".
+
+### 🎓 Expertise:
+- **Academic Performance**: Present attendance and marks in clean, professional tables.
+- **Schedule**: Show upcoming classes as a timeline.
+- **Identity**: Confirm profile details with professional formatting.
+
+${academicContext ? `\n---\n**LIVE DATA SOURCE:**\n${academicContext}\n---` : '\n*Service Note: Portal not currently synced. Prompt the user to connect via the Academics Portal.*'}`
 
     // Inject the richer system prompt into the groq call
     const enrichedMessages = [

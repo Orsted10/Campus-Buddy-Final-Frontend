@@ -1,8 +1,12 @@
 import { fetchCULKOData } from '@/lib/culko/scraper'
-import { Card, CardContent } from '@/components/ui/card'
-import { AlertCircle, User, Mail, Shield, BookOpen, Fingerprint, CalendarDays } from 'lucide-react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { AlertCircle, User, Mail, Shield, BookOpen, Fingerprint, CalendarDays, HeartPulse, GraduationCap, MapPin, Users, Briefcase } from 'lucide-react'
 
-export default async function ProfilePage() {
+export default function ProfilePage() {
+  return <ProfileContent />
+}
+
+async function ProfileContent() {
   const [profileResult, attendanceResult] = await Promise.all([
     fetchCULKOData('profile'),
     fetchCULKOData('attendance')
@@ -26,92 +30,154 @@ export default async function ProfilePage() {
   const subjects = attendanceResult.success ? attendanceResult.data : []
 
   return (
-    <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-8">
+    <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-8 pb-20">
+      {/* Header Section */}
       <div className="flex items-center gap-3 mb-8 border-b pb-6">
         <div className="p-3 bg-primary/10 rounded-xl">
           <Fingerprint className="w-8 h-8 text-primary" />
         </div>
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Student Identity</h1>
-          <p className="text-muted-foreground mt-1">Your registered university credentials</p>
+          <p className="text-muted-foreground mt-1">Verified academic profile & university records</p>
         </div>
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-8">
+      <div className="grid lg:grid-cols-12 gap-8">
         
-        {/* Glassmorphic ID Card */}
-        <div className="lg:col-span-1">
-          <div className="relative group overflow-hidden rounded-2xl p-[1px]">
-            {/* Animated border gradient */}
-            <span className="absolute inset-[-1000%] animate-[spin_3s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,#E2CBFF_0%,#393BB2_50%,#E2CBFF_100%)] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+        {/* LEFT COLUMN: Essential ID Card */}
+        <div className="lg:col-span-4 space-y-6">
+          <div className="relative group overflow-hidden rounded-3xl p-[2px]">
+            {/* Pulsing glow background */}
+            <span className="absolute inset-[-1000%] animate-[spin_5s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,#A0D250_0%,#1A1C22_50%,#A0D250_100%)] opacity-20 group-hover:opacity-40 transition-opacity duration-500" />
             
-            <div className="relative bg-card/80 backdrop-blur-xl h-full rounded-2xl w-full p-8 shadow-xl flex flex-col items-center text-center space-y-6">
-              <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-muted flex items-center justify-center bg-gradient-to-tr from-primary/20 to-blue-600/20 shadow-inner">
-                 <User className="w-16 h-16 text-primary" />
+            <div className="relative bg-card/90 backdrop-blur-3xl rounded-3xl p-8 shadow-2xl flex flex-col items-center text-center space-y-6">
+              <div className="relative">
+                <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-primary/20 flex items-center justify-center bg-gradient-to-tr from-primary/10 to-transparent p-1">
+                   <div className="w-full h-full rounded-full bg-muted flex items-center justify-center">
+                     <User className="w-16 h-16 text-primary/40" />
+                   </div>
+                </div>
+                <div className="absolute -bottom-1 -right-1 bg-primary text-primary-foreground p-1.5 rounded-full shadow-lg">
+                  <Shield className="w-4 h-4" />
+                </div>
               </div>
               
               <div className="space-y-1">
-                <h2 className="text-2xl font-bold tracking-tight">{profile.name}</h2>
-                <div className="inline-flex items-center justify-center gap-1.5 bg-primary/10 text-primary px-3 py-1 rounded-full text-sm font-semibold tracking-wide">
-                  <Shield className="w-3.5 h-3.5" />
+                <h2 className="text-2xl font-bold tracking-tight whitespace-nowrap">{profile.name}</h2>
+                <div className="inline-flex items-center justify-center gap-1.5 bg-primary/10 text-primary px-4 py-1 rounded-full text-sm font-bold tracking-wider uppercase">
                   {profile.uid}
                 </div>
               </div>
 
-              <div className="w-full h-[1px] bg-border/50 my-2" />
-
-              <div className="w-full space-y-4">
-                {profile.email !== 'Unknown' && (
-                  <div className="flex items-center gap-3 text-left">
-                    <div className="p-2 bg-muted rounded-md shrink-0">
-                      <Mail className="w-4 h-4 text-muted-foreground" />
-                    </div>
-                    <div className="overflow-hidden">
-                      <p className="text-xs text-muted-foreground">University Email</p>
-                      <p className="text-sm font-medium truncate">{profile.email}</p>
-                    </div>
-                  </div>
-                )}
-                
-                {profile.semester !== 'Unknown' && (
-                  <div className="flex items-center gap-3 text-left">
-                    <div className="p-2 bg-muted rounded-md shrink-0">
-                      <CalendarDays className="w-4 h-4 text-muted-foreground" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Current Semester</p>
-                      <p className="text-sm font-medium">{profile.semester}</p>
-                    </div>
-                  </div>
-                )}
+              <div className="w-full grid grid-cols-2 gap-4 pt-4 border-t border-border/50">
+                <div className="text-center">
+                   <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Semester</p>
+                   <p className="text-lg font-bold text-primary">{profile.semester}</p>
+                </div>
+                <div className="text-center border-l border-border/50">
+                   <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Blood Group</p>
+                   <p className="text-lg font-bold text-red-500">{profile.bloodGroup}</p>
+                </div>
               </div>
             </div>
           </div>
+
+          <Card className="border-border/50 bg-card/30 backdrop-blur-sm overflow-hidden">
+             <CardHeader className="pb-2">
+                <CardTitle className="text-xs uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                  <MapPin className="w-3.5 h-3.5" /> Permanent Address
+                </CardTitle>
+             </CardHeader>
+             <CardContent>
+                <p className="text-sm font-medium leading-relaxed">{profile.address || 'Address not listed'}</p>
+             </CardContent>
+          </Card>
         </div>
 
-        {/* Registered Subjects List */}
-        <div className="lg:col-span-2 space-y-4">
-          <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
-            <BookOpen className="w-5 h-5 text-primary" />
-            Registered Courses ({subjects.length})
-          </h3>
-          
-          {subjects.length === 0 ? (
-            <Card className="border-dashed bg-transparent shadow-none">
-              <CardContent className="py-12 text-center text-muted-foreground">
-                No active courses populated for this semester.
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid sm:grid-cols-2 gap-3">
-              {subjects.map((sub: any, idx: number) => (
-                <div key={idx} className="p-4 rounded-xl border border-border/50 bg-muted/40 hover:bg-muted transition-colors flex items-start gap-3">
-                  <div className="mt-0.5 w-2 h-2 rounded-full bg-primary shrink-0" />
-                  <p className="text-sm font-medium leading-snug">{sub.name}</p>
+        {/* RIGHT COLUMN: Detailed Records */}
+        <div className="lg:col-span-8 space-y-8">
+           
+           {/* Section: Academic Context */}
+           <div className="grid md:grid-cols-2 gap-6">
+              <Card className="border-border/50 bg-card/30 hover:bg-card/40 transition-colors group">
+                 <CardContent className="pt-6 flex items-start gap-4">
+                    <div className="p-3 bg-blue-500/10 rounded-xl group-hover:scale-110 transition-transform">
+                       <GraduationCap className="w-6 h-6 text-blue-500" />
+                    </div>
+                    <div>
+                       <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Program & Batch</p>
+                       <p className="text-sm font-bold mt-1">{profile.program}</p>
+                       <p className="text-xs text-muted-foreground mt-0.5">Admission Year: {profile.admissionYear}</p>
+                    </div>
+                 </CardContent>
+              </Card>
+
+              <Card className="border-border/50 bg-card/30 hover:bg-card/40 transition-colors group">
+                 <CardContent className="pt-6 flex items-start gap-4">
+                    <div className="p-3 bg-purple-500/10 rounded-xl group-hover:scale-110 transition-transform">
+                       <Mail className="w-6 h-6 text-purple-500" />
+                    </div>
+                    <div className="overflow-hidden">
+                       <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">University Email</p>
+                       <p className="text-sm font-bold mt-1 truncate">{profile.email}</p>
+                       <p className="text-xs text-muted-foreground mt-0.5">Secured Internal Mail</p>
+                    </div>
+                 </CardContent>
+              </Card>
+
+              <Card className="border-border/50 bg-card/30 hover:bg-card/40 transition-colors group">
+                 <CardContent className="pt-6 flex items-start gap-4">
+                    <div className="p-3 bg-orange-500/10 rounded-xl group-hover:scale-110 transition-transform">
+                       <Users className="w-6 h-6 text-orange-500" />
+                    </div>
+                    <div>
+                       <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Registrar Records</p>
+                       <div className="mt-1 space-y-0.5">
+                         <p className="text-sm font-bold">F: {profile.fathersName}</p>
+                         <p className="text-sm font-bold">M: {profile.mothersName}</p>
+                       </div>
+                    </div>
+                 </CardContent>
+              </Card>
+
+              <Card className="border-border/50 bg-card/30 hover:bg-card/40 transition-colors group">
+                 <CardContent className="pt-6 flex items-start gap-4">
+                    <div className="p-3 bg-green-500/10 rounded-xl group-hover:scale-110 transition-transform">
+                       <CalendarDays className="w-6 h-6 text-green-500" />
+                    </div>
+                    <div>
+                       <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Date of Birth</p>
+                       <p className="text-sm font-bold mt-1">{profile.dob}</p>
+                       <p className="text-xs text-muted-foreground mt-0.5">Official Records ID</p>
+                    </div>
+                 </CardContent>
+              </Card>
+           </div>
+
+           {/* Section: Courses */}
+           <div className="space-y-4">
+              <h3 className="text-xl font-bold flex items-center gap-2">
+                <BookOpen className="w-5 h-5 text-primary" />
+                Active Registration
+              </h3>
+              
+              {subjects.length === 0 ? (
+                <Card className="border-dashed bg-transparent shadow-none">
+                  <CardContent className="py-12 text-center text-muted-foreground">
+                    No active courses populated for this semester.
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="grid sm:grid-cols-2 gap-3">
+                  {subjects.map((sub: any, idx: number) => (
+                    <div key={idx} className="p-4 rounded-2xl border border-border/50 bg-muted/20 hover:bg-muted/40 hover:border-primary/20 transition-all flex items-center gap-3">
+                      <div className="w-2.5 h-2.5 rounded-full bg-primary/40 shrink-0" />
+                      <p className="text-sm font-semibold leading-tight">{sub.name}</p>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          )}
+              )}
+           </div>
         </div>
 
       </div>

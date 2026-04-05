@@ -175,6 +175,9 @@ export function useAuth() {
 
   const signOut = async () => {
     try {
+      // Clear portal session
+      await fetch('/api/culko/logout').catch(() => {})
+      
       const { error } = await supabase.auth.signOut()
       if (error) throw error
       clearUser()

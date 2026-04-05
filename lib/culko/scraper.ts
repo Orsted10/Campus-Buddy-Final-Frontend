@@ -515,7 +515,12 @@ function parseTimetable(html: string): any {
 }
 
 function parseProfile(html: string): any {
-  const profile: any = { name: 'Student', uid: 'Unknown', semester: 'Unknown', email: 'Unknown' }
+  const profile: any = { 
+    name: 'Student', uid: 'Unknown', semester: 'Unknown', email: 'Unknown',
+    bloodGroup: 'Unknown', program: 'Unknown', dob: 'Unknown', 
+    admissionYear: 'Unknown', address: 'Unknown', fathersName: 'Unknown', 
+    mothersName: 'Unknown' 
+  }
   try {
     const $ = cheerio.load(html)
     
@@ -529,20 +534,26 @@ function parseProfile(html: string): any {
       profile.name = nameElem.text().trim()
     }
     
-    // Finding UID / Enrollment via explicit table pairs
-    $('table th, table td').each((_, el) => {
-      const txt = $(el).text().toLowerCase().trim()
-      const nextTxt = $(el).next().text().trim()
-      
-      if (txt.includes('enrollment') || txt === 'uid' || txt === 'roll no') {
-        if (nextTxt) profile.uid = nextTxt
-      }
-      if (txt === 'semester' || txt.includes('sem')) {
-        if (nextTxt) profile.semester = nextTxt
-      }
-      if (txt === 'email' || txt === 'email id') {
-        if (nextTxt) profile.email = nextTxt
-      }
+    // Advanced table parsing
+    $('table tr').each((_, tr) => {
+       const cells = $(tr).find('td, th')
+       for(let i=0; i < cells.length - 1; i++) {
+          const txt = $(cells[i]).text().toLowerCase().replace(/:/g, '').trim()
+          const nextTxt = $(cells[i+1]).text().trim()
+          if (!nextTxt) continue
+          
+          if (txt === 'uid' || txt.includes('enrollment') || txt === 'student id' || txt === 'roll no') profile.uid = nextTxt
+          else if (txt === 'name' || txt === 'student name') { if (profile.name === 'Student') profile.name = nextTxt; }
+          else if (txt === 'father\'s name' || txt === 'father name') profile.fathersName = nextTxt
+          else if (txt === 'mother\'s name' || txt === 'mother name') profile.mothersName = nextTxt
+          else if (txt === 'semester' || txt === 'current semester' || txt.includes('sem')) profile.semester = nextTxt
+          else if (txt === 'blood group') profile.bloodGroup = nextTxt
+          else if (txt === 'program code' || txt === 'program') profile.program = nextTxt
+          else if (txt === 'd.o.b.' || txt === 'dob' || txt === 'date of birth') profile.dob = nextTxt
+          else if (txt === 'admission year') profile.admissionYear = nextTxt
+          else if (txt === 'address' || txt === 'permanent address') profile.address = nextTxt
+          else if (txt === 'email' || txt === 'email id') profile.email = nextTxt
+       }
     })
     
     // Fallback regex for UID if table failed
