@@ -19,7 +19,11 @@ import {
   Award,
   Calendar,
   User,
+  LogOut,
+  Loader2
 } from 'lucide-react'
+import { useAuth } from '@/hooks/useAuth'
+import { useState } from 'react'
 
 const studentNavItems = [
   { href: '/dashboard', label: 'Dashboard', icon: Home },
@@ -43,7 +47,18 @@ const adminNavItems = [
 export default function Sidebar() {
   const pathname = usePathname()
   const user = useAuthStore((state) => state.user)
-  
+  const { signOut } = useAuth()
+  const [loggingOut, setLoggingOut] = useState(false)
+
+  const handleLogout = async () => {
+    setLoggingOut(true)
+    try {
+      await signOut()
+    } catch {
+      setLoggingOut(false)
+    }
+  }
+
   const navItems = user?.role === 'admin' || user?.role === 'hostel_staff' 
     ? adminNavItems 
     : studentNavItems
@@ -103,22 +118,36 @@ export default function Sidebar() {
       </nav>
 
       <div className="p-4 border-t border-white/5 bg-foreground/[0.02]">
-        <motion.div 
-          whileHover={{ y: -2 }}
-          className="flex items-center gap-3 px-4 py-3 glass-panel rounded-2xl cursor-pointer"
-        >
-          <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-purple-400 p-[2px] shadow-lg">
-             <div className="w-full h-full bg-card rounded-full flex items-center justify-center">
-                <span className="text-white font-bold text-lg">
-                  {user?.full_name?.charAt(0) || 'U'}
-                </span>
-             </div>
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold text-white truncate">{user?.full_name}</p>
-            <p className="text-[10px] text-primary uppercase tracking-wider font-bold">{user?.role}</p>
-          </div>
-        </motion.div>
+        <div className="flex items-center gap-2">
+          <motion.div 
+            whileHover={{ y: -2 }}
+            className="flex-1 flex items-center gap-3 px-4 py-3 glass-panel rounded-2xl cursor-pointer"
+          >
+            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-purple-400 p-[2px] shadow-lg">
+               <div className="w-full h-full bg-card rounded-full flex items-center justify-center">
+                  <span className="text-white font-bold text-lg">
+                    {user?.full_name?.charAt(0) || 'U'}
+                  </span>
+               </div>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-white truncate">{user?.full_name}</p>
+              <p className="text-[10px] text-primary uppercase tracking-wider font-bold">{user?.role}</p>
+            </div>
+          </motion.div>
+          <button
+            onClick={handleLogout}
+            disabled={loggingOut}
+            className="p-3 glass-panel rounded-2xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all disabled:opacity-50"
+            title="Logout"
+          >
+            {loggingOut ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <LogOut className="w-5 h-5" />
+            )}
+          </button>
+        </div>
       </div>
     </aside>
   )

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import { useAuthStore } from '@/store/useAuthStore'
 import type { Profile } from '@/types/database'
@@ -175,24 +176,39 @@ export function useAuth() {
 
   const signOut = async () => {
     try {
-      // Clear portal session first
+      toast.loading('Logging out...', { id: 'logout' })
+      
+      // 1. Clear portal/culko session
       await fetch('/api/culko/logout').catch(() => {})
       
-      // Supabase signout
+      // 2. Supabase signout - this clears the SB cookies
       const { error } = await supabase.auth.signOut()
-      if (error) throw error
+      if (error) console.error('Supabase signOut error:', error)
       
-      // Clear all local zustand state
+      // 3. Clear all local zustand state
       const { reset } = useAuthStore.getState()
       reset()
       
-      // Hard redirect to login to ensure clean state
-      window.location.href = '/login'
+      // 4. Manual cookie clearing (Extra safety for middleware)
+      const cookies = document.cookie.split(';')
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i]
+        const eqPos = cookie.indexOf('=')
+        const name = eqPos > -1 ? cookie.substring(0, eqPos) : cookie
+        document.cookie = name + '=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;'
+      }
+
+      toast.success('Logged out successfully', { id: 'logout' })
+      
+      // 5. Hard redirect to landing page (not /login)
+      // This ensures we hit the server-side as unauthenticated.
+      // Redirecting to / ensures the login page doesn't get stuck.
+      window.location.href = '/'
       return { error: null }
     } catch (error: any) {
-      // Even if error, try to clear store and redirect
+      console.error('Logout error:', error)
       useAuthStore.getState().reset()
-      window.location.href = '/login'
+      window.location.href = '/'
       return { error }
     }
   }
