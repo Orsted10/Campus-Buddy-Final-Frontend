@@ -25,7 +25,17 @@ export async function GET(req: Request) {
     }
 
     const data = await response.json()
-    return NextResponse.json(data)
+    const res = NextResponse.json(data)
+    
+    // If login is done, set the cookies in the client's browser
+    if (data.status === 'done' && data.cookies) {
+      // Create a Set-Cookie header string manually for the response
+      const cookieValue = encodeURIComponent(JSON.stringify(data.cookies))
+      const secureFlag = process.env.NODE_ENV === 'production' ? 'Secure;' : ''
+      res.headers.set('Set-Cookie', `culko_session=${cookieValue}; Path=/; HttpOnly; SameSite=Lax; ${secureFlag} Max-Age=86400`)
+    }
+
+    return res
 
   } catch (error: any) {
     console.error('Error in login status proxy:', error)
