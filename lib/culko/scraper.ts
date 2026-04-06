@@ -367,16 +367,19 @@ async function fetchAnnouncementsViaAjax(url: string, cookies: Record<string, st
     const announcements: AnnouncementRecord[] = []
 
     // Common pattern for CULKO announcements items
-    $('.ann-list-item, .ann-item, .announcement-box, .row').each((_, el) => {
-      const title = $(el).find('.ann-title, h4, b').first().text().trim()
-      const date = $(el).find('.ann-date, span.date, .pull-right').first().text().trim()
-      const description = $(el).find('.ann-desc, p, .text-muted').first().text().trim()
-      const category = $(el).find('.badge, .label').first().text().trim() || 'General'
-      const onclick = $(el).attr('onclick') || ''
+    $('.ann-list-item, .ann-item, .announcement-box, .row, .contentData, .contentData-announcements').each((_, el) => {
+      const title = $(el).find('.ann-title, h4, b, .title, strong').first().text().trim()
+      const date = $(el).find('.ann-date, span.date, .pull-right, .date, .time').first().text().trim()
+      const description = $(el).find('.ann-desc, p, .text-muted, .desc').first().text().trim()
+      const category = $(el).find('.badge, .label, .cat').first().text().trim() || 'General'
+      const onclick = $(el).attr('onclick') || $(el).find('[onclick]').attr('onclick') || ''
       
       // Extract linked document if any
       let link = undefined
-      const linkMatch = onclick.match(/openAnnouncement\(['"]([^'"]+)['"]\)/)
+      // Try multiple link patterns
+      const linkMatch = onclick.match(/openAnnouncement\(['"]([^'"]+)['"]\)/) || 
+                        onclick.match(/ViewAnnouncement\(['"]([^'"]+)['"]\)/)
+      
       if (linkMatch) {
          link = `https://student.culko.in/ViewAnnouncement.aspx?id=${linkMatch[1]}`
       }
