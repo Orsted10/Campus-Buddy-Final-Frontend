@@ -1,42 +1,35 @@
--- Enabling Row Level Security (RLS) for all user-related tables
-ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
-ALTER TABLE portal_records ENABLE ROW LEVEL SECURITY;
-ALTER TABLE hostel_requests ENABLE ROW LEVEL SECURITY;
-ALTER TABLE laundry_bookings ENABLE ROW LEVEL SECURITY;
-ALTER TABLE assignments ENABLE ROW LEVEL SECURITY;
-ALTER TABLE chats ENABLE ROW LEVEL SECURITY;
-ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
-ALTER TABLE visitor_passes ENABLE ROW LEVEL SECURITY;
+-- TRIPLE-STRENGTH PERMISSION FIX
+-- Run this in your Supabase SQL Editor to enable self-deletion bypassing RLS
 
--- Creating SELECT policies (Allow users to read their own data)
-CREATE POLICY "Users can view their own profile" ON profiles FOR SELECT USING (auth.uid() = id);
-CREATE POLICY "Users can view their own notifications" ON notifications FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "Users can view their own portal_records" ON portal_records FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "Users can view their own hostel_requests" ON hostel_requests FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "Users can view their own laundry_bookings" ON laundry_bookings FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "Users can view their own assignments" ON assignments FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "Users can view their own chats" ON chats FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "Users can view their own visitor_passes" ON visitor_passes FOR SELECT USING (auth.uid() = student_id);
+-- 1. Create a "Security Definer" function (This runs as an admin)
+CREATE OR REPLACE FUNCTION delete_user_data()
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER -- This allows the function to bypass RLS!
+AS $$
+BEGIN
+  -- Delete from all tables based on the calling user's ID
+  -- We use auth.uid() inside the function to ensure users can only delete THEMSELVES
+  
+  DELETE FROM notifications WHERE user_id = auth.uid();
+  DELETE FROM portal_records WHERE user_id = auth.uid();
+  DELETE FROM hostel_requests WHERE user_id = auth.uid();
+  DELETE FROM laundry_bookings WHERE user_id = auth.uid();
+  DELETE FROM book_reservations WHERE user_id = auth.uid();
+  DELETE FROM assignments WHERE user_id = auth.uid();
+  DELETE FROM messages WHERE chat_id IN (SELECT id FROM chats WHERE user_id = auth.uid());
+  DELETE FROM chats WHERE user_id = auth.uid();
+  DELETE FROM visitor_passes WHERE student_id = auth.uid();
+  
+  -- Finally delete the profile
+  DELETE FROM profiles WHERE id = auth.uid();
+END;
+$$;
 
--- Creating DELETE policies (Essential for Account Wiping)
-CREATE POLICY "Users can delete their own profile" ON profiles FOR DELETE USING (auth.uid() = id);
-CREATE POLICY "Users can delete their own notifications" ON notifications FOR DELETE USING (auth.uid() = user_id);
-CREATE POLICY "Users can delete their own portal_records" ON portal_records FOR DELETE USING (auth.uid() = user_id);
-CREATE POLICY "Users can delete their own hostel_requests" ON hostel_requests FOR DELETE USING (auth.uid() = user_id);
-CREATE POLICY "Users can delete their own laundry_bookings" ON laundry_bookings FOR DELETE USING (auth.uid() = user_id);
-CREATE POLICY "Users can delete their own assignments" ON assignments FOR DELETE USING (auth.uid() = user_id);
-CREATE POLICY "Users can delete their own chats" ON chats FOR DELETE USING (auth.uid() = user_id);
-CREATE POLICY "Users can delete their own visitor_passes" ON visitor_passes FOR DELETE USING (auth.uid() = student_id);
+-- 2. Ensure users have permission to call this function
+GRANT EXECUTE ON FUNCTION delete_user_data TO authenticated;
 
--- Special Logic for Messages (since they lack user_id)
--- We allow deletion if the message's chat belongs to the user
-CREATE POLICY "Users can delete messages in their own chats" 
-ON messages FOR DELETE 
-USING (
-  EXISTS (
-    SELECT 1 FROM chats 
-    WHERE chats.id = messages.chat_id 
-    AND chats.user_id = auth.uid()
-  )
-);
+-- 3. Also grant SELECT on notifications so the dashboard works
+-- If you are still seeing 'permission denied' on dashboard, run this too:
+DROP POLICY IF EXISTS "Users can view own notifications" ON notifications;
+CREATE POLICY "Users can view own notifications" ON notifications FOR SELECT USING (auth.uid() = user_id);

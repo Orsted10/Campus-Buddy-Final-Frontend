@@ -10,69 +10,25 @@ export async function DELETE() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    console.log(`[DeleteAccount] Initializing cleanup for user: ${user.id}`)
+    console.log(`[DeleteAccount] Triggering database-level cleanup for: ${user.id}`)
 
-    // 1. Handle Messages (Nested Deletion)
-    // We need to find all chats belonging to the user first
-    const { data: userChats } = await supabase
-      .from('chats')
-      .select('id')
-      .eq('user_id', user.id)
+    // Use RPC to call the security-definer function we created in SQL
+    // This bypasses RLS and handles all tables at once
+    const { error: rpcError } = await supabase.rpc('delete_user_data')
 
-    if (userChats && userChats.length > 0) {
-      const chatIds = userChats.map(c => c.id)
-      const { error: msgErr } = await supabase
-        .from('messages')
-        .delete()
-        .in('chat_id', chatIds)
-      
-      if (msgErr) console.warn('[DeleteAccount] Error deleting messages:', msgErr.message)
+    if (rpcError) {
+      console.error('[DeleteAccount] RPC Error:', rpcError.message)
+      throw rpcError
     }
 
-    // 2. Standard user_id tables
-    const standardTables = [
-      'portal_records',
-      'notifications',
-      'hostel_requests',
-      'laundry_bookings',
-      'book_reservations',
-      'assignments',
-      'chats' // Already cleared messages, now clear chats
-    ]
-
-    for (const table of standardTables) {
-      const { error } = await supabase
-        .from(table)
-        .delete()
-        .eq('user_id', user.id)
-      
-      if (error) {
-        console.warn(`[DeleteAccount] Error deleting from ${table}:`, error.message)
-      }
-    }
-
-    // 3. Special column tables
-    // Visitor passes use 'student_id'
-    const { error: vpError } = await supabase
-      .from('visitor_passes')
-      .delete()
-      .eq('student_id', user.id)
-    if (vpError) console.warn('[DeleteAccount] Error deleting visitor_passes:', vpError.message)
-
-    // 4. Delete the profile itself (Uses 'id')
-    const { error: profileError } = await supabase
-      .from('profiles')
-      .delete()
-      .eq('id', user.id)
-
-    if (profileError) throw profileError
-
-    // 5. Final Step: Sign out
+    // Sign out the user session
     await supabase.auth.signOut()
 
     return NextResponse.json({ success: true, message: 'Account and data wiped successfully' })
   } catch (error) {
     console.error('[DeleteAccount] Critical Error:', error)
-    return NextResponse.json({ error: 'Failed to delete account completely' }, { status: 500 })
+    return NextResponse.json({ 
+      error: 'Failed to delete account. Ensure the delete_user_data SQL function is installed.' 
+    }, { status: 500 })
   }
 }
