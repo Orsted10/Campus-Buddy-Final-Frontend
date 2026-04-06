@@ -17,8 +17,9 @@ import { Card, CardContent } from '@/components/ui/card'
 import { getISTDate } from '@/lib/utils-date'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
+import { ACADEMIC_CALENDAR_2026 } from '@/lib/constants'
 
-const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
 interface TimeSlot {
   time: string
@@ -55,18 +56,27 @@ export default function TimetablePage() {
   useEffect(() => {
     fetchTimetable()
     
-    // Set initial day based on IST (Monday-Friday)
+    // Set initial day based on IST (Full 7 days support)
     const istNow = getISTDate()
     const dayIndex = istNow.getUTCDay() // 0 is Sunday, 1 is Monday...
     
-    if (dayIndex >= 1 && dayIndex <= 5) {
-      setSelectedDay(days[dayIndex - 1])
+    // Check if today is a Special Saturday with an override
+    const dateStr = istNow.toISOString().split('T')[0]
+    const calendarEvent = ACADEMIC_CALENDAR_2026.find(e => e.date === dateStr)
+    
+    if (calendarEvent?.timetableOverride) {
+      setSelectedDay(calendarEvent.timetableOverride)
+      toast.info(`Today is a Special Saturday following ${calendarEvent.timetableOverride} schedule!`)
     } else {
-      setSelectedDay('Monday') // Default to Monday on weekends
+      // Map 0 (Sun) to index 6, 1-6 (Mon-Sat) to index 0-5
+      const dayName = days[dayIndex === 0 ? 6 : dayIndex - 1]
+      setSelectedDay(dayName)
     }
   }, [])
 
   const currentIST = getISTDate()
+  
+  // Logic for Saturday/Sunday "No Class" states
   const daySchedule = data ? data[selectedDay] || [] : []
 
   return (

@@ -12,7 +12,12 @@ export const MEAL_TYPES = ['breakfast', 'lunch', 'dinner'] as const
 
 export const REQUEST_TYPES = ['maintenance', 'food_complaint', 'laundry'] as const
 
-export const REQUEST_STATUS = ['pending', 'in_progress', 'resolved', 'cancelled'] as const
+export const REQUEST_STATUS = [
+  'pending',
+  'in_progress',
+  'resolved',
+  'cancelled',
+] as const
 
 export const PRIORITY_LEVELS = ['low', 'medium', 'high'] as const
 
@@ -279,3 +284,66 @@ export const MESS_MENU = {
     },
   ],
 }
+
+// 2026 Academic Calendar Events (Even Semester)
+export interface CalendarEvent {
+  date: string; // YYYY-MM-DD
+  type: 'teaching' | 'holiday' | 'exam' | 'special';
+  event: string;
+  timetableOverride?: string;
+}
+
+export const ACADEMIC_CALENDAR_2026: CalendarEvent[] = [
+  // January
+  { date: '2026-01-05', type: 'teaching', event: 'Commencement of Classes' },
+  { date: '2026-01-10', type: 'special', event: 'Saturday: Wednesday Timetable', timetableOverride: 'Wednesday' },
+  { date: '2026-01-14', type: 'holiday', event: 'Makar Sankranti' },
+  { date: '2026-01-24', type: 'special', event: 'Saturday: Monday Timetable', timetableOverride: 'Monday' },
+  { date: '2026-01-26', type: 'holiday', event: 'Republic Day' },
+  { date: '2026-01-31', type: 'special', event: 'Saturday: Wednesday Timetable', timetableOverride: 'Wednesday' },
+  
+  // February
+  { date: '2026-02-14', type: 'special', event: 'Saturday: Friday Timetable', timetableOverride: 'Friday' },
+  { date: '2026-02-17', type: 'exam', event: '1st-Mid Semester Test (MST-1)' },
+  { date: '2026-02-18', type: 'exam', event: '1st-Mid Semester Test (MST-1)' },
+  { date: '2026-02-19', type: 'exam', event: '1st-Mid Semester Test (MST-1)' },
+  { date: '2026-02-20', type: 'exam', event: '1st-Mid Semester Test (MST-1)' },
+  { date: '2026-02-28', type: 'special', event: 'Saturday: Wednesday Timetable', timetableOverride: 'Wednesday' },
+
+  // March
+  { date: '2026-03-04', type: 'holiday', event: 'Holi' },
+  { date: '2026-03-14', type: 'special', event: 'Saturday: Thursday Timetable', timetableOverride: 'Thursday' },
+  { date: '2026-03-20', type: 'holiday', event: 'Eid ul Fitr' },
+  { date: '2026-03-27', type: 'holiday', event: 'Ram Navmi' },
+  { date: '2026-03-28', type: 'special', event: 'Saturday: Friday Timetable', timetableOverride: 'Friday' },
+
+  // April
+  { date: '2026-04-08', type: 'exam', event: '2nd-Mid Semester Test (MST-2)' },
+  { date: '2026-04-09', type: 'exam', event: '2nd-Mid Semester Test (MST-2)' },
+  { date: '2026-04-10', type: 'exam', event: '2nd-Mid Semester Test (MST-2)' },
+  { date: '2026-04-11', type: 'exam', event: '2nd-Mid Semester Test (MST-2)' },
+  { date: '2026-04-14', type: 'holiday', event: 'Dr. Ambedkar Jayanti' },
+  { date: '2026-04-25', type: 'special', event: 'Saturday: Tuesday Timetable', timetableOverride: 'Tuesday' },
+
+  // May
+  { date: '2026-05-05', type: 'teaching', event: 'Last Teaching Day' },
+  { date: '2026-05-06', type: 'exam', event: 'End Sem Practical Examination' },
+  { date: '2026-05-07', type: 'exam', event: 'End Sem Practical Examination' },
+  { date: '2026-05-08', type: 'exam', event: 'End Sem Practical Examination' },
+  { date: '2026-05-09', type: 'exam', event: 'End Sem Practical Examination' },
+  { date: '2026-05-11', type: 'exam', event: 'End Sem Theory Examination' },
+  { date: '2026-05-12', type: 'exam', event: 'End Sem Theory Examination' },
+  { date: '2026-05-13', type: 'exam', event: 'End Sem Theory Examination' },
+  { date: '2026-05-14', type: 'exam', event: 'End Sem Theory Examination' },
+  { date: '2026-05-15', type: 'exam', event: 'End Sem Theory Examination' },
+  { date: '2026-05-18', type: 'exam', event: 'End Sem Theory Examination' },
+  { date: '2026-05-19', type: 'exam', event: 'End Sem Theory Examination' },
+  { date: '2026-05-20', type: 'exam', event: 'End Sem Theory Examination' },
+  { date: '2026-05-21', type: 'exam', event: 'End Sem Theory Examination' },
+  { date: '2026-05-22', type: 'exam', event: 'End Sem Theory Examination' },
+  { date: '2026-05-27', type: 'holiday', event: 'Bakrid / Eid al Adha' },
+
+  // June/July
+  { date: '2026-06-01', type: 'holiday', event: 'Commencement of Summer Break' },
+  { date: '2026-07-15', type: 'teaching', event: 'Commencement of next Session 2026-27' },
+]

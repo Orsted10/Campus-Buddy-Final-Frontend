@@ -14,10 +14,10 @@ export default function AcademicsPage() {
       href: '/dashboard/academics/timetable',
     },
     {
-      title: 'Assignments',
-      description: 'Track deadlines and submissions',
-      icon: FileText,
-      href: '#',
+      title: 'Academic Calendar',
+      description: 'Full semester schedule and holidays',
+      icon: Clock,
+      href: '/dashboard/academics/calendar',
     },
     {
       title: 'Study Resources',
