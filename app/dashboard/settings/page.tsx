@@ -48,7 +48,15 @@ export default function SettingsPage() {
     }
   }
 
-  const sections = [
+  interface Item {
+    label: string;
+    value: string;
+    isBadge?: boolean;
+    type?: string;
+    status?: string;
+  }
+
+  const sections: { id: string; title: string; icon: any; items: Item[] }[] = [
     {
       id: 'profile',
       title: 'Profile Settings',
