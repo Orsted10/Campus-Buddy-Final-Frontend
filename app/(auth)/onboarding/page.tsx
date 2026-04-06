@@ -48,6 +48,10 @@ export default function OnboardingPage() {
 
     setIsSubmitting(true)
     try {
+      if (!user?.id) {
+        throw new Error('Valid user session not found. Please refresh and try again.')
+      }
+
       const { error } = await supabase
         .from('profiles')
         .update({ 
@@ -55,7 +59,7 @@ export default function OnboardingPage() {
           full_name: fullName,
           updated_at: new Date().toISOString()
         })
-        .eq('id', user!.id)
+        .eq('id', user.id)
 
       if (error) throw error
 

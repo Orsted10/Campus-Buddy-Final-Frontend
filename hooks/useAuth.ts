@@ -150,7 +150,9 @@ export function useAuth() {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/dashboard`,
+          // Redirecting to root / instead of /dashboard to avoid 
+          // immediate middleware bounces caused by session-cookie latency.
+          redirectTo: `${window.location.origin}/`,
         },
       })
 
