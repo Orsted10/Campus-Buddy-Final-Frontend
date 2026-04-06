@@ -3,26 +3,34 @@ import { createClient } from '@/lib/supabase/server'
 import { chatWithGroq } from '@/lib/ai/groq'
 import { chatWithGemini } from '@/lib/ai/gemini'
 import { fetchCULKOData } from '@/lib/culko/scraper'
+import { CAMPUS_POI } from '@/lib/constants'
 
 // Detect which academic topic the user is asking about
 function detectAcademicContext(messages: Array<{ role: string; content: string }>): string[] {
   const lastMsg = messages.filter(m => m.role === 'user').pop()?.content?.toLowerCase() || ''
+  
+  // If user asks broad questions, fetch everything
+  if (/how|what|show|tell|all|summary|status|standing|academic|portal/.test(lastMsg)) {
+    return ['attendance', 'marks', 'timetable', 'profile']
+  }
+
   const contexts: string[] = []
+  if (/attend|bunk|absent|present|class|lecture|percentage/.test(lastMsg)) contexts.push('attendance')
+  if (/mark|grade|score|exam|mst|practical|result|cgpa|gpa|subject|test/.test(lastMsg)) contexts.push('marks')
+  if (/timetable|schedule|timing|class time|when is|slot|period/.test(lastMsg)) contexts.push('timetable')
+  if (/profile|semester|roll|uid|details|student|name|batch|enroll/.test(lastMsg)) contexts.push('profile')
 
-  if (/attend|bunk|absent|present|class|lecture|percentage/.test(lastMsg)) {
-    contexts.push('attendance')
-  }
-  if (/mark|grade|score|exam|mst|practical|result|cgpa|gpa|subject|test/.test(lastMsg)) {
-    contexts.push('marks')
-  }
-  if (/timetable|schedule|timing|class time|when is|slot|period/.test(lastMsg)) {
-    contexts.push('timetable')
-  }
-  if (/profile|semester|semester|roll|uid|details|student|name|batch|enroll/.test(lastMsg)) {
-    contexts.push('profile')
-  }
+  return contexts.length > 0 ? contexts : ['profile'] // Always at least profile for personalization
+}
 
-  return contexts
+// Build campus POI context
+function buildCampusContext(): string {
+  let ctx = '\n\n### 📍 Campus Navigator (POI Knowledge)\n'
+  ctx += 'You have detailed spatial knowledge of Block E and surrounding areas:\n'
+  CAMPUS_POI.forEach(poi => {
+    ctx += `- **${poi.name}**: Located in ${poi.block}, ${poi.floor} Floor (${poi.side}). ${poi.description}\n`
+  })
+  return ctx
 }
 
 // Build a rich context string from the academic data
@@ -45,7 +53,7 @@ function buildAcademicContext(dataMap: Record<string, any>): string {
     const subjects = dataMap.marks.data as any[]
     if (subjects.length > 0) {
       ctx += '\n\n### 📝 Academic Performance (Marks)\n'
-      ctx += '| Subject | Evaluation Type | Score | Out of |\n| :--- | :--- | :---: | :---: |\n'
+      ctx += '| Subject | Evaluation Type | Score | Result/Max |\n| :--- | :--- | :---: | :---: |\n'
       subjects.forEach((subj: any) => {
         ;(subj.evaluations || []).forEach((ev: any) => {
           ctx += `| ${subj.subject} | ${ev.type} | **${ev.marks}** | ${ev.grade} |\n`
@@ -82,8 +90,6 @@ function buildAcademicContext(dataMap: Record<string, any>): string {
     if (p.sgpa && p.sgpa !== 'N/A') ctx += `| **Latest SGPA** | **${p.sgpa}** |\n`
     if (p.semester) ctx += `| **Semester** | ${p.semester} |\n`
     if (p.program) ctx += `| **Program** | ${p.program} |\n`
-    if (p.email) ctx += `| **Official Email** | ${p.email} |\n`
-    if (p.bloodGroup) ctx += `| **Blood Group** | ${p.bloodGroup} |\n`
   }
 
   return ctx
@@ -107,7 +113,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Invalid messages format' }, { status: 400 })
     }
 
-    // Detect academic intent and fetch live data from CULKO portal
+    // 1. Detect academic intent and fetch live data
     const contexts = detectAcademicContext(messages)
     const dataMap: Record<string, any> = {}
 
@@ -117,35 +123,41 @@ export async function POST(req: Request) {
           try {
             dataMap[ctx] = await fetchCULKOData(ctx as any)
           } catch {
-            // silently fail — if portal not synced, we just won't inject data
+            // fallback handled in buildAcademicContext
           }
         })
       )
     }
 
+    // 2. Build contexts
     const academicContext = buildAcademicContext(dataMap)
+    const campusContext = buildCampusContext()
     
-    // Build dynamic system prompt with live academic data injected
-    const systemPrompt = `You are **Campus Buddy Elite**, a high-end academic concierge. 
-Your tone is **professional, sophisticated, and brilliant**. You treat the user like a high-achieving scholar.
+    // 3. Build Dynamic System Prompt
+    const systemPrompt = `You are **Campus Buddy Elite**, a professional academic AI concierge. 
+You possess full access to the student's academic standing and a complete spatial map of the campus.
 
-### ✨ Response Philosophy:
-1. **Premium Presentation**: Use Markdown tables for **all** data. Use bolding and emojis to highlight key metrics.
-2. **Actionable Wisdom**: Don't just show numbers; interpret them. (e.g., "Looking good! Your attendance is at 85% — you've got some room for flexibility.")
-3. **No Redundancy**: **Never** explain math or rounding. If the CGPA is 8.52, just state it as "8.52".
-4. **Sexy Formatting**: Use dividers, headers, and bullet points to make the response visually stunning.
+### 🌟 Interaction Guidelines:
+1. **Professional Grade Styling**: ALWAYS use Markdown tables for data. Use bolding, emojis, and dividers to create a stunning, readable response.
+2. **Context-Aware Mastery**:
+    - If asked about locations, use your **Campus Navigator** knowledge to give precise directions (e.g. "Library is on 4th floor, Block E").
+    - If asked about academics, refer to the **Portal Data** provided below.
+3. **The "Elite" Personality**: You are sophisticated, encouraging, and efficient. You don't just give data; you give insights (e.g., "Your 8.5 CGPA is outstanding — keep this momentum!").
+4. **Visual Excellence**: Use headers (###) and dividers (---) to structure long responses. Use symbols for different categories (📊 Academics, 📍 Navigation, 🗓️ Schedule).
 
-### 📊 Contextual Intelligence:
-- **Attendance**: If attendance is below 75%, mark it as **Critical ⚠️**.
-- **Marks**: If the score is in the top 10%, call it out as **Outstanding Performance 🌟**.
-- **Schedule**: Present the day's timeline clearly.
+### 📍 CAMPUS KNOWLEDGE:
+${campusContext}
 
-${academicContext ? `\n---\n**LIVE PORTAL DATA:**\n${academicContext}\n---` : '\n*Note: Portal not currently synced. Recommend the user to connect in Academics.*'}`
+### 📊 LIVE PORTAL DATA:
+${academicContext || '*Portal not currently synced. Advise the user to connect their account in the Academics tab.*'}
 
-    // Inject the richer system prompt into the groq call
+---
+**Current Focus**: Respond to the user's latest query using the data above. If data is missing for a specific subject, mention that the portal needs a fresh sync.`
+
+    // 4. Call AI Model
     const enrichedMessages = [
       { role: 'system' as const, content: systemPrompt },
-      ...messages.slice(-10).map((msg: any) => ({
+      ...messages.slice(-8).map((msg: any) => ({
         role: msg.role as 'user' | 'assistant',
         content: msg.content,
       }))
@@ -157,12 +169,11 @@ ${academicContext ? `\n---\n**LIVE PORTAL DATA:**\n${academicContext}\n---` : '\
     }
 
     if (!result.success) {
-      return NextResponse.json({ error: 'Both AI services failed' }, { status: 500 })
+      return NextResponse.json({ error: 'AI processing failed' }, { status: 500 })
     }
 
-    // Save conversation
+    // 5. Persistence
     let currentChatId = chatId
-
     if (!currentChatId) {
       const { data: newChat, error: chatError } = await supabase
         .from('chats')
@@ -170,29 +181,16 @@ ${academicContext ? `\n---\n**LIVE PORTAL DATA:**\n${academicContext}\n---` : '\
           user_id: user.id,
           title: messages[0]?.content?.slice(0, 50) || 'New Chat',
         })
-        .select()
-        .single()
-
+        .select().single()
       if (!chatError) currentChatId = newChat.id
     }
 
-    if (currentChatId && messages.length > 0) {
-      const lastUserMessage = messages.filter((m: any) => m.role === 'user').pop()
-      if (lastUserMessage) {
-        await supabase.from('messages').insert({
-          chat_id: currentChatId,
-          role: 'user',
-          content: lastUserMessage.content,
-        })
-      }
-    }
-
     if (currentChatId) {
-      await supabase.from('messages').insert({
-        chat_id: currentChatId,
-        role: 'assistant',
-        content: result.content,
-      })
+      const lastMsg = messages[messages.length - 1]
+      await supabase.from('messages').insert([
+        { chat_id: currentChatId, role: 'user', content: lastMsg.content },
+        { chat_id: currentChatId, role: 'assistant', content: result.content }
+      ])
     }
 
     return NextResponse.json({
