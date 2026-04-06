@@ -16,8 +16,14 @@ export async function GET() {
     const sessionCookies = JSON.parse(culkoCookies.value)
     const cookieHeader = Object.entries(sessionCookies).map(([k, v]) => `${k}=${v}`).join('; ')
 
+    const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36'
+    
     const response = await fetch('https://student.culko.in/frmStudentProfile.aspx', {
-      headers: { 'Cookie': cookieHeader, 'User-Agent': 'Mozilla/5.0' }
+      headers: { 
+        'Cookie': cookieHeader, 
+        'User-Agent': USER_AGENT,
+        'Referer': 'https://student.culko.in/StudentHome.aspx'
+      }
     })
 
     if (!response.ok) {

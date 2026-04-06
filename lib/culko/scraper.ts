@@ -149,29 +149,44 @@ export async function completeCULKOLogin(password: string, captcha: string, sess
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
         'Cookie': serializeCookies(jar),
-        'User-Agent': USER_AGENT
+        'User-Agent': USER_AGENT,
+        'Referer': url
       },
       redirect: 'manual'
     })
 
-    const finalJar = mergeCookies(jar, extractCookies(response))
+    let finalJar = mergeCookies(jar, extractCookies(response))
     
-    // Check if successful (usually it redirects to dashboard or says "Success")
-    if (response.status === 302 || response.status === 200) {
-      // Save to cookies
-      const cookieStore = await cookies()
-      cookieStore.set('culko_session', JSON.stringify(finalJar), {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        path: '/',
-        maxAge: 60 * 60 * 24 // 24 hours
-      })
-
-      return { success: true }
+    // REDIRECT SEATING: If it redirects (302), we MUST follow it to "activate" the session
+    if (response.status === 302 || response.status === 303) {
+      const redirectUrl = response.headers.get('location')
+      if (redirectUrl) {
+        const absoluteRedirect = redirectUrl.startsWith('http') ? redirectUrl : `${BASE_URL}/${redirectUrl}`
+        console.log('[completeCULKOLogin] Seating session via redirect:', absoluteRedirect)
+        
+        const seatRes = await fetch(absoluteRedirect, {
+          headers: {
+            'Cookie': serializeCookies(finalJar),
+            'User-Agent': USER_AGENT,
+            'Referer': url
+          }
+        })
+        // Merge any final session markers
+        finalJar = mergeCookies(finalJar, extractCookies(seatRes))
+      }
     }
 
-    return { success: false, error: 'Login failed - likely incorrect CAPTCHA or password' }
+    // Save to cookies
+    const cookieStore = await cookies()
+    cookieStore.set('culko_session', JSON.stringify(finalJar), {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 24 // 24 hours
+    })
+
+    return { success: true }
   } catch (error) {
     console.error('completeCULKOLogin error:', error)
     return { success: false, error: 'Connection error during authentication' }
@@ -287,7 +302,8 @@ async function fetchCULKOResource(endpoint: string, cookies: Record<string, stri
       'Cookie': Object.entries(cookies)
         .map(([k, v]) => `${k}=${v}`)
         .join('; '),
-      'User-Agent': USER_AGENT
+      'User-Agent': USER_AGENT,
+      'Referer': `${BASE_URL}/StudentHome.aspx`
     }
   })
   
