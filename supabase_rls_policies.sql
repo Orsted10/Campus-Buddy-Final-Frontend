@@ -37,13 +37,13 @@ BEGIN
         
         -- Use specific column names based on the table
         IF t = 'profiles' THEN
-            EXECUTE format('CREATE POLICY "Authenticated Manage Own" ON %I FOR ALL TO authenticated USING (auth.uid() = id)', t);
+            EXECUTE format('CREATE POLICY "Authenticated Manage Own" ON %I FOR ALL TO authenticated USING (auth.uid() = id) WITH CHECK (auth.uid() = id)', t);
         ELSIF t = 'visitor_passes' THEN
-            EXECUTE format('CREATE POLICY "Authenticated Manage Own" ON %I FOR ALL TO authenticated USING (auth.uid() = student_id)', t);
+            EXECUTE format('CREATE POLICY "Authenticated Manage Own" ON %I FOR ALL TO authenticated USING (auth.uid() = student_id) WITH CHECK (auth.uid() = student_id)', t);
         ELSIF t = 'messages' THEN
-             EXECUTE format('CREATE POLICY "Authenticated Manage Own" ON %I FOR ALL TO authenticated USING (EXISTS (SELECT 1 FROM chats WHERE chats.id = messages.chat_id AND chats.user_id = auth.uid()))', t);
+             EXECUTE format('CREATE POLICY "Authenticated Manage Own" ON %I FOR ALL TO authenticated USING (EXISTS (SELECT 1 FROM chats WHERE chats.id = messages.chat_id AND chats.user_id = auth.uid())) WITH CHECK (EXISTS (SELECT 1 FROM chats WHERE chats.id = messages.chat_id AND chats.user_id = auth.uid()))', t);
         ELSE
-            EXECUTE format('CREATE POLICY "Authenticated Manage Own" ON %I FOR ALL TO authenticated USING (auth.uid() = user_id)', t);
+            EXECUTE format('CREATE POLICY "Authenticated Manage Own" ON %I FOR ALL TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id)', t);
         END IF;
     END LOOP;
 END $$;

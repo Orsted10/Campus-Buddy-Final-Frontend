@@ -72,9 +72,11 @@ export default function OnboardingPage() {
           full_name: fullName,
           updated_at: new Date().toISOString()
         })
-        .eq('id', userId)
 
-      if (error) throw error
+      if (error) {
+        console.error('Upsert error details:', error)
+        throw error
+      }
 
       toast.success('Profile completed! Welcome aboard.')
       // Hard refresh to ensure all hooks get the new state
