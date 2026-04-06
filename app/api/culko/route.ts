@@ -3,15 +3,15 @@ import { fetchCULKOData } from '@/lib/culko/scraper'
 import { spawn } from 'child_process'
 import path from 'path'
 
-import { savePortalData, getPortalData, PortalDataType } from '@/lib/culko/persistence'
+import { savePortalData, getPortalData, PortalDataType, saveAnnouncementsAsNotifications } from '@/lib/culko/persistence'
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
   const endpoint = searchParams.get('endpoint') as PortalDataType
   
-  if (!endpoint || !['attendance', 'marks', 'timetable', 'profile'].includes(endpoint)) {
+  if (!endpoint || !['attendance', 'marks', 'timetable', 'profile', 'announcements'].includes(endpoint)) {
     return NextResponse.json(
-      { error: 'Invalid endpoint. Use: attendance, marks, timetable, or profile' },
+      { error: 'Invalid endpoint. Use: attendance, marks, timetable, profile, or announcements' },
       { status: 400 }
     )
   }
@@ -21,7 +21,11 @@ export async function GET(req: Request) {
   const result = await fetchCULKOData(endpoint)
   
   if (result.success) {
-    return NextResponse.json(result) // passes isCached correctly
+    // If it's announcements, we also save them as notifications
+    if (endpoint === 'announcements' && Array.isArray(result.data)) {
+      await saveAnnouncementsAsNotifications(result.data)
+    }
+    return NextResponse.json(result)
   }
   
   return NextResponse.json(result, { status: 401 })

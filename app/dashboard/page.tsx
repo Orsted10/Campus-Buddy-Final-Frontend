@@ -1,11 +1,58 @@
-'use client'
-
+import { useEffect, useState } from 'react'
 import { useAuthStore } from '@/store/useAuthStore'
+import { useNotificationStore } from '@/store/useNotificationStore'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { MessageSquare, BookOpen, Building, Calendar } from 'lucide-react'
+import { MessageSquare, BookOpen, Building, Calendar, RefreshCw, Bell, ExternalLink, GraduationCap } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
 
 export default function DashboardPage() {
-  const user = useAuthStore((state) => state.user)
+  const user = useAuthStore((state: any) => state.user)
+  const { notifications, setNotifications } = useNotificationStore()
+  const [isSyncing, setIsSyncing] = useState(false)
+
+  // 1. Initial Notification Fetch
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const res = await fetch('/api/notifications')
+        if (res.ok) {
+          const data = await res.json()
+          setNotifications(data)
+        }
+      } catch (err) {
+        console.error('Failed to fetch notifications:', err)
+      }
+    }
+    fetchNotifications()
+  }, [setNotifications])
+
+  // 2. Background Portal Sync (Announcements)
+  useEffect(() => {
+    const syncAnnouncements = async () => {
+       // Only sync if we haven't synced in this session or every 10 mins
+       // We'll just do a one-time sync on dashboard mount for now
+       try {
+         setIsSyncing(true)
+         const res = await fetch('/api/culko?endpoint=announcements')
+         if (res.ok) {
+            // Re-fetch our database notifications after portal sync
+            const notifRes = await fetch('/api/notifications')
+            if (notifRes.ok) {
+              const data = await notifRes.json()
+              setNotifications(data)
+            }
+         }
+       } catch (err) {
+         console.warn('Portal announcement sync skipped (no active session)')
+       } finally {
+         setIsSyncing(false)
+       }
+    }
+    
+    // Tiny delay to let other things load
+    const timer = setTimeout(syncAnnouncements, 2000)
+    return () => clearTimeout(timer)
+  }, [setNotifications])
 
   const stats = [
     { title: 'Active Assignments', value: '5', icon: BookOpen, color: 'text-blue-500' },
@@ -60,25 +107,66 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Notifications</CardTitle>
-            <CardDescription>Latest updates</CardDescription>
+        <Card className="glass-panel border-white/5 glow-olive-sm overflow-hidden">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <div>
+              <CardTitle className="text-lg font-black text-white flex items-center gap-2">
+                <Bell className="w-4 h-4 text-primary" /> Recent Notifications
+              </CardTitle>
+              <CardDescription className="text-xs">Updates from portal & campus</CardDescription>
+            </div>
+            {isSyncing && (
+              <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 2, ease: 'linear' }}>
+                <RefreshCw className="w-3 h-3 text-primary/50" />
+              </motion.div>
+            )}
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              <div className="p-3 bg-muted rounded-lg">
-                <p className="font-medium text-sm">Assignment Due Tomorrow</p>
-                <p className="text-xs text-muted-foreground">Data Structures - Lab Assignment</p>
-              </div>
-              <div className="p-3 bg-muted rounded-lg">
-                <p className="font-medium text-sm">Maintenance Resolved</p>
-                <p className="text-xs text-muted-foreground">Room 301 AC repair completed</p>
-              </div>
-              <div className="p-3 bg-muted rounded-lg">
-                <p className="font-medium text-sm">New Event</p>
-                <p className="text-xs text-muted-foreground">Tech Fest 2024 registrations open</p>
-              </div>
+            <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+              <AnimatePresence initial={false}>
+                {notifications.length > 0 ? (
+                  notifications.slice(0, 10).map((notif) => (
+                    <motion.div
+                      key={notif.id}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      className={`p-3 rounded-xl border border-white/5 relative group transition-all hover:bg-white/5 ${notif.read ? 'opacity-60' : 'bg-primary/5'}`}
+                    >
+                      <div className="flex justify-between items-start gap-2">
+                        <div className="space-y-1">
+                          <p className="font-bold text-sm text-white leading-tight">{notif.title}</p>
+                          <p className="text-xs text-muted-foreground line-clamp-2">{notif.message}</p>
+                        </div>
+                        {notif.link && (
+                          <a 
+                            href={notif.link} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="p-1.5 rounded-lg bg-white/5 text-primary opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                        )}
+                      </div>
+                      <div className="mt-2 flex items-center justify-between">
+                         <span className="text-[10px] text-muted-foreground/60 uppercase font-medium tracking-tight">
+                            {new Date(notif.created_at).toLocaleDateString()}
+                         </span>
+                         {notif.title.includes('[Portal]') && (
+                            <span className="flex items-center gap-1 text-[10px] text-primary/80 font-bold uppercase italic tracking-tighter">
+                               <GraduationCap className="w-2.5 h-2.5" /> University Portal
+                            </span>
+                         )}
+                      </div>
+                    </motion.div>
+                  ))
+                ) : (
+                  <div className="py-8 text-center space-y-2 opacity-40">
+                     <Bell className="w-8 h-8 mx-auto text-muted-foreground" />
+                     <p className="text-xs font-medium">No new notifications</p>
+                  </div>
+                )}
+              </AnimatePresence>
             </div>
           </CardContent>
         </Card>
