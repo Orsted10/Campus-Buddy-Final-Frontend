@@ -214,3 +214,68 @@ export const CAMPUS_POI = [
     keywords: ['clothes', 'wash', 'laundry']
   }
 ]
+
+// Detailed Hostel Mess Menu
+export const MESS_MENU = {
+  timings: {
+    breakfast: '07:30 AM - 09:00 AM',
+    lunch: '12:00 PM - 02:00 PM',
+    snacks: '04:30 PM - 05:30 PM',
+    dinner: '07:00 PM - 09:00 PM',
+  },
+  common: {
+    lunch: 'Rice, Pickle, Chapati, Salad & Chach',
+    dinner: 'Rice, Pickle, Chapati, Salad',
+  },
+  schedule: [
+    {
+      day: 'Monday',
+      breakfast: 'Sprouts, Bread with Jam/Butter, Cornflakes, Tea, Milk',
+      lunch: 'Black Chana, Nutri Keema',
+      snacks: 'Sandwich Coleslaw, Roohafza',
+      dinner: 'Arhar Dal Tadka, Aloo Tamatra Sbji, Gulab Jamun',
+    },
+    {
+      day: 'Tuesday',
+      breakfast: 'Sambhar, Uttapam, Coconut Chutney, Milk, Tea',
+      lunch: 'Rajma, Lauki Chana, Jeera Rice',
+      snacks: 'Poha, Green Chutney, Coffee',
+      dinner: 'Handi Paneer, Moong Masoor Dal',
+    },
+    {
+      day: 'Wednesday',
+      breakfast: 'Pav Bhaji, Banana, Milk, Tea',
+      lunch: 'Lesuni Arhar Dal Tadka, Aloo Capsicum',
+      snacks: 'Dhokla & Tea',
+      dinner: 'Veg. Briyani, Tomato Chutney/Salan',
+    },
+    {
+      day: 'Thursday',
+      breakfast: 'Lemon Vermicelli, Bread, Jam, Butter & Tea',
+      lunch: 'Urdh Chana Dal, Kadai Soya',
+      snacks: 'Veg Macroni, Coffee',
+      dinner: 'Black Masoor Dal, Mix Veg, Jeera Rice, Fruit Custard',
+    },
+    {
+      day: 'Friday',
+      breakfast: 'Aloo Bhaji, Ajwain Parantha, Milk, Tea',
+      lunch: 'Phindi Choley, Aloo Matar',
+      snacks: 'Dal Kachori, Saunth Chutney, Tea',
+      dinner: 'Veg. machurian, Fried Rice, Arhar Dal, Ice Cream',
+    },
+    {
+      day: 'Saturday',
+      breakfast: 'Sambhar, Idli, Coconut Chutney, Tea',
+      lunch: 'Lobiya Dal, Jeera Aloo',
+      snacks: 'Papadi Chat & Tea',
+      dinner: 'Kadahi Paneer, Green Moong Dal',
+    },
+    {
+      day: 'Sunday',
+      breakfast: 'Aloo Parantha, Pickle & Tea',
+      lunch: 'Aloo Chole, Veg Briyani, Green Chutney, Onion Laccha, Lassi',
+      snacks: 'Biscuits/Rusk & Tea',
+      dinner: 'Dal makhani, Bhindi Do Pyaza, Onion Rice',
+    },
+  ],
+}

@@ -15,7 +15,7 @@ export default function HostelPage() {
       title: 'Mess Menu',
       description: "View today's meal schedule and menu",
       icon: Utensils,
-      href: '#',
+      href: '/dashboard/hostel/mess',
     },
     {
       title: 'Visitor Pass',
