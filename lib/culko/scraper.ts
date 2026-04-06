@@ -179,11 +179,24 @@ export async function completeCULKOLogin(password: string, captcha: string, sess
     }
 
     // STRICT VALIDATION: Check the final HTML for login indicators
-    const $ = cheerio.load(finalHtml)
-    const isLoginPage = finalHtml.includes('id="txtUserId"') || finalHtml.includes('Login.aspx') || !!$('#btnLogin').length
+    const isDashboard = finalHtml.includes('StudentHome.aspx') || finalHtml.includes('Welcome') || finalHtml.includes('Logout')
+    const isLoginPage = finalHtml.includes('id="txtUserId"') || finalHtml.includes('Login.aspx') || finalHtml.includes('btnLogin')
+
+    // If we definitely see dashboard markers, save cookies and succeed
+    if (isDashboard) {
+      const cookieStore = await cookies()
+      cookieStore.set('culko_session', JSON.stringify(finalJar), {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 60 * 60 * 24 // 24 hours
+      })
+      return { success: true }
+    }
     
+    // If we are stuck on the login page, determine the specific error
     if (isLoginPage) {
-      // Check for specific error messages in the HTML
       if (finalHtml.includes('Invalid Captcha') || finalHtml.includes('Captcha is wrong')) {
         return { success: false, error: 'Invalid CAPTCHA code. Please try again.' }
       }
@@ -193,15 +206,16 @@ export async function completeCULKOLogin(password: string, captcha: string, sess
       return { success: false, error: 'Login failed - please verify your credentials and try again.' }
     }
 
-    // Save to cookies ONLY if it looks like the real student portal
-    if (finalHtml.includes('StudentHome.aspx') || finalHtml.includes('Welcome') || finalHtml.includes('Logout')) {
+    // Fallback: if we aren't sure, but we aren't on login page, assume success
+    // (This prevents false negatives from minor text matches)
+    if (!isLoginPage && finalHtml.length > 500) {
       const cookieStore = await cookies()
       cookieStore.set('culko_session', JSON.stringify(finalJar), {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
         path: '/',
-        maxAge: 60 * 60 * 24 // 24 hours
+        maxAge: 60 * 60 * 24
       })
       return { success: true }
     }
