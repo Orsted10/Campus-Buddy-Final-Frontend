@@ -1,206 +1,384 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useNotificationStore } from '@/store/useNotificationStore'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { MessageSquare, BookOpen, Building, Calendar, RefreshCw, Bell, ExternalLink, GraduationCap } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { 
+  Bell, ExternalLink, GraduationCap, Clock, 
+  Calendar as CalendarIcon, Utensils, AlertTriangle, 
+  ChevronRight, ArrowRight, Zap, BookOpen, 
+  RefreshCw, MapPin, Settings as SettingsIcon,
+  Smile, Sun, Moon, Coffee
+} from 'lucide-react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { getISTDate } from '@/lib/utils-date'
+import { MESS_MENU, ACADEMIC_CALENDAR_2026 } from '@/lib/constants'
+import { useRouter } from 'next/navigation'
 
 export default function DashboardPage() {
   const user = useAuthStore((state: any) => state.user)
   const { notifications, setNotifications } = useNotificationStore()
+  const router = useRouter()
+
+  const [currentTime, setCurrentTime] = useState(getISTDate())
   const [isSyncing, setIsSyncing] = useState(false)
+  const [attendanceData, setAttendanceData] = useState<any[]>([])
+  const [timetableData, setTimetableData] = useState<any>(null)
   const [portalStatus, setPortalStatus] = useState<'connected' | 'no_session' | 'error' | null>(null)
 
-  // 1. Initial Notification Fetch
+  // 1. Live Clock & State Refresh
   useEffect(() => {
-    const fetchNotifications = async () => {
-      try {
-        const res = await fetch('/api/notifications')
-        if (res.ok) {
-          const data = await res.json()
-          setNotifications(data)
-        }
-      } catch (err) {
-        console.error('Failed to fetch notifications:', err)
-      }
-    }
-    fetchNotifications()
-  }, [setNotifications])
+    const timer = setInterval(() => setCurrentTime(getISTDate()), 30000)
+    return () => clearInterval(timer)
+  }, [])
 
-  // 2. Background Portal Sync (Announcements)
-  useEffect(() => {
-    const syncAnnouncements = async () => {
-       try {
-         setIsSyncing(true)
-         const res = await fetch('/api/culko?endpoint=announcements')
-         const data = await res.json()
-         
-         if (res.ok) {
-            setPortalStatus('connected')
-            // Re-fetch our database notifications after portal sync
-            const notifRes = await fetch('/api/notifications')
-            if (notifRes.ok) {
-              const notifData = await notifRes.json()
-              setNotifications(notifData)
-            }
-         } else {
-            if (data.error?.includes('No active portal session')) {
-               setPortalStatus('no_session')
-            } else {
-               setPortalStatus('error')
-            }
-         }
-       } catch (err) {
-         setPortalStatus('error')
-         console.warn('Portal announcement sync failed:', err)
-       } finally {
-         setIsSyncing(false)
-       }
+  // 2. Fetch Dashboard Data
+  const fetchData = async () => {
+    try {
+      setIsSyncing(true)
+      
+      // Parallel fetch for speed
+      const [notifRes, attendRes, ttRes, syncRes] = await Promise.all([
+        fetch('/api/notifications'),
+        fetch('/api/culko?endpoint=attendance'),
+        fetch('/api/culko?endpoint=timetable'),
+        fetch('/api/culko?endpoint=announcements') // Background sync
+      ])
+
+      const [notifs, attendance, timetable] = await Promise.all([
+        notifRes.json(),
+        attendRes.json(),
+        ttRes.json()
+      ])
+
+      if (notifRes.ok) setNotifications(notifs)
+      if (attendRes.ok && attendance.success) setAttendanceData(attendance.data || [])
+      if (ttRes.ok && timetable.success) setTimetableData(timetable.data)
+      
+      if (syncRes.ok) setPortalStatus('connected')
+      else if (syncRes.status === 401) setPortalStatus('no_session')
+
+    } catch (err) {
+      console.error('Dashboard fetch failed:', err)
+      setPortalStatus('error')
+    } finally {
+      setIsSyncing(false)
     }
+  }
+
+  useEffect(() => {
+    fetchData()
+  }, [])
+
+  // 3. Smart Logic: Current Status (Teaching/Holiday)
+  const todayStatus = useMemo(() => {
+    const dateStr = currentTime.toISOString().split('T')[0]
+    const event = ACADEMIC_CALENDAR_2026.find(e => e.date === dateStr)
+    if (event) return { type: event.type, name: event.event }
     
-    // Tiny delay to let other things load
-    const timer = setTimeout(syncAnnouncements, 2000)
-    return () => clearTimeout(timer)
-  }, [setNotifications])
+    const day = currentTime.getUTCDay()
+    if (day === 0) return { type: 'holiday', name: 'Sunday Funday' }
+    if (day === 6) return { type: 'holiday', name: 'Saturday Break' }
+    return { type: 'teaching', name: 'Teaching Day' }
+  }, [currentTime])
 
-  const stats = [
-    { title: 'Active Assignments', value: '5', icon: BookOpen, color: 'text-blue-500' },
-    { title: 'Hostel Requests', value: '2', icon: Building, color: 'text-green-500' },
-    { title: 'Upcoming Events', value: '3', icon: Calendar, color: 'text-purple-500' },
-    { title: 'Chat Sessions', value: '12', icon: MessageSquare, color: 'text-orange-500' },
-  ]
+  // 4. Smart Logic: Next Meal
+  const nextMeal = useMemo(() => {
+    const hour = currentTime.getUTCHours() + 5 // Rough IST hour
+    const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][currentTime.getUTCDay()]
+    const dayMenu = MESS_MENU.schedule.find(s => s.day === dayName) || MESS_MENU.schedule[0]
+    
+    if (hour < 10) return { type: 'Breakfast', menu: dayMenu.breakfast, icon: Coffee, time: MESS_MENU.timings.breakfast }
+    if (hour < 15) return { type: 'Lunch', menu: dayMenu.lunch, icon: Utensils, time: MESS_MENU.timings.lunch }
+    if (hour < 18) return { type: 'Snacks', menu: dayMenu.snacks, icon: Smile, time: MESS_MENU.timings.snacks }
+    return { type: 'Dinner', menu: dayMenu.dinner, icon: Moon, time: MESS_MENU.timings.dinner }
+  }, [currentTime])
+
+  // 5. Smart Logic: Current/Next Class
+  const classStatus = useMemo(() => {
+    if (!timetableData) return null
+    const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][currentTime.getUTCDay()]
+    const schedule = timetableData[dayName] || []
+    if (schedule.length === 0) return null
+
+    // For simplicity, we'll just show the first few if we don't have exact time parsing for all slots yet
+    // In a real app, we'd parse "09:00 AM - 10:00 AM" and compare
+    return {
+      current: schedule[0],
+      next: schedule[1]
+    }
+  }, [timetableData, currentTime])
+
+  // 6. Smart Logic: Attendance Warning
+  const lowAttendance = useMemo(() => {
+    return attendanceData.filter(a => {
+      const pct = parseFloat(a.percentage)
+      return !isNaN(pct) && pct < 75
+    })
+  }, [attendanceData])
+
+  // Greeting Logic
+  const greeting = useMemo(() => {
+    const hour = currentTime.getUTCHours() + 5
+    if (hour < 12) return { text: 'Good Morning', icon: Coffee }
+    if (hour < 17) return { text: 'Good Afternoon', icon: Sun }
+    return { text: 'Good Evening', icon: Moon }
+  }, [currentTime])
 
   return (
-    <div className="p-6 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Dashboard</h1>
-        <p className="text-muted-foreground">Welcome back, {user?.full_name}!</p>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat, index) => {
-          const Icon = stat.icon
-          return (
-            <Card key={index}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
-                <Icon className={`h-4 w-4 ${stat.color}`} />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stat.value}</div>
-              </CardContent>
-            </Card>
-          )
-        })}
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
-            <CardDescription>Frequently used features</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <button className="w-full text-left p-3 rounded-lg hover:bg-muted transition-colors">
-              <p className="font-medium">🤖 Ask Campus Buddy</p>
-              <p className="text-sm text-muted-foreground">Get instant help with any query</p>
-            </button>
-            <button className="w-full text-left p-3 rounded-lg hover:bg-muted transition-colors">
-              <p className="font-medium">📝 Raise Maintenance Request</p>
-              <p className="text-sm text-muted-foreground">Report hostel issues quickly</p>
-            </button>
-            <button className="w-full text-left p-3 rounded-lg hover:bg-muted transition-colors">
-              <p className="font-medium">📚 View Assignments</p>
-              <p className="text-sm text-muted-foreground">Check upcoming deadlines</p>
-            </button>
-          </CardContent>
-        </Card>
-
-        <Card className="glass-panel border-white/5 glow-olive-sm overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <div>
-              <CardTitle className="text-lg font-black text-white flex items-center gap-2">
-                <Bell className="w-4 h-4 text-primary" /> Recent Notifications
-              </CardTitle>
-              <CardDescription className="text-xs">Updates from portal & campus</CardDescription>
+    <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-8 pb-20 overflow-x-hidden">
+      {/* 1. HERO SECTION */}
+      <section className="relative">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+          <div className="space-y-2">
+            <motion.div 
+              initial={{ opacity: 0, x: -20 }} 
+              animate={{ opacity: 1, x: 0 }}
+              className="flex items-center gap-2 text-primary font-black uppercase text-[10px] tracking-[0.3em]"
+            >
+              <Zap className="w-3 h-3" /> Dashboard Elite
+            </motion.div>
+            <motion.h1 
+              initial={{ opacity: 0, y: 10 }} 
+              animate={{ opacity: 1, y: 0 }}
+              className="text-4xl md:text-6xl font-black text-white tracking-tighter leading-none"
+            >
+              {greeting.text}, <span className="text-gradient underline decoration-primary/20">{user?.full_name?.split(' ')[0] || 'Buddy'}</span>
+            </motion.h1>
+            <div className="flex items-center gap-3 mt-4 text-muted-foreground font-bold text-sm">
+                <span className="flex items-center gap-1.5"><CalendarIcon className="w-4 h-4" /> {currentTime.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-white/10" />
+                <span className="flex items-center gap-1.5"><Clock className="w-4 h-4" /> {currentTime.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</span>
             </div>
-            {isSyncing && (
-              <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 2, ease: 'linear' }}>
-                <RefreshCw className="w-3 h-3 text-primary/50" />
+          </div>
+          
+          <div className="flex items-center gap-3">
+             <motion.button 
+               whileHover={{ scale: 1.05 }}
+               whileTap={{ scale: 0.95 }}
+               onClick={() => router.push('/dashboard/settings')}
+               className="w-12 h-12 rounded-2xl glass-panel border-white/5 flex items-center justify-center text-muted-foreground hover:text-white transition-colors"
+             >
+                <SettingsIcon className="w-5 h-5" />
+             </motion.button>
+             <Badge variant="outline" className={`h-12 px-6 rounded-2xl border-white/5 font-black uppercase tracking-widest flex items-center gap-2 ${todayStatus.type === 'teaching' ? 'bg-primary/5 text-primary border-primary/20' : 'bg-blue-500/5 text-blue-400 border-blue-500/20'}`}>
+                <div className={`w-2 h-2 rounded-full animate-pulse ${todayStatus.type === 'teaching' ? 'bg-primary' : 'bg-blue-400'}`} />
+                {todayStatus.name}
+             </Badge>
+          </div>
+        </div>
+      </section>
+
+      <div className="grid gap-6 lg:grid-cols-12">
+        {/* 2. SMART TIMELINE (LEFT COL) */}
+        <div className="lg:col-span-8 space-y-6">
+          <div className="grid gap-6 md:grid-cols-2">
+             {/* Next Up Class Widget */}
+             <Card className="glass-panel border-white/5 overflow-hidden group">
+                <CardHeader className="pb-2">
+                   <div className="flex justify-between items-center">
+                      <CardTitle className="text-sm font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                         <BookOpen className="w-3 h-3" /> Smart Schedule
+                      </CardTitle>
+                      <button onClick={() => router.push('/dashboard/timetable')} className="text-[10px] font-black text-primary hover:underline">VIEW FULL</button>
+                   </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                   {classStatus?.current ? (
+                     <div className="relative pl-6 border-l-2 border-primary/30 py-1">
+                        <div className="absolute -left-[5px] top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-primary" />
+                        <p className="text-[10px] font-black text-primary uppercase">RIGHT NOW</p>
+                        <h3 className="font-black text-white text-lg leading-tight group-hover:text-primary transition-colors line-clamp-1">{classStatus.current.subject}</h3>
+                        <p className="text-xs text-muted-foreground flex items-center gap-2 mt-1">
+                           <Clock className="w-3 h-3" /> {classStatus.current.time}
+                           <span className="w-1 h-1 rounded-full bg-white/10" />
+                           <MapPin className="w-3 h-3" /> BLOCK E
+                        </p>
+                     </div>
+                   ) : (
+                     <div className="py-2 text-center">
+                        <p className="text-xs font-bold text-muted-foreground italic">No classes active at the moment</p>
+                     </div>
+                   )}
+
+                   {classStatus?.next && (
+                     <div className="relative pl-6 border-l-2 border-white/5 py-1 opacity-50">
+                        <div className="absolute -left-[5px] top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-white/20" />
+                        <p className="text-[10px] font-black uppercase">UP NEXT</p>
+                        <h3 className="font-bold text-white text-sm line-clamp-1">{classStatus.next.subject}</h3>
+                        <p className="text-[10px] text-muted-foreground">{classStatus.next.time}</p>
+                     </div>
+                   )}
+                </CardContent>
+             </Card>
+
+             {/* Next Meal Widget */}
+             <Card className="glass-panel border-white/5 overflow-hidden bg-gradient-to-br from-primary/5 to-transparent">
+                <CardHeader className="pb-2">
+                   <div className="flex justify-between items-center">
+                      <CardTitle className="text-sm font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                         <nextMeal.icon className="w-3 h-3" /> Campus Mess
+                      </CardTitle>
+                      <button onClick={() => router.push('/dashboard/hostel/mess')} className="text-[10px] font-black text-primary hover:underline">MENU</button>
+                   </div>
+                </CardHeader>
+                <CardContent className="flex items-center gap-4">
+                   <div className="w-14 h-14 rounded-2xl bg-primary/20 flex items-center justify-center shrink-0">
+                      <Utensils className="w-6 h-6 text-primary" />
+                   </div>
+                   <div>
+                      <p className="text-[10px] font-black text-primary uppercase">{nextMeal.type} • {nextMeal.time}</p>
+                      <h3 className="font-black text-white text-base leading-tight mt-0.5">{nextMeal.menu}</h3>
+                   </div>
+                </CardContent>
+             </Card>
+          </div>
+
+          {/* ATTENDANCE HEALTH PULSE */}
+          <AnimatePresence>
+            {lowAttendance.length > 0 && (
+              <motion.div 
+                initial={{ opacity: 0, height: 0 }} 
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+              >
+                <Card className="border-amber-500/20 bg-amber-500/5 glow-amber-sm">
+                  <CardHeader className="py-3 flex flex-row items-center justify-between">
+                     <CardTitle className="text-xs font-black text-amber-500 uppercase flex items-center gap-2">
+                        <AlertTriangle className="w-4 h-4" /> Attendance Priority Alert
+                     </CardTitle>
+                     <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/20">{lowAttendance.length} Subjects critical</Badge>
+                  </CardHeader>
+                  <CardContent className="pb-4 pt-0">
+                     <p className="text-xs text-amber-500/80 font-bold mb-3">The following subjects require attention to stay above 75%:</p>
+                     <div className="flex flex-wrap gap-2">
+                        {lowAttendance.slice(0, 3).map(a => (
+                           <button 
+                             key={a.id} 
+                             onClick={() => router.push('/dashboard/attendance')}
+                             className="px-3 py-2 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center gap-3 group transition-all hover:bg-amber-500/20"
+                           >
+                              <span className="text-xs font-black text-white">{a.subject_name.split(' ')[0]}</span>
+                              <span className="text-xs font-black text-amber-500 px-1.5 py-0.5 rounded-lg bg-black/20 group-hover:bg-black/40">{a.percentage}%</span>
+                           </button>
+                        ))}
+                     </div>
+                  </CardContent>
+                </Card>
               </motion.div>
             )}
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-              <AnimatePresence initial={false}>
-                {notifications.length > 0 ? (
-                  notifications.slice(0, 10).map((notif) => (
-                    <motion.div
-                      key={notif.id}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      className={`p-3 rounded-xl border border-white/5 relative group transition-all hover:bg-white/5 ${notif.read ? 'opacity-60' : 'bg-primary/5'}`}
-                    >
-                      <div className="flex justify-between items-start gap-2">
-                        <div className="space-y-1">
-                          <p className="font-bold text-sm text-white leading-tight">{notif.title}</p>
-                          <p className="text-xs text-muted-foreground line-clamp-2">{notif.message}</p>
-                        </div>
-                        {notif.link && (
-                          <a 
-                            href={notif.link} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="p-1.5 rounded-lg bg-white/5 text-primary opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            <ExternalLink className="w-3 h-3" />
-                          </a>
-                        )}
-                      </div>
-                      <div className="mt-2 flex items-center justify-between">
-                         <span className="text-[10px] text-muted-foreground/60 uppercase font-medium tracking-tight">
-                            {new Date(notif.created_at).toLocaleDateString()}
-                         </span>
-                         {notif.title.includes('[Portal]') && (
-                            <span className="flex items-center gap-1 text-[10px] text-primary/80 font-bold uppercase italic tracking-tighter">
-                               <GraduationCap className="w-2.5 h-2.5" /> University Portal
-                            </span>
-                         )}
-                      </div>
-                    </motion.div>
-                  ))
-                ) : portalStatus === 'no_session' ? (
-                  <div className="py-8 text-center space-y-4">
-                     <div className="relative mx-auto w-12 h-12">
-                        <Bell className="w-12 h-12 text-muted-foreground/20" />
-                        <div className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 rounded-full border-2 border-background flex items-center justify-center">
-                           <span className="text-[8px] font-black text-white">!</span>
-                        </div>
-                     </div>
-                     <div className="space-y-1">
-                        <p className="text-sm font-bold text-white">Portal Not Connected</p>
-                        <p className="text-xs text-muted-foreground px-4">Connect your CULKO account to receive university announcements.</p>
-                     </div>
-                     <button 
-                        onClick={() => window.location.href = '/dashboard/academics'}
-                        className="text-xs font-black text-primary px-4 py-2 rounded-lg bg-primary/10 hover:bg-primary/20 transition-all border border-primary/20"
-                     >
-                        Connect Now
-                     </button>
-                  </div>
-                ) : (
-                  <div className="py-12 text-center space-y-2 opacity-40">
-                     <Bell className="w-8 h-8 mx-auto text-muted-foreground" />
-                     <p className="text-xs font-medium">{isSyncing ? 'Checking for updates...' : 'No new notifications'}</p>
-                  </div>
+          </AnimatePresence>
+
+          {/* QUICK ACTIONS HUB */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+             {[
+               { name: 'CULKO Portal', icon: GraduationCap, color: 'text-blue-500', href: '/dashboard/academics' },
+               { name: 'Campus AI', icon: Zap, color: 'text-primary', href: '/dashboard/chat' },
+               { name: 'Maintenance', icon: SettingsIcon, color: 'text-orange-500', href: '/dashboard/hostel' },
+               { name: 'Library Search', icon: BookOpen, color: 'text-purple-500', href: '/dashboard/library' }
+             ].map((action, i) => (
+                <motion.button
+                  key={action.name}
+                  whileHover={{ y: -4, scale: 1.02 }}
+                  onClick={() => router.push(action.href)}
+                  className="glass-panel p-4 rounded-3xl border-white/5 flex flex-col items-center justify-center gap-3 transition-all hover:border-white/10 group"
+                >
+                   <div className={`w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center group-hover:bg-white/10 transition-colors`}>
+                      <action.icon className={`w-5 h-5 ${action.color}`} />
+                   </div>
+                   <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground group-hover:text-white transition-colors">{action.name}</span>
+                </motion.button>
+             ))}
+          </div>
+        </div>
+
+        {/* 3. NOTIFICATIONS (RIGHT COL) */}
+        <div className="lg:col-span-4 space-y-6">
+           <Card className="glass-panel h-full border-white/5 glow-olive-sm overflow-hidden flex flex-col">
+              <CardHeader className="flex flex-row items-center justify-between pb-4 border-b border-white/5 bg-white/2">
+                <div>
+                  <CardTitle className="text-lg font-black text-white flex items-center gap-2">
+                    <Bell className="w-4 h-4 text-primary" /> Notifications
+                  </CardTitle>
+                </div>
+                {isSyncing && (
+                  <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 2, ease: 'linear' }}>
+                    <RefreshCw className="w-3 h-3 text-primary/50" />
+                  </motion.div>
                 )}
-              </AnimatePresence>
-            </div>
-          </CardContent>
-        </Card>
+              </CardHeader>
+              <CardContent className="p-0 flex-1 overflow-hidden">
+                <div className="h-[450px] overflow-y-auto px-4 py-4 space-y-3 custom-scrollbar">
+                  <AnimatePresence initial={false}>
+                    {notifications.length > 0 ? (
+                      notifications.slice(0, 8).map((notif) => (
+                        <motion.div
+                          key={notif.id}
+                          initial={{ opacity: 0, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          className={`p-3 rounded-2xl border border-white/5 relative group transition-all hover:bg-white/5 ${notif.read ? 'opacity-60' : 'bg-primary/5'}`}
+                        >
+                          <div className="flex justify-between items-start gap-2">
+                            <div className="space-y-1">
+                              <p className="font-black text-sm text-white leading-tight">{notif.title}</p>
+                              <p className="text-[11px] text-muted-foreground line-clamp-2 leading-relaxed">{notif.message}</p>
+                            </div>
+                          </div>
+                          <div className="mt-3 flex items-center justify-between border-t border-white/5 pt-2">
+                             <span className="text-[9px] text-muted-foreground/60 uppercase font-black tracking-tight flex items-center gap-1">
+                                <Clock className="w-2.5 h-2.5" /> {new Date(notif.created_at).toLocaleDateString()}
+                             </span>
+                             {notif.link ? (
+                                <a href={notif.link} target="_blank" className="flex items-center gap-1 text-[9px] text-primary font-black uppercase hover:underline">
+                                   DETAILS <ArrowRight className="w-2 h-2" />
+                                </a>
+                             ) : notif.title.includes('[Portal]') && (
+                                <span className="flex items-center gap-1 text-[9px] text-primary/80 font-black uppercase tracking-tighter">
+                                   <GraduationCap className="w-2.5 h-2.5" /> Portal
+                                </span>
+                             )}
+                          </div>
+                        </motion.div>
+                      ))
+                    ) : portalStatus === 'no_session' ? (
+                      <div className="py-20 text-center space-y-6">
+                         <div className="w-20 h-20 mx-auto rounded-[2.5rem] bg-amber-500/10 flex items-center justify-center border border-amber-500/20 relative">
+                            <Bell className="w-8 h-8 text-amber-500" />
+                            <div className="absolute -top-1 -right-1 w-6 h-6 bg-amber-500 rounded-full border-4 border-[#0a0a0a] flex items-center justify-center">
+                               <AlertTriangle className="w-3 h-3 text-black" />
+                            </div>
+                         </div>
+                         <div className="space-y-2 px-6">
+                            <h3 className="text-lg font-black text-white leading-tight">Sync Disconnected</h3>
+                            <p className="text-xs text-muted-foreground font-medium">Your portal session has expired. Notifications are paused.</p>
+                         </div>
+                         <Button 
+                            onClick={() => router.push('/dashboard/academics')}
+                            className="h-12 px-8 rounded-2xl bg-amber-500 hover:bg-amber-600 text-black font-black uppercase tracking-widest text-xs"
+                         >
+                            Reconnect Portal
+                         </Button>
+                      </div>
+                    ) : (
+                      <div className="py-32 text-center space-y-3 opacity-20">
+                         <Bell className="w-12 h-12 mx-auto text-muted-foreground" />
+                         <p className="text-xs font-black uppercase tracking-widest">{isSyncing ? 'Fetching Alerts...' : 'All caught up'}</p>
+                      </div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </CardContent>
+           </Card>
+        </div>
       </div>
+
+      <footer className="pt-8 text-center border-t border-white/5">
+         <p className="text-[10px] text-muted-foreground/30 font-black uppercase tracking-[0.5em]">
+            Campus Buddy Elite Engine • AI Augmented Dashboard
+         </p>
+      </footer>
     </div>
   )
 }
