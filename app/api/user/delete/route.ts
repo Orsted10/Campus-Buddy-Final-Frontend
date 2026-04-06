@@ -12,34 +12,54 @@ export async function DELETE() {
 
     console.log(`[DeleteAccount] Initializing cleanup for user: ${user.id}`)
 
-    // 1. Delete data from all user-related tables
-    // We do them in parallel where possible, but some might have FK constraints
-    // If FKs are set to 'CASCADE' in Supabase, deleting 'profiles' might be enough
-    // But to be safe and thorough:
-    const tables = [
+    // 1. Handle Messages (Nested Deletion)
+    // We need to find all chats belonging to the user first
+    const { data: userChats } = await supabase
+      .from('chats')
+      .select('id')
+      .eq('user_id', user.id)
+
+    if (userChats && userChats.length > 0) {
+      const chatIds = userChats.map(c => c.id)
+      const { error: msgErr } = await supabase
+        .from('messages')
+        .delete()
+        .in('chat_id', chatIds)
+      
+      if (msgErr) console.warn('[DeleteAccount] Error deleting messages:', msgErr.message)
+    }
+
+    // 2. Standard user_id tables
+    const standardTables = [
       'portal_records',
       'notifications',
       'hostel_requests',
       'laundry_bookings',
       'book_reservations',
       'assignments',
-      'messages',
-      'chats',
-      'visitor_passes'
+      'chats' // Already cleared messages, now clear chats
     ]
 
-    for (const table of tables) {
+    for (const table of standardTables) {
       const { error } = await supabase
         .from(table)
         .delete()
         .eq('user_id', user.id)
       
       if (error) {
-        console.warn(`[DeleteAccount] Non-critical error deleting from ${table}:`, error.message)
+        console.warn(`[DeleteAccount] Error deleting from ${table}:`, error.message)
       }
     }
 
-    // 2. Delete the profile itself
+    // 3. Special column tables
+    // Visitor passes use 'student_id'
+    const { error: vpError } = await supabase
+      .from('visitor_passes')
+      .delete()
+      .eq('student_id', user.id)
+    if (vpError) console.warn('[DeleteAccount] Error deleting visitor_passes:', vpError.message)
+
+    // 4. Delete the profile itself (Uses 'id')
     const { error: profileError } = await supabase
       .from('profiles')
       .delete()
@@ -47,11 +67,7 @@ export async function DELETE() {
 
     if (profileError) throw profileError
 
-    // 3. Delete the authenticated user
-    // Note: createClient() uses the user's session. To delete the Auth user, 
-    // we would ideally need a service role client, but Supabase doesn't expose 
-    // auth.admin.deleteUser to the browser/standard client for security.
-    // However, we can at least sign them out and wipe their DB footprint.
+    // 5. Final Step: Sign out
     await supabase.auth.signOut()
 
     return NextResponse.json({ success: true, message: 'Account and data wiped successfully' })
