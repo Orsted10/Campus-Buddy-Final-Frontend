@@ -156,37 +156,57 @@ export async function completeCULKOLogin(password: string, captcha: string, sess
     })
 
     let finalJar = mergeCookies(jar, extractCookies(response))
+    let finalHtml = ''
     
     // REDIRECT SEATING: If it redirects (302), we MUST follow it to "activate" the session
-    if (response.status === 302 || response.status === 303) {
+    if (response.status === 302 || response.status === 303 || response.status === 200) {
       const redirectUrl = response.headers.get('location')
-      if (redirectUrl) {
-        const absoluteRedirect = redirectUrl.startsWith('http') ? redirectUrl : `${BASE_URL}/${redirectUrl}`
-        console.log('[completeCULKOLogin] Seating session via redirect:', absoluteRedirect)
+      const targetUrl = redirectUrl 
+        ? (redirectUrl.startsWith('http') ? redirectUrl : `${BASE_URL}/${redirectUrl}`)
+        : url
         
-        const seatRes = await fetch(absoluteRedirect, {
-          headers: {
-            'Cookie': serializeCookies(finalJar),
-            'User-Agent': USER_AGENT,
-            'Referer': url
-          }
-        })
-        // Merge any final session markers
-        finalJar = mergeCookies(finalJar, extractCookies(seatRes))
-      }
+      console.log('[completeCULKOLogin] Verifying session at:', targetUrl)
+      
+      const seatRes = await fetch(targetUrl, {
+        headers: {
+          'Cookie': serializeCookies(finalJar),
+          'User-Agent': USER_AGENT,
+          'Referer': url
+        }
+      })
+      finalJar = mergeCookies(finalJar, extractCookies(seatRes))
+      finalHtml = await seatRes.text()
     }
 
-    // Save to cookies
-    const cookieStore = await cookies()
-    cookieStore.set('culko_session', JSON.stringify(finalJar), {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 60 * 60 * 24 // 24 hours
-    })
+    // STRICT VALIDATION: Check the final HTML for login indicators
+    const $ = cheerio.load(finalHtml)
+    const isLoginPage = finalHtml.includes('id="txtUserId"') || finalHtml.includes('Login.aspx') || !!$('#btnLogin').length
+    
+    if (isLoginPage) {
+      // Check for specific error messages in the HTML
+      if (finalHtml.includes('Invalid Captcha') || finalHtml.includes('Captcha is wrong')) {
+        return { success: false, error: 'Invalid CAPTCHA code. Please try again.' }
+      }
+      if (finalHtml.includes('Invalid User ID') || finalHtml.includes('Password') || finalHtml.includes('Incorrect')) {
+        return { success: false, error: 'Invalid Student UID or Password.' }
+      }
+      return { success: false, error: 'Login failed - please verify your credentials and try again.' }
+    }
 
-    return { success: true }
+    // Save to cookies ONLY if it looks like the real student portal
+    if (finalHtml.includes('StudentHome.aspx') || finalHtml.includes('Welcome') || finalHtml.includes('Logout')) {
+      const cookieStore = await cookies()
+      cookieStore.set('culko_session', JSON.stringify(finalJar), {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 60 * 60 * 24 // 24 hours
+      })
+      return { success: true }
+    }
+
+    return { success: false, error: 'Portal response unexpected. Please try once more.' }
   } catch (error) {
     console.error('completeCULKOLogin error:', error)
     return { success: false, error: 'Connection error during authentication' }
