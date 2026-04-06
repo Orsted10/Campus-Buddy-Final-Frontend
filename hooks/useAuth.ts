@@ -176,37 +176,60 @@ export function useAuth() {
 
   const signOut = async () => {
     try {
+      console.log('--- SIGNOUT START ---')
       toast.loading('Logging out...', { id: 'logout' })
       
-      // 1. Clear portal/culko session
-      await fetch('/api/culko/logout').catch(() => {})
+      // 1. Parallel session clearing for CULKO and Supabase
+      // We don't await them yet, so we can clear local state immediately
+      const culkoLogout = fetch('/api/culko/logout').catch(e => console.warn('Culko logout fail:', e))
       
-      // 2. Supabase signout - this clears the SB cookies
-      const { error } = await supabase.auth.signOut()
-      if (error) console.error('Supabase signOut error:', error)
-      
-      // 3. Clear all local zustand state
+      // Supabase logout with a 2-second timeout so it never hangs the UI
+      const supabaseLogout = (async () => {
+        try {
+          return await Promise.race([
+            supabase.auth.signOut(),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Supabase SignOut Timeout')), 2000))
+          ])
+        } catch (err) {
+          console.warn('Supabase signOut error/timeout:', err)
+          return { error: err }
+        }
+      })()
+
+      // 2. Clear local store IMMEDIATELY (Zustand)
+      // This is the "Clear it out" part - we don't wait for the server
       const { reset } = useAuthStore.getState()
       reset()
+      console.log('Zustand store cleared')
       
-      // 4. Manual cookie clearing (Extra safety for middleware)
-      const cookies = document.cookie.split(';')
-      for (let i = 0; i < cookies.length; i++) {
-        const cookie = cookies[i]
-        const eqPos = cookie.indexOf('=')
-        const name = eqPos > -1 ? cookie.substring(0, eqPos) : cookie
-        document.cookie = name + '=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;'
+      // 3. Force-clear ALL auth-related cookies manually
+      const clearCookie = (name: string, path: string) => {
+        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=${path};`
       }
+
+      const cookieNames = document.cookie.split(';').map(c => c.trim().split('=')[0])
+      cookieNames.forEach(name => {
+        if (name.includes('sb-') || name.includes('culko') || name.includes('supabase')) {
+          clearCookie(name, '/')
+          clearCookie(name, '/dashboard')
+        }
+      })
+      console.log('Local cookies manually cleared')
+
+      // 4. Await the network calls briefly but don't let them kill the process
+      await Promise.allSettled([culkoLogout, supabaseLogout])
+      console.log('Network logout calls settled')
 
       toast.success('Logged out successfully', { id: 'logout' })
       
-      // 5. Hard redirect to landing page (not /login)
-      // This ensures we hit the server-side as unauthenticated.
-      // Redirecting to / ensures the login page doesn't get stuck.
+      // 5. CRITICAL: Hard redirect to landing page (not /login)
+      console.log('Redirecting to landing page...')
       window.location.href = '/'
+      
       return { error: null }
     } catch (error: any) {
       console.error('Logout error:', error)
+      // Total emergency reset
       useAuthStore.getState().reset()
       window.location.href = '/'
       return { error }
