@@ -14,16 +14,35 @@ function extractASPState(html: string) {
   }
 }
 
-// Helper to extract cookies from response
+const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36'
+
+// Helper to extract cookies from response correctly, handling commas in dates
 function extractCookies(response: Response): Record<string, string> {
+  const setCookieHeaders = response.headers.getSetCookie();
+  const jar: Record<string, string> = {}
+  
+  if (setCookieHeaders && setCookieHeaders.length > 0) {
+    setCookieHeaders.forEach(cookieString => {
+      const parts = cookieString.split(';')[0].trim().split('=');
+      if (parts.length >= 2) {
+        const name = parts[0];
+        const value = parts.slice(1).join('='); // handle '=' in values
+        jar[name] = value;
+      }
+    });
+    return jar;
+  }
+
+  // Fallback for older environments
   const setCookie = response.headers.get('set-cookie')
   if (!setCookie) return {}
   
-  const jar: Record<string, string> = {}
-  setCookie.split(',').forEach(c => {
+  // Robust split for Set-Cookie header
+  const cookies = setCookie.split(/,(?=[^;]*=)/);
+  cookies.forEach(c => {
     const pair = c.split(';')[0].trim().split('=')
-    if (pair.length === 2) {
-      jar[pair[0]] = pair[1]
+    if (pair.length >= 2) {
+      jar[pair[0]] = pair.slice(1).join('=')
     }
   })
   return jar
@@ -46,7 +65,7 @@ export async function initCULKOLogin(uid: string) {
     // 1. Initial GET
     const initialRes = await fetch(`${BASE_URL}/Login.aspx`, {
       method: 'GET',
-      headers: { 'User-Agent': 'Mozilla/5.0' }
+      headers: { 'User-Agent': USER_AGENT }
     })
     jar = mergeCookies(jar, extractCookies(initialRes))
     const initialHtml = await initialRes.text()
@@ -66,7 +85,7 @@ export async function initCULKOLogin(uid: string) {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
         'Cookie': serializeCookies(jar),
-        'User-Agent': 'Mozilla/5.0'
+        'User-Agent': USER_AGENT
       },
       redirect: 'manual'
     })
@@ -82,7 +101,7 @@ export async function initCULKOLogin(uid: string) {
       method: 'GET',
       headers: {
         'Cookie': serializeCookies(jar),
-        'User-Agent': 'Mozilla/5.0'
+        'User-Agent': USER_AGENT
       }
     })
     jar = mergeCookies(jar, extractCookies(step2Res))
@@ -93,7 +112,7 @@ export async function initCULKOLogin(uid: string) {
     const captchaRes = await fetch(`${BASE_URL}/GenerateCaptcha.aspx`, {
       headers: {
         'Cookie': serializeCookies(jar),
-        'User-Agent': 'Mozilla/5.0'
+        'User-Agent': USER_AGENT
       }
     })
     jar = mergeCookies(jar, extractCookies(captchaRes))
@@ -130,7 +149,7 @@ export async function completeCULKOLogin(password: string, captcha: string, sess
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
         'Cookie': serializeCookies(jar),
-        'User-Agent': 'Mozilla/5.0'
+        'User-Agent': USER_AGENT
       },
       redirect: 'manual'
     })
@@ -268,7 +287,7 @@ async function fetchCULKOResource(endpoint: string, cookies: Record<string, stri
       'Cookie': Object.entries(cookies)
         .map(([k, v]) => `${k}=${v}`)
         .join('; '),
-      'User-Agent': 'Mozilla/5.0'
+      'User-Agent': USER_AGENT
     }
   })
   
@@ -278,9 +297,14 @@ async function fetchCULKOResource(endpoint: string, cookies: Record<string, stri
   
   const html = await response.text()
   
-  // SESSION VALIDATION: If the HTML contains login fields, the session is likely expired
   if (html.includes('id="txtUserId"') || html.includes('Login.aspx') || html.includes('Session Expired')) {
-    console.error(`[fetchCULKOResource] Session for ${endpoint} has expired or is invalid. Redirecting to fallback.`)
+    console.error(`[fetchCULKOResource] Session for ${endpoint} has expired or is invalid.`)
+    console.log('[fetchCULKOResource] HTML Length:', html.length)
+    console.log('[fetchCULKOResource] Found Indicators:', {
+      txtUserId: html.includes('id="txtUserId"'),
+      Loginaspx: html.includes('Login.aspx'),
+      SessionExpired: html.includes('Session Expired')
+    })
     throw new Error('Unauthorized or Session Expired')
   }
   
@@ -454,7 +478,7 @@ async function fetchAttendanceViaAjax(url: string, cookies: Record<string, strin
       'Cookie': Object.entries(cookies)
         .map(([k, v]) => `${k}=${v}`)
         .join('; '),
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      'User-Agent': USER_AGENT
     }
   })
   
@@ -527,7 +551,7 @@ async function fetchAttendanceViaAjax(url: string, cookies: Record<string, strin
       'Cookie': Object.entries(cookies)
         .map(([k, v]) => `${k}=${v}`)
         .join('; '),
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      'User-Agent': USER_AGENT
     },
     body: ajaxData
   })
