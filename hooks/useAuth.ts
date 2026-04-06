@@ -236,9 +236,12 @@ export function useAuth() {
     }
   }
 
+  const needsOnboarding = user !== null && !user.student_id
+
   return {
     user,
     loading,
+    needsOnboarding,
     signIn,
     signUp,
     signInWithGoogle,

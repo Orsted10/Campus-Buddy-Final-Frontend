@@ -32,21 +32,36 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  // Protected routes - redirect to login if not authenticated
-  if (
-    !user &&
-    (request.nextUrl.pathname.startsWith('/dashboard') ||
-      request.nextUrl.pathname.startsWith('/chat') ||
-      request.nextUrl.pathname.startsWith('/hostel') ||
-      request.nextUrl.pathname.startsWith('/academics') ||
-      request.nextUrl.pathname.startsWith('/navigation') ||
-      request.nextUrl.pathname.startsWith('/library') ||
-      request.nextUrl.pathname.startsWith('/notifications') ||
-      request.nextUrl.pathname.startsWith('/admin'))
-  ) {
+  // 1. Protected routes - redirect to login if not authenticated
+  const isProtectedRoute = 
+    request.nextUrl.pathname.startsWith('/dashboard') ||
+    request.nextUrl.pathname.startsWith('/chat') ||
+    request.nextUrl.pathname.startsWith('/hostel') ||
+    request.nextUrl.pathname.startsWith('/academics') ||
+    request.nextUrl.pathname.startsWith('/navigation') ||
+    request.nextUrl.pathname.startsWith('/library') ||
+    request.nextUrl.pathname.startsWith('/notifications') ||
+    request.nextUrl.pathname.startsWith('/admin')
+
+  if (!user && isProtectedRoute) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
+  }
+
+  // 2. Onboarding enforcement - redirect Google/new users to complete their profile
+  if (user && isProtectedRoute && !request.nextUrl.pathname.startsWith('/onboarding') && !request.nextUrl.pathname.startsWith('/api')) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('student_id')
+      .eq('id', user.id)
+      .maybeSingle()
+
+    if (!profile?.student_id) {
+       const url = request.nextUrl.clone()
+       url.pathname = '/onboarding'
+       return NextResponse.redirect(url)
+    }
   }
 
   // IMPORTANT: You *must* return the supabaseResponse object as it is. If you're
