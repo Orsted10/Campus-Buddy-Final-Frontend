@@ -21,72 +21,38 @@ export function useAuth() {
         } = await supabase.auth.getSession()
 
         if (session?.user) {
-          // Try to get profile with error handling
           try {
             const { data: profile, error: profileError } = await supabase
               .from('profiles')
               .select('*')
               .eq('id', session.user.id)
-              .maybeSingle()  // Use maybeSingle instead of single to avoid errors
+              .maybeSingle()
 
-            if (profileError) {
-              console.warn('Profile fetch warning:', profileError.message)
-              // If profile doesn't exist or can't be fetched, create a minimal user object
-              const fallbackUser = {
+            if (profile) {
+              setUser(profile as Profile)
+            } else {
+              // Create fallback if profile is missing (e.g., trigger lag)
+              const fallback: Profile = {
                 id: session.user.id,
                 email: session.user.email || '',
                 full_name: session.user.user_metadata?.full_name || 'User',
                 role: session.user.user_metadata?.role || 'student',
                 student_id: session.user.user_metadata?.student_id || null,
                 phone: null,
-                avatar_url: null,
+                avatar_url: session.user.user_metadata?.avatar_url || null,
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString()
               }
-              console.log('Fallback user:', fallbackUser)
-              setUser(fallbackUser as Profile)
-              console.log('Zustand store updated with fallback user')
-            } else if (profile) {
-              setUser(profile as Profile)
-            } else {
-              // Profile doesn't exist, create from session
-              setUser({
-                id: session.user.id,
-                email: session.user.email || '',
-                full_name: session.user.user_metadata?.full_name || 'User',
-                role: session.user.user_metadata?.role || 'student',
-                student_id: session.user.user_metadata?.student_id || null,
-                phone: null,
-                avatar_url: null,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-              } as Profile)
+              setUser(fallback)
             }
           } catch (err) {
-            console.error('Error fetching profile:', err)
-            // Fallback to session data
-            setUser({
-              id: session.user.id,
-              email: session.user.email || '',
-              full_name: session.user.user_metadata?.full_name || 'User',
-              role: session.user.user_metadata?.role || 'student',
-              student_id: session.user.user_metadata?.student_id || null,
-              phone: null,
-              avatar_url: null,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            } as Profile)
+            console.error('Profile fetch error:', err)
           }
         } else {
           clearUser()
         }
-      } catch (error) {
-        // Ignore lock errors in development - they're harmless
-        if (error instanceof Error && error.name === 'NavigatorLockAcquireTimeoutError') {
-          console.log('Auth lock timeout (harmless in dev mode)')
-          return
-        }
-        console.error('Error getting session:', error)
+      } catch (err) {
+        console.error('Session error:', err)
         clearUser()
       } finally {
         setLoading(false)
@@ -94,6 +60,11 @@ export function useAuth() {
     }
 
     getSession()
+
+    // Safety timeout: If auth takes more than 5 seconds, stop loading
+    const safetyTimeout = setTimeout(() => {
+      setLoading(false)
+    }, 5000)
 
     const {
       data: { subscription },
@@ -103,10 +74,23 @@ export function useAuth() {
           .from('profiles')
           .select('*')
           .eq('id', session.user.id)
-          .single()
+          .maybeSingle()
 
         if (profile) {
           setUser(profile as Profile)
+        } else {
+          const fallback: Profile = {
+            id: session.user.id,
+            email: session.user.email || '',
+            full_name: session.user.user_metadata?.full_name || 'User',
+            role: session.user.user_metadata?.role || 'student',
+            student_id: session.user.user_metadata?.student_id || null,
+            phone: null,
+            avatar_url: session.user.user_metadata?.avatar_url || null,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }
+          setUser(fallback)
         }
       } else {
         clearUser()
@@ -114,7 +98,10 @@ export function useAuth() {
       setLoading(false)
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      clearTimeout(safetyTimeout)
+      subscription.unsubscribe()
+    }
   }, [supabase, setUser, clearUser])
 
   const signIn = async (email: string, password: string) => {
