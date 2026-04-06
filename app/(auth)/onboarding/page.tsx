@@ -34,8 +34,14 @@ export default function OnboardingPage() {
 
   // If already onboarded, redirect to dashboard
   useEffect(() => {
-    if (!loading && !needsOnboarding && user) {
-      router.replace('/dashboard')
+    if (!loading) {
+      if (!user) {
+        // Safety: If auth finished and there's no user at all, go to login
+        router.replace('/login')
+      } else if (!needsOnboarding) {
+        // If they don't need onboarding, go to dashboard
+        router.replace('/dashboard')
+      }
     }
   }, [loading, needsOnboarding, user, router])
 
