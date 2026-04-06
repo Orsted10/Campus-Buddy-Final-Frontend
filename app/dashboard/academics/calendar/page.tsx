@@ -10,7 +10,10 @@ import {
   GraduationCap, 
   Palmtree, 
   Zap,
-  ArrowRight
+  ArrowRight,
+  Clock,
+  MapPin,
+  User as UserIcon
 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { ACADEMIC_CALENDAR_2026, CalendarEvent } from '@/lib/constants'
@@ -24,17 +27,29 @@ const months = [
 ]
 
 const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+const daysFullName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
 export default function AcademicCalendarPage() {
   const istNow = getISTDate()
   const [currentMonth, setCurrentMonth] = useState(3) // April (0-indexed)
   const [currentYear, setCurrentYear] = useState(2026)
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
+  const [timetable, setTimetable] = useState<any>(null)
 
   useEffect(() => {
-    // Default to April 2026 for this semester view
     setSelectedDate(istNow.toISOString().split('T')[0])
+    fetchTimetable()
   }, [])
+
+  const fetchTimetable = async () => {
+    try {
+      const res = await fetch('/api/culko?endpoint=timetable')
+      const result = await res.json()
+      if (result.success) setTimetable(result.data)
+    } catch (err) {
+      console.error('Failed to fetch timetable for calendar')
+    }
+  }
 
   const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay()
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate()
@@ -61,10 +76,36 @@ export default function AcademicCalendarPage() {
     const d = day.toString().padStart(2, '0')
     const m = (currentMonth + 1).toString().padStart(2, '0')
     const dateStr = `${currentYear}-${m}-${d}`
-    return ACADEMIC_CALENDAR_2026.find(e => e.date === dateStr)
+    
+    // 1. Check for explicit event
+    const explicitEvent = ACADEMIC_CALENDAR_2026.find(e => e.date === dateStr)
+    if (explicitEvent) return explicitEvent
+
+    // 2. Fallback to default teaching days (Mon-Fri)
+    const dateObj = new Date(currentYear, currentMonth, day)
+    const dayOfWeekIdx = dateObj.getDay()
+    if (dayOfWeekIdx >= 1 && dayOfWeekIdx <= 5) {
+      return {
+        date: dateStr,
+        type: 'teaching' as const,
+        event: 'Regular Teaching Day'
+      }
+    }
+
+    return null
   }
 
-  const selectedEvent = selectedDate ? ACADEMIC_CALENDAR_2026.find(e => e.date === selectedDate) : null
+  const selectedEvent = selectedDate ? getEventForDate(parseInt(selectedDate.split('-')[2])) : null
+  
+  // Get timetable for selected day
+  const getSelectedTimetable = () => {
+    if (!selectedDate || !timetable) return []
+    const dateObj = new Date(selectedDate)
+    const dayName = selectedEvent?.timetableOverride || daysFullName[dateObj.getDay()]
+    return timetable[dayName] || []
+  }
+
+  const daySchedule = getSelectedTimetable()
 
   return (
     <div className="p-4 md:p-8 space-y-8 max-w-6xl mx-auto pb-20">
@@ -102,7 +143,7 @@ export default function AcademicCalendarPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Calendar Grid */}
-        <Card className="lg:col-span-8 glass border-white/5 rounded-[2.5rem] overflow-hidden shadow-2xl">
+        <Card className="lg:col-span-7 glass border-white/5 rounded-[2.5rem] overflow-hidden shadow-2xl">
           <CardContent className="p-0">
              {/* Calendar Header */}
              <div className="p-8 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
@@ -124,12 +165,10 @@ export default function AcademicCalendarPage() {
                 </div>
 
                 <div className="grid grid-cols-7 gap-1 md:gap-3">
-                   {/* Empty Slots */}
                    {Array.from({ length: firstDayOfMonth }).map((_, i) => (
                       <div key={`empty-${i}`} className="aspect-square" />
                    ))}
 
-                   {/* Days */}
                    {Array.from({ length: daysInMonth }).map((_, i) => {
                       const day = i + 1
                       const dateStr = `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`
@@ -154,10 +193,9 @@ export default function AcademicCalendarPage() {
                           
                           {/* Dot Markers */}
                           <div className="absolute bottom-2 md:bottom-4 flex gap-1">
-                             {event?.type === 'teaching' && <div className="w-1 h-1 md:w-1.5 md:h-1.5 rounded-full bg-emerald-500 shadow-sm" />}
+                             {(event?.type === 'teaching' || event?.type === 'special') && <div className="w-1 h-1 md:w-1.5 md:h-1.5 rounded-full bg-emerald-500 shadow-sm" />}
                              {event?.type === 'holiday' && <div className="w-1 h-1 md:w-1.5 md:h-1.5 rounded-full bg-blue-500 shadow-sm" />}
                              {event?.type === 'exam' && <div className="w-1 h-1 md:w-1.5 md:h-1.5 rounded-full bg-rose-500 shadow-sm" />}
-                             {event?.type === 'special' && <div className="w-1 h-1 md:w-1.5 md:h-1.5 rounded-full bg-emerald-500 shadow-sm" />}
                           </div>
 
                           {/* Saturday Override Badge */}
@@ -175,7 +213,7 @@ export default function AcademicCalendarPage() {
         </Card>
 
         {/* Selected Day Info */}
-        <div className="lg:col-span-4 space-y-6">
+        <div className="lg:col-span-5 space-y-6">
            <AnimatePresence mode="wait">
              <motion.div
                key={selectedDate}
@@ -185,18 +223,27 @@ export default function AcademicCalendarPage() {
              >
                 <Card className="glass border-white/5 rounded-[2.5rem] overflow-hidden">
                    <CardContent className="p-8 space-y-6">
-                      <div className="space-y-1">
-                         <h3 className="text-sm font-black text-primary uppercase tracking-[0.2em]">Selected Date</h3>
-                         <p className="text-3xl font-black text-white">
-                           {selectedDate ? new Date(selectedDate).toLocaleDateString('en-US', { day: 'numeric', month: 'long' }) : 'Select a date'}
-                         </p>
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-1">
+                           <h3 className="text-sm font-black text-primary uppercase tracking-[0.2em]">Selected Date</h3>
+                           <p className="text-3xl font-black text-white">
+                             {selectedDate ? new Date(selectedDate).toLocaleDateString('en-US', { day: 'numeric', month: 'long' }) : 'Select a date'}
+                           </p>
+                        </div>
+                        {selectedEvent?.timetableOverride && (
+                           <div className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
+                              <p className="text-[10px] font-black uppercase text-emerald-500 tracking-widest leading-none">Override</p>
+                              <p className="text-xs font-bold text-white mt-1">{selectedEvent.timetableOverride}</p>
+                           </div>
+                        )}
                       </div>
 
                       <div className="h-px bg-white/5 w-full" />
 
                       {selectedEvent ? (
                         <div className="space-y-6">
-                           <div className="flex items-start gap-4">
+                           {/* Status Header */}
+                           <div className="flex items-start gap-4 p-4 rounded-3xl bg-white/[0.02] border border-white/5">
                               <div className={cn(
                                 "w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border",
                                 selectedEvent.type === 'teaching' && "bg-emerald-500/10 border-emerald-500/20 text-emerald-500",
@@ -220,40 +267,63 @@ export default function AcademicCalendarPage() {
                               </div>
                            </div>
 
-                           <div className="space-y-1">
-                              <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Event Detail</h4>
-                              <p className="text-base text-white font-bold leading-relaxed">
-                                {selectedEvent.event}
-                              </p>
-                           </div>
-
-                           {selectedEvent.timetableOverride && (
-                             <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between">
-                                <div className="space-y-0.5">
-                                   <p className="text-[10px] font-black uppercase text-emerald-500 tracking-widest">Schedule Shift</p>
-                                   <p className="text-sm font-bold text-white">Full {selectedEvent.timetableOverride} Schedule</p>
-                                </div>
-                                <Link 
-                                  href="/dashboard/academics/timetable"
-                                  className="p-2 bg-emerald-500 text-background rounded-lg hover:scale-110 transition-transform"
-                                >
-                                  <ArrowRight className="w-4 h-4" />
-                                </Link>
-                             </div>
-                           )}
-
+                           {/* Daily Timetable Integration */}
                            {(selectedEvent.type === 'teaching' || selectedEvent.type === 'special') && (
-                              <Link href="/dashboard/academics/timetable">
-                                <button className="w-full py-4 rounded-2xl bg-white/5 border border-white/5 text-white font-black uppercase text-xs tracking-widest hover:bg-primary hover:text-background hover:border-primary transition-all flex items-center justify-center gap-2 group">
-                                   View Classes <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                                </button>
-                              </Link>
+                              <div className="space-y-4">
+                                 <div className="flex items-center justify-between">
+                                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
+                                       <Clock className="w-3 h-3" /> Daily Schedule
+                                    </h4>
+                                    <span className="text-[10px] font-black text-primary px-2 py-0.5 border border-primary/20 rounded bg-primary/5 uppercase tracking-widest">Live</span>
+                                 </div>
+                                 
+                                 <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 scrollbar-hide">
+                                    {daySchedule.length > 0 ? (
+                                       daySchedule.map((slot: any, idx: number) => (
+                                          <div key={idx} className="glass p-4 rounded-2xl border-white/5 space-y-2 group hover:border-primary/30 transition-all">
+                                             <div className="flex items-center justify-between">
+                                                <p className="text-sm font-black text-white group-hover:text-primary transition-colors">{slot.subject}</p>
+                                                <p className="text-[10px] font-bold text-muted-foreground tabular-nums">{slot.time}</p>
+                                             </div>
+                                             <div className="flex items-center gap-4">
+                                                <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                                                   <MapPin className="w-3 h-3 text-primary" /> BLOCK E
+                                                </div>
+                                                <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                                                   <UserIcon className="w-3 h-3 text-primary" /> Faculty
+                                                </div>
+                                             </div>
+                                          </div>
+                                       ))
+                                    ) : (
+                                       <div className="py-8 text-center glass rounded-2xl border-dashed border-white/10 opacity-60">
+                                          <p className="text-xs font-bold">No classes scheduled</p>
+                                       </div>
+                                    )}
+                                 </div>
+                              </div>
                            )}
+
+                           {selectedEvent.type === 'holiday' && (
+                              <div className="p-6 rounded-3xl bg-blue-500/5 border border-blue-500/10 text-center space-y-3">
+                                 <Palmtree className="w-10 h-10 text-blue-500 mx-auto" />
+                                 <div>
+                                    <h5 className="text-white font-black">{selectedEvent.event}</h5>
+                                    <p className="text-xs text-muted-foreground mt-1">Campus closed for academic holiday.</p>
+                                 </div>
+                              </div>
+                           )}
+
+                           <Link href="/dashboard/timetable" className="block">
+                              <button className="w-full py-4 rounded-2xl bg-white/5 border border-white/5 text-white font-black uppercase text-xs tracking-widest hover:bg-primary hover:text-background hover:border-primary transition-all flex items-center justify-center gap-2 group">
+                                 Open Detailed Planner <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                              </button>
+                           </Link>
                         </div>
                       ) : (
-                        <div className="py-10 text-center space-y-4">
+                        <div className="py-20 text-center space-y-4">
                            <Info className="w-12 h-12 text-muted-foreground/20 mx-auto" />
-                           <p className="text-muted-foreground text-sm font-medium">No special events scheduled for this day.</p>
+                           <p className="text-muted-foreground text-sm font-medium">No official details for this date.</p>
                         </div>
                       )}
                    </CardContent>
@@ -261,24 +331,31 @@ export default function AcademicCalendarPage() {
              </motion.div>
            </AnimatePresence>
 
-           {/* Quick Action */}
-           <Card className="glass border-white/5 rounded-[2rem] overflow-hidden p-6 hover:bg-white/[0.03] transition-colors cursor-pointer group">
-              <div className="flex items-center gap-4">
-                 <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-background transition-all shrink-0">
-                    <CalendarIcon className="w-5 h-5" />
+           {/* Quick Action - Official PDF */}
+           <a 
+             href="https://drive.usercontent.google.com/uc?id=1gae5YSnDfqIumvy3an5TfdT2bhCJ_45l&export=download" 
+             target="_blank" 
+             rel="noopener noreferrer"
+             className="block"
+           >
+              <Card className="glass border-white/5 rounded-[2rem] overflow-hidden p-6 hover:bg-white/[0.03] transition-colors cursor-pointer group">
+                 <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-background transition-all shrink-0">
+                       <CalendarIcon className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1">
+                       <h4 className="text-sm font-black text-white">Download PDF</h4>
+                       <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-black">Official Schedule</p>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
                  </div>
-                 <div className="flex-1">
-                    <h4 className="text-sm font-black text-white">Download PDF</h4>
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-black">Official Schedule</p>
-                 </div>
-                 <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
-              </div>
-           </Card>
+              </Card>
+           </a>
         </div>
       </div>
       
       <p className="text-[10px] text-center text-muted-foreground/30 mt-12 uppercase tracking-[0.3em] font-black">
-        Campus Buddy Elite • Academic Planning System v2.0
+        Campus Buddy Elite • Academic Planning System v2.1
       </p>
     </div>
   )

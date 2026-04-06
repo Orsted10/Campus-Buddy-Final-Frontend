@@ -1,9 +1,10 @@
 'use client'
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Calendar, FileText, BookOpen, Clock } from 'lucide-react'
+import { Calendar, BookOpen, Clock } from 'lucide-react'
 import CULKOConnectionManager from './culko-connection'
 import Link from 'next/link'
+import { cn } from '@/lib/utils'
 
 export default function AcademicsPage() {
   const features = [
@@ -11,7 +12,7 @@ export default function AcademicsPage() {
       title: 'Timetable',
       description: 'View your weekly class schedule',
       icon: Calendar,
-      href: '/dashboard/academics/timetable',
+      href: '/dashboard/timetable', // Pointing to the unified route
     },
     {
       title: 'Academic Calendar',
@@ -46,17 +47,28 @@ export default function AcademicsPage() {
       <div className="grid gap-4 md:grid-cols-2">
         {features.map((feature, index) => {
           const Icon = feature.icon
+          const isAvailable = feature.href !== '#'
+          
           return (
-            <Link key={index} href={feature.href}>
-              <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
+            <Link 
+              key={index} 
+              href={feature.href}
+              className={cn("h-full", !isAvailable && "pointer-events-none")}
+            >
+              <Card className={cn(
+                "transition-all h-full",
+                isAvailable 
+                  ? "hover:shadow-lg hover:border-primary/50 cursor-pointer" 
+                  : "opacity-60 border-white/5"
+              )}>
                 <CardHeader>
-                  <Icon className="w-10 h-10 text-primary mb-2" />
+                  <Icon className={cn("w-10 h-10 mb-2", isAvailable ? "text-primary" : "text-muted-foreground")} />
                   <CardTitle>{feature.title}</CardTitle>
                   <CardDescription>{feature.description}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-muted-foreground">
-                    {feature.href === '#' ? 'Feature coming soon' : 'Click to view details'}
+                    {isAvailable ? 'Click to view details' : 'Feature coming soon'}
                   </p>
                 </CardContent>
               </Card>
