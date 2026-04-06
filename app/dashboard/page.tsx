@@ -11,6 +11,7 @@ export default function DashboardPage() {
   const user = useAuthStore((state: any) => state.user)
   const { notifications, setNotifications } = useNotificationStore()
   const [isSyncing, setIsSyncing] = useState(false)
+  const [portalStatus, setPortalStatus] = useState<'connected' | 'no_session' | 'error' | null>(null)
 
   // 1. Initial Notification Fetch
   useEffect(() => {
@@ -31,21 +32,29 @@ export default function DashboardPage() {
   // 2. Background Portal Sync (Announcements)
   useEffect(() => {
     const syncAnnouncements = async () => {
-       // Only sync if we haven't synced in this session or every 10 mins
-       // We'll just do a one-time sync on dashboard mount for now
        try {
          setIsSyncing(true)
          const res = await fetch('/api/culko?endpoint=announcements')
+         const data = await res.json()
+         
          if (res.ok) {
+            setPortalStatus('connected')
             // Re-fetch our database notifications after portal sync
             const notifRes = await fetch('/api/notifications')
             if (notifRes.ok) {
-              const data = await notifRes.json()
-              setNotifications(data)
+              const notifData = await notifRes.json()
+              setNotifications(notifData)
+            }
+         } else {
+            if (data.error?.includes('No active portal session')) {
+               setPortalStatus('no_session')
+            } else {
+               setPortalStatus('error')
             }
          }
        } catch (err) {
-         console.warn('Portal announcement sync skipped (no active session)')
+         setPortalStatus('error')
+         console.warn('Portal announcement sync failed:', err)
        } finally {
          setIsSyncing(false)
        }
@@ -162,10 +171,29 @@ export default function DashboardPage() {
                       </div>
                     </motion.div>
                   ))
+                ) : portalStatus === 'no_session' ? (
+                  <div className="py-8 text-center space-y-4">
+                     <div className="relative mx-auto w-12 h-12">
+                        <Bell className="w-12 h-12 text-muted-foreground/20" />
+                        <div className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 rounded-full border-2 border-background flex items-center justify-center">
+                           <span className="text-[8px] font-black text-white">!</span>
+                        </div>
+                     </div>
+                     <div className="space-y-1">
+                        <p className="text-sm font-bold text-white">Portal Not Connected</p>
+                        <p className="text-xs text-muted-foreground px-4">Connect your CULKO account to receive university announcements.</p>
+                     </div>
+                     <button 
+                        onClick={() => window.location.href = '/dashboard/academics'}
+                        className="text-xs font-black text-primary px-4 py-2 rounded-lg bg-primary/10 hover:bg-primary/20 transition-all border border-primary/20"
+                     >
+                        Connect Now
+                     </button>
+                  </div>
                 ) : (
-                  <div className="py-8 text-center space-y-2 opacity-40">
+                  <div className="py-12 text-center space-y-2 opacity-40">
                      <Bell className="w-8 h-8 mx-auto text-muted-foreground" />
-                     <p className="text-xs font-medium">No new notifications</p>
+                     <p className="text-xs font-medium">{isSyncing ? 'Checking for updates...' : 'No new notifications'}</p>
                   </div>
                 )}
               </AnimatePresence>

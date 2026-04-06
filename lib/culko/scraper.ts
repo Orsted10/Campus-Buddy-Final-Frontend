@@ -193,7 +193,6 @@ export async function fetchCULKOData(endpoint: 'attendance' | 'marks' | 'timetab
     const culkoCookies = cookieStore.get('culko_session')
     
     if (!culkoCookies) {
-      // If no session, try to get from DB fallback
       console.warn(`[fetchCULKOData] No session for ${endpoint}. Trying DB fallback...`)
       const cached = await getPortalData(endpoint)
       if (cached.success) {
@@ -206,7 +205,7 @@ export async function fetchCULKOData(endpoint: 'attendance' | 'marks' | 'timetab
       }
       return {
         success: false,
-        error: 'Not authenticated with CULKO portal and no cached data available'
+        error: 'No active portal session. Please login to portal sync first.'
       }
     }
     
@@ -218,7 +217,9 @@ export async function fetchCULKOData(endpoint: 'attendance' | 'marks' | 'timetab
     
     // MUST await - fire-and-forget is killed by serverless before it resolves
     try {
-      await savePortalData(endpoint, response)
+      if (endpoint !== 'announcements') {
+        await savePortalData(endpoint as any, response)
+      }
     } catch (syncErr) {
       console.error(`[fetchCULKOData] Sync error for ${endpoint}:`, syncErr)
     }
@@ -233,7 +234,7 @@ export async function fetchCULKOData(endpoint: 'attendance' | 'marks' | 'timetab
     console.error(`Error fetching ${endpoint}:`, error)
     
     // On error, try DB fallback
-    const cached = await getPortalData(endpoint)
+    const cached = await getPortalData(endpoint as any)
     if (cached.success) {
       return {
         success: true,
@@ -332,74 +333,88 @@ async function fetchAnnouncementsViaAjax(url: string, cookies: Record<string, st
   const ajaxData = JSON.stringify({ PageNumber: 1, Filter: '', Tab: 'ALL' })
 
   console.log('[fetchAnnouncementsViaAjax] Making request to:', ajaxUrl)
+  console.log('[fetchAnnouncementsViaAjax] Cookies count:', Object.keys(cookies).length)
 
-  const response = await fetch(ajaxUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Cookie': Object.entries(cookies).map(([k, v]) => `${k}=${v}`).join('; '),
-      'User-Agent': 'Mozilla/5.0'
-    },
-    body: ajaxData
-  })
+  try {
+    const response = await fetch(ajaxUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Cookie': Object.entries(cookies).map(([k, v]) => `${k}=${v}`).join('; '),
+        'User-Agent': 'Mozilla/5.0'
+      },
+      body: ajaxData
+    })
 
-  if (!response.ok) {
-    console.error(`[fetchAnnouncementsViaAjax] Request failed: ${response.status}`)
-    return []
-  }
+    console.log('[fetchAnnouncementsViaAjax] Status:', response.status)
 
-  const json = await response.json()
-  if (!json.d) return []
-
-  // CULKO GetAnnouncements usually returns a string with HTML rows
-  const $ = cheerio.load(json.d)
-  const announcements: AnnouncementRecord[] = []
-
-  // Common pattern for CULKO announcements items
-  $('.ann-list-item, .ann-item, .announcement-box, .row').each((_, el) => {
-    const title = $(el).find('.ann-title, h4, b').first().text().trim()
-    const date = $(el).find('.ann-date, span.date, .pull-right').first().text().trim()
-    const description = $(el).find('.ann-desc, p, .text-muted').first().text().trim()
-    const category = $(el).find('.badge, .label').first().text().trim() || 'General'
-    const onclick = $(el).attr('onclick') || ''
-    
-    // Extract linked document if any
-    let link = undefined
-    const linkMatch = onclick.match(/openAnnouncement\(['"]([^'"]+)['"]\)/)
-    if (linkMatch) {
-       link = `https://student.culko.in/ViewAnnouncement.aspx?id=${linkMatch[1]}`
+    if (!response.ok) {
+      const errText = await response.text()
+      console.error(`[fetchAnnouncementsViaAjax] Request failed: ${response.status}`, errText.slice(0, 200))
+      return []
     }
 
-    if (title && title.length > 2) {
-      announcements.push({
-        title,
-        date,
-        description,
-        category,
-        link
+    const json = await response.json()
+    console.log('[fetchAnnouncementsViaAjax] JSON.d received:', !!json.d, 'Length:', json.d?.length || 0)
+
+    if (!json.d) {
+      console.warn('[fetchAnnouncementsViaAjax] No data property (d) in response. Check if authenticated.')
+      return []
+    }
+
+    // CULKO GetAnnouncements usually returns a string with HTML rows
+    const $ = cheerio.load(json.d)
+    const announcements: AnnouncementRecord[] = []
+
+    // Common pattern for CULKO announcements items
+    $('.ann-list-item, .ann-item, .announcement-box, .row').each((_, el) => {
+      const title = $(el).find('.ann-title, h4, b').first().text().trim()
+      const date = $(el).find('.ann-date, span.date, .pull-right').first().text().trim()
+      const description = $(el).find('.ann-desc, p, .text-muted').first().text().trim()
+      const category = $(el).find('.badge, .label').first().text().trim() || 'General'
+      const onclick = $(el).attr('onclick') || ''
+      
+      // Extract linked document if any
+      let link = undefined
+      const linkMatch = onclick.match(/openAnnouncement\(['"]([^'"]+)['"]\)/)
+      if (linkMatch) {
+         link = `https://student.culko.in/ViewAnnouncement.aspx?id=${linkMatch[1]}`
+      }
+
+      if (title && title.length > 2) {
+        announcements.push({
+          title,
+          date,
+          description,
+          category,
+          link
+        })
+      }
+    })
+
+    // Fallback for flat structure
+    if (announcements.length === 0) {
+      $('div').each((_, el) => {
+         const text = $(el).text().trim()
+         if (text.includes('-202') || text.includes('-203')) { // Date pattern
+            const parts = text.split('\n').map(p => p.trim()).filter(p => p.length > 0)
+            if (parts.length >= 2) {
+               announcements.push({
+                  title: parts[0],
+                  date: parts[1],
+                  description: parts.slice(2).join(' '),
+                  category: 'General'
+               })
+            }
+         }
       })
     }
-  })
 
-  // Fallback for flat structure
-  if (announcements.length === 0) {
-    $('div').each((_, el) => {
-       const text = $(el).text().trim()
-       if (text.includes('-202') || text.includes('-203')) { // Date pattern
-          const parts = text.split('\n').map(p => p.trim()).filter(p => p.length > 0)
-          if (parts.length >= 2) {
-             announcements.push({
-                title: parts[0],
-                date: parts[1],
-                description: parts.slice(2).join(' '),
-                category: 'General'
-             })
-          }
-       }
-    })
+    return announcements.slice(0, 5) // Keep it to 5 as per user request
+  } catch (error) {
+    console.error('[fetchAnnouncementsViaAjax] Error:', error)
+    return []
   }
-
-  return announcements.slice(0, 10) // Get top 10 from portal, we will keep 5 in DB
 }
 
 function parseResult(html: string): any {
