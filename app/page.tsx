@@ -59,20 +59,7 @@ const fadeUp = {
   }),
 }
 
-import { useAuth } from '@/hooks/useAuth'
-import { useRouter } from 'next/navigation'
-import { useEffect } from 'react'
-
 export default function LandingPage() {
-  const { user, loading } = useAuth()
-  const router = useRouter()
-
-  useEffect(() => {
-    if (!loading && user) {
-      router.replace('/dashboard')
-    }
-  }, [user, loading, router])
-
   return (
     <div className="min-h-screen bg-background text-foreground mesh-bg overflow-x-hidden">
       {/* ====================== NAV ====================== */}

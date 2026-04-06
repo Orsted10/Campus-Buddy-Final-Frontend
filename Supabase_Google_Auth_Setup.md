@@ -19,7 +19,10 @@ To enable Google Sign-In for your Campus Buddy application, follow these steps i
       - `http://localhost:3000` (for local dev)
       - `https://your-app-domain.vercel.app` (your production URL)
     - **Authorized redirect URIs**:
-      - Find this in your **Supabase Dashboard > Authentication > Providers > Google**. It looks like: `https://[project-id].supabase.co/auth/v1/callback`.
+      - Find this in your **Supabase Dashboard > Authentication > Providers > Google**.
+      - It must also include your specific app callback:
+        - `http://localhost:3000/auth/callback` (for local dev)
+        - `https://your-app-domain.vercel.app/auth/callback` (your production URL)
 5.  **Get your Keys**: Copy the **Client ID** and **Client Secret**.
 
 ## Part 2: Supabase Dashboard Configuration
