@@ -79,8 +79,8 @@ export default function OnboardingPage() {
       }
 
       toast.success('Profile completed! Welcome aboard.')
-      // Hard refresh to ensure all hooks get the new state
-      window.location.href = '/dashboard'
+      // Hard refresh with safety parameter to break potential middleware loops
+      window.location.href = '/dashboard?onboarding_success=true'
     } catch (err: any) {
       toast.error(err.message || 'Failed to complete profile')
     } finally {

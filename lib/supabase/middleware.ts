@@ -58,7 +58,9 @@ export async function updateSession(request: NextRequest) {
       .eq('id', user.id)
       .maybeSingle()
 
-    if (!profile?.student_id) {
+    const isOnboardingSuccess = request.nextUrl.searchParams.get('onboarding_success') === 'true'
+
+    if (!profile?.student_id && !isOnboardingSuccess) {
        const url = request.nextUrl.clone()
        url.pathname = '/onboarding'
        return NextResponse.redirect(url)
