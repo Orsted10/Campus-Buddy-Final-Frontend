@@ -3,15 +3,15 @@ import { createClient } from '@/lib/supabase/server'
 import { chatWithGroq } from '@/lib/ai/groq'
 import { chatWithGemini } from '@/lib/ai/gemini'
 import { fetchCULKOData } from '@/lib/culko/scraper'
-import { CAMPUS_POI } from '@/lib/constants'
+import { CAMPUS_POI, MESS_MENU } from '@/lib/constants'
 
-// Detect which academic topic the user is asking about
-function detectAcademicContext(messages: Array<{ role: string; content: string }>): string[] {
+// Detect which academic or campus topic the user is asking about
+function detectContext(messages: Array<{ role: string; content: string }>): string[] {
   const lastMsg = messages.filter(m => m.role === 'user').pop()?.content?.toLowerCase() || ''
   
-  // If user asks broad questions, fetch everything
+  // If user asks broad questions, fetch everything academic
   if (/how|what|show|tell|all|summary|status|standing|academic|portal/.test(lastMsg)) {
-    return ['attendance', 'marks', 'timetable', 'profile']
+    return ['attendance', 'marks', 'timetable', 'profile', 'mess']
   }
 
   const contexts: string[] = []
@@ -19,16 +19,32 @@ function detectAcademicContext(messages: Array<{ role: string; content: string }
   if (/mark|grade|score|exam|mst|practical|result|cgpa|gpa|subject|test/.test(lastMsg)) contexts.push('marks')
   if (/timetable|schedule|timing|class time|when is|slot|period/.test(lastMsg)) contexts.push('timetable')
   if (/profile|semester|roll|uid|details|student|name|batch|enroll/.test(lastMsg)) contexts.push('profile')
+  if (/food|mess|eat|breakfast|lunch|dinner|snack|menu|canteen|cafeteria/.test(lastMsg)) contexts.push('mess')
 
-  return contexts.length > 0 ? contexts : ['profile'] // Always at least profile for personalization
+  return contexts.length > 0 ? contexts : ['profile'] // Always profile for personalization
+}
+
+// Build mess context
+function buildMessContext(): string {
+  let ctx = '\n\n### 🍱 Hostel Mess Menu (Timings & Daily Specials)\n'
+  ctx += `- **Breakfast**: ${MESS_MENU.timings.breakfast}\n`
+  ctx += `- **Lunch**: ${MESS_MENU.timings.lunch}\n`
+  ctx += `- **Snacks**: ${MESS_MENU.timings.snacks}\n`
+  ctx += `- **Dinner**: ${MESS_MENU.timings.dinner}\n\n`
+  
+  ctx += '| Day | Breakfast | Lunch | Snacks | Dinner |\n| :--- | :--- | :--- | :--- | :--- |\n'
+  MESS_MENU.schedule.forEach(s => {
+    ctx += `| ${s.day} | ${s.breakfast} | ${s.lunch} | ${s.snacks} | ${s.dinner} |\n`
+  })
+  return ctx
 }
 
 // Build campus POI context
 function buildCampusContext(): string {
   let ctx = '\n\n### 📍 Campus Navigator (POI Knowledge)\n'
-  ctx += 'You have detailed spatial knowledge of Block E and surrounding areas:\n'
+  ctx += 'You have spatial knowledge of Block E and surrounding hostel areas:\n'
   CAMPUS_POI.forEach(poi => {
-    ctx += `- **${poi.name}**: Located in ${poi.block}, ${poi.floor} Floor (${poi.side}). ${poi.description}\n`
+    ctx += `- **${poi.name}**: ${poi.block}, ${poi.floor} Floor. ${poi.description}\n`
   })
   return ctx
 }
@@ -113,17 +129,18 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Invalid messages format' }, { status: 400 })
     }
 
-    // 1. Detect academic intent and fetch live data
-    const contexts = detectAcademicContext(messages)
+    // 1. Detect academic/campus intent and fetch live data
+    const contexts = detectContext(messages)
     const dataMap: Record<string, any> = {}
 
     if (contexts.length > 0) {
       await Promise.allSettled(
-        contexts.map(async (ctx) => {
+        contexts.map(async (ctx: string) => {
+          if (ctx === 'mess') return // Mess is static constant for now
           try {
             dataMap[ctx] = await fetchCULKOData(ctx as any)
           } catch {
-            // fallback handled in buildAcademicContext
+            // fallback handled in context builders
           }
         })
       )
@@ -132,23 +149,28 @@ export async function POST(req: Request) {
     // 2. Build contexts
     const academicContext = buildAcademicContext(dataMap)
     const campusContext = buildCampusContext()
+    const messContext = buildMessContext()
     
     // 3. Build Dynamic System Prompt
     const systemPrompt = `You are **Campus Buddy Elite**, a professional academic AI concierge. 
-You possess full access to the student's academic standing and a complete spatial map of the campus.
+You possess full access to the student's academic standing, the hostel mess menu, and a complete spatial map of the campus.
 
 ### 🌟 Interaction Guidelines:
 1. **Professional Grade Styling**: ALWAYS use Markdown tables for data. Use bolding, emojis, and dividers to create a stunning, readable response.
 2. **Context-Aware Mastery**:
-    - If asked about locations, use your **Campus Navigator** knowledge to give precise directions (e.g. "Library is on 4th floor, Block E").
-    - If asked about academics, refer to the **Portal Data** provided below.
-3. **The "Elite" Personality**: You are sophisticated, encouraging, and efficient. You don't just give data; you give insights (e.g., "Your 8.5 CGPA is outstanding — keep this momentum!").
-4. **Visual Excellence**: Use headers (###) and dividers (---) to structure long responses. Use symbols for different categories (📊 Academics, 📍 Navigation, 🗓️ Schedule).
+    - If asked about locations, use your **Campus Navigator** knowledge.
+    - If asked about academics, refer to the **Portal Data**.
+    - If asked about food/mess, refer to the **Hostel Mess Menu**.
+3. **The "Elite" Personality**: You are sophisticated, encouraging, and efficient.
+4. **Visual Excellence**: Use headers (###) and dividers (---) to structure long responses. Use symbols (📊 Academics, 📍 Navigation, 🍱 Mess, 🗓️ Schedule).
+
+### 🍱 HOSTEL MESS MENU:
+${messContext}
 
 ### 📍 CAMPUS KNOWLEDGE:
 ${campusContext}
 
-### 📊 LIVE PORTAL DATA:
+### 📊 LIVE ACADEMIC PORTAL DATA:
 ${academicContext || '*Portal not currently synced. Advise the user to connect their account in the Academics tab.*'}
 
 ---

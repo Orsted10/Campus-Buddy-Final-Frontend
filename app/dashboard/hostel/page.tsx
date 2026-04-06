@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Wrench, Utensils, QrCode, WashingMachine } from 'lucide-react'
+import Link from 'next/link'
 
 export default function HostelPage() {
   const features = [
@@ -41,17 +42,23 @@ export default function HostelPage() {
       <div className="grid gap-4 md:grid-cols-2">
         {features.map((feature, index) => {
           const Icon = feature.icon
+          const isAvailable = feature.href !== '#'
+          
           return (
-            <Card key={index} className="hover:shadow-lg transition-shadow cursor-pointer">
-              <CardHeader>
-                <Icon className="w-10 h-10 text-primary mb-2" />
-                <CardTitle>{feature.title}</CardTitle>
-                <CardDescription>{feature.description}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">Click to access this feature</p>
-              </CardContent>
-            </Card>
+            <Link key={index} href={feature.href} className={!isAvailable ? 'pointer-events-none' : ''}>
+              <Card className={`hover:shadow-lg transition-all cursor-pointer h-full ${!isAvailable ? 'opacity-60' : 'hover:border-primary/50 border-white/5'}`}>
+                <CardHeader>
+                  <Icon className={`w-10 h-10 mb-2 ${isAvailable ? 'text-primary' : 'text-muted-foreground'}`} />
+                  <CardTitle>{feature.title}</CardTitle>
+                  <CardDescription>{feature.description}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground">
+                    {isAvailable ? 'Click to access this feature' : 'Feature coming soon'}
+                  </p>
+                </CardContent>
+              </Card>
+            </Link>
           )
         })}
       </div>
