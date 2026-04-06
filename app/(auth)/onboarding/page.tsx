@@ -51,18 +51,28 @@ export default function OnboardingPage() {
 
     setIsSubmitting(true)
     try {
-      if (!user?.id) {
-        throw new Error('Valid user session not found. Please refresh and try again.')
+      // 1. Double-check session directly from source if state is missing
+      let userId = user?.id
+      if (!userId) {
+        const { data: { session } } = await supabase.auth.getSession()
+        userId = session?.user?.id
       }
 
+      if (!userId) {
+        throw new Error('Could not verify your student identity. Please refresh the page and try once more.')
+      }
+
+      // 2. Use upsert instead of update to handle cases where the SQL trigger 
+      // might have lagged or was not yet installed.
       const { error } = await supabase
         .from('profiles')
-        .update({ 
+        .upsert({ 
+          id: userId,
           student_id: studentId.toUpperCase(),
           full_name: fullName,
           updated_at: new Date().toISOString()
         })
-        .eq('id', user.id)
+        .eq('id', userId)
 
       if (error) throw error
 
