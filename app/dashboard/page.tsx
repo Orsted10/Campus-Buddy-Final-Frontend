@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useNotificationStore } from '@/store/useNotificationStore'
+import { usePortalStore } from '@/store/usePortalStore'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   Bell, ExternalLink, GraduationCap, Clock, 
@@ -24,12 +25,16 @@ export default function DashboardPage() {
   const router = useRouter()
 
   const [currentTime, setCurrentTime] = useState(getISTDate())
-  const [isSyncing, setIsSyncing] = useState(false)
-  const [attendanceData, setAttendanceData] = useState<any[]>([])
-  const [timetableData, setTimetableData] = useState<any>(null)
-  const [portalStatus, setPortalStatus] = useState<'connected' | 'no_session' | 'error' | null>(null)
+  const { 
+    attendance: attendanceData, 
+    timetable: timetableData, 
+    portalStatus, 
+    isSyncing, 
+    syncAll, 
+    lastSync 
+  } = usePortalStore()
 
-  // 1. Live Clock & State Refresh
+  // 1. Live Clock
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(getISTDate()), 30000)
     return () => clearInterval(timer)
@@ -38,34 +43,17 @@ export default function DashboardPage() {
   // 2. Fetch Dashboard Data
   const fetchData = async () => {
     try {
-      setIsSyncing(true)
+      // Sync notifications locally
+      const notifRes = await fetch('/api/notifications')
+      if (notifRes.ok) {
+        const notifs = await notifRes.json()
+        setNotifications(notifs)
+      }
       
-      // Parallel fetch for speed
-      const [notifRes, attendRes, ttRes, syncRes] = await Promise.all([
-        fetch('/api/notifications'),
-        fetch('/api/culko?endpoint=attendance'),
-        fetch('/api/culko?endpoint=timetable'),
-        fetch('/api/culko?endpoint=announcements') // Background sync
-      ])
-
-      const [notifs, attendance, timetable] = await Promise.all([
-        notifRes.json(),
-        attendRes.json(),
-        ttRes.json()
-      ])
-
-      if (notifRes.ok) setNotifications(notifs)
-      if (attendRes.ok && attendance.success) setAttendanceData(attendance.data || [])
-      if (ttRes.ok && timetable.success) setTimetableData(timetable.data)
-      
-      if (syncRes.ok) setPortalStatus('connected')
-      else if (syncRes.status === 401) setPortalStatus('no_session')
-
+      // Global sync for portal data
+      await syncAll()
     } catch (err) {
-      console.error('Dashboard fetch failed:', err)
-      setPortalStatus('error')
-    } finally {
-      setIsSyncing(false)
+      console.error('Dashboard notif/status update failed:', err)
     }
   }
 
@@ -100,13 +88,21 @@ export default function DashboardPage() {
 
   // 5. Smart Logic: Current/Next Class
   const classStatus = useMemo(() => {
-    if (!timetableData) return null
+    const hour = currentTime.getUTCHours()
+    const mins = currentTime.getUTCMinutes()
+    const absMins = hour * 60 + mins
+
+    // Hardcoded Lunch Break: 1:05 PM to 1:55 PM (IST)
+    const lunchStart = 13 * 60 + 5
+    const lunchEnd = 13 * 60 + 55
+    const isLunchBreak = absMins >= lunchStart && absMins < lunchEnd
+
+    if (!timetableData) return { isLunchBreak, current: null, next: null }
     const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][currentTime.getUTCDay()]
     const schedule = timetableData[dayName] || []
-    if (schedule.length === 0) return null
-
-    // Find the class active right now
-    const currentClass = schedule.find((c: any) => {
+    
+    // Find current class
+    const currentClass = isLunchBreak ? null : schedule.find((c: any) => {
       try {
         const [start, end] = c.time.split(' - ')
         return isBetweenTimings(currentTime, start, end)
@@ -115,20 +111,19 @@ export default function DashboardPage() {
       }
     })
 
-    // Find the next upcoming class
+    // Find next class
     const nextClass = schedule.find((c: any) => {
       try {
         const [start] = c.time.split(' - ')
-        const [startH, startM] = parseTimeString(start) // We need helper or parse inline
-        const currentH = currentTime.getUTCHours()
-        const currentM = currentTime.getUTCMinutes()
-        return (startH > currentH) || (startH === currentH && startM > currentM)
+        const [startH, startM] = parseTimeString(start)
+        return (startH > hour) || (startH === hour && startM > mins)
       } catch (e) {
         return false
       }
     })
 
     return {
+      isLunchBreak,
       current: currentClass,
       next: nextClass
     }
@@ -209,7 +204,18 @@ export default function DashboardPage() {
                    </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                   {classStatus?.current ? (
+                   {classStatus?.isLunchBreak ? (
+                      <div className="relative pl-6 border-l-2 border-orange-500/30 py-1 bg-orange-500/5 rounded-r-lg">
+                        <div className="absolute -left-[5px] top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-orange-500" />
+                        <p className="text-[10px] font-black text-orange-500 uppercase">LUNCH BREAK</p>
+                        <h3 className="font-black text-white text-lg leading-tight">University Lunch</h3>
+                        <p className="text-xs text-muted-foreground flex items-center gap-2 mt-1">
+                           <Clock className="w-3 h-3" /> 01:05 PM - 01:55 PM
+                           <span className="w-1 h-1 rounded-full bg-white/10" />
+                           <Utensils className="w-3 h-3" /> MESS
+                        </p>
+                      </div>
+                   ) : classStatus?.current ? (
                      <div className="relative pl-6 border-l-2 border-primary/30 py-1">
                         <div className="absolute -left-[5px] top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-primary" />
                         <p className="text-[10px] font-black text-primary uppercase">RIGHT NOW</p>
@@ -220,13 +226,22 @@ export default function DashboardPage() {
                            <MapPin className="w-3 h-3" /> BLOCK E
                         </p>
                      </div>
+                   ) : classStatus?.next ? (
+                     <div className="relative pl-6 border-l-2 border-primary/20 py-4 bg-primary/5 rounded-r-xl">
+                        <div className="absolute -left-[5px] top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-primary/50 animate-pulse" />
+                        <p className="text-[10px] font-black text-primary/80 uppercase">NOTHING ACTIVE • NEXT UP</p>
+                        <h3 className="font-black text-white text-xl tracking-tight leading-tight mt-1">{classStatus.next.subject}</h3>
+                        <p className="text-sm text-primary font-bold mt-1.5 flex items-center gap-2">
+                           <Clock className="w-4 h-4" /> Starts at {classStatus.next.time.split(' - ')[0]}
+                        </p>
+                     </div>
                    ) : (
                      <div className="py-2 text-center">
-                        <p className="text-xs font-bold text-muted-foreground italic">No classes active at the moment</p>
+                        <p className="text-xs font-bold text-muted-foreground italic">No classes found in schedule</p>
                      </div>
                    )}
 
-                   {classStatus?.next && (
+                   {!classStatus?.isLunchBreak && classStatus?.current && classStatus?.next && (
                      <div className="relative pl-6 border-l-2 border-white/5 py-1 opacity-50">
                         <div className="absolute -left-[5px] top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-white/20" />
                         <p className="text-[10px] font-black uppercase">UP NEXT</p>

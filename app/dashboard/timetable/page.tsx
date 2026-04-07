@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { usePortalStore } from '@/store/usePortalStore'
 import { 
   Calendar, 
   Clock, 
@@ -11,7 +12,8 @@ import {
   ChevronRight,
   MapPin,
   User,
-  LayoutGrid
+  LayoutGrid,
+  GraduationCap
 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { getISTDate } from '@/lib/utils-date'
@@ -30,32 +32,19 @@ type TimetableData = Record<string, TimeSlot[]>
 
 export default function TimetablePage() {
   const [selectedDay, setSelectedDay] = useState('')
-  const [data, setData] = useState<TimetableData | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  const fetchTimetable = async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const res = await fetch('/api/culko?endpoint=timetable')
-      const result = await res.json()
-      
-      if (result.success) {
-        setData(result.data)
-      } else {
-        setError(result.error || 'Failed to fetch timetable')
-      }
-    } catch (err) {
-      setError('Connection error. Please try again.')
-    } finally {
-      setLoading(false)
-    }
-  }
+  const { 
+    timetable: data, 
+    portalStatus, 
+    isSyncing: loading, 
+    syncAll 
+  } = usePortalStore()
 
   useEffect(() => {
-    fetchTimetable()
-    
+    // Auto-sync if no data
+    if (!data) {
+      syncAll()
+    }
+
     // Set initial day based on IST (Full 7 days support)
     const istNow = getISTDate()
     const dayIndex = istNow.getUTCDay() // 0 is Sunday, 1 is Monday...
@@ -72,7 +61,7 @@ export default function TimetablePage() {
       const dayName = days[dayIndex === 0 ? 6 : dayIndex - 1]
       setSelectedDay(dayName)
     }
-  }, [])
+  }, [data])
 
   const currentIST = getISTDate()
   
@@ -107,7 +96,7 @@ export default function TimetablePage() {
 
         <div className="flex gap-2">
             <button 
-              onClick={fetchTimetable}
+              onClick={() => syncAll()}
               disabled={loading}
               className="glass p-3 rounded-2xl border-white/5 hover:border-primary/30 text-muted-foreground hover:text-primary transition-all disabled:opacity-50"
             >
@@ -147,18 +136,32 @@ export default function TimetablePage() {
 
       {/* Content Area */}
       <div className="space-y-4">
-        {loading ? (
+        {!data && loading ? (
           <div className="grid gap-4">
             {[1, 2, 3].map(i => (
               <div key={i} className="h-32 glass rounded-[2rem] animate-pulse border-white/5" />
             ))}
           </div>
-        ) : error ? (
+        ) : portalStatus === 'error' && !data ? (
           <Card className="glass border-destructive/20 bg-destructive/5 rounded-[2rem]">
             <CardContent className="p-12 text-center space-y-4">
               <AlertCircle className="w-12 h-12 text-destructive mx-auto" />
               <h3 className="text-xl font-bold text-white">Something went wrong</h3>
-              <p className="text-muted-foreground max-w-sm mx-auto">{error}</p>
+              <p className="text-muted-foreground max-w-sm mx-auto">Failed to fetch your schedule. Check portal session.</p>
+              <button 
+                onClick={() => syncAll()}
+                className="text-primary font-bold underline"
+              >
+                Retry Sync
+              </button>
+            </CardContent>
+          </Card>
+        ) : portalStatus === 'no_session' && !data ? (
+          <Card className="glass border-primary/20 bg-primary/5 rounded-[2rem]">
+            <CardContent className="p-12 text-center space-y-4">
+              <GraduationCap className="w-12 h-12 text-primary mx-auto" />
+              <h3 className="text-xl font-bold text-white">Portal Connection Required</h3>
+              <p className="text-muted-foreground max-w-sm mx-auto">Connect your university portal to see your live schedule.</p>
               <button 
                 onClick={() => window.location.href = '/dashboard/academics'}
                 className="text-primary font-bold underline"
@@ -178,7 +181,7 @@ export default function TimetablePage() {
         ) : (
           <div className="grid gap-4">
             <AnimatePresence mode="popLayout">
-              {daySchedule.map((slot, idx) => (
+              {daySchedule.map((slot: any, idx: number) => (
                 <motion.div
                   key={`${selectedDay}-${idx}`}
                   initial={{ opacity: 0, scale: 0.95 }}
