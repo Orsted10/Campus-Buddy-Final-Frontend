@@ -167,9 +167,8 @@ export function useAuth() {
       console.log('--- SIGNOUT START ---')
       toast.loading('Logging out...', { id: 'logout' })
       
-      // 1. Parallel session clearing for CULKO and Supabase
-      // We don't await them yet, so we can clear local state immediately
-      const culkoLogout = fetch('/api/culko/logout').catch(e => console.warn('Culko logout fail:', e))
+      // 1. Parallel session clearing for CULKO and Supabase via our global logout API
+      const globalLogout = fetch('/api/auth/logout', { method: 'POST' }).catch(e => console.warn('Global logout fail:', e))
       
       // Supabase logout with a 2-second timeout so it never hangs the UI
       const supabaseLogout = (async () => {
@@ -205,7 +204,7 @@ export function useAuth() {
       console.log('Local cookies manually cleared')
 
       // 4. Await the network calls briefly but don't let them kill the process
-      await Promise.allSettled([culkoLogout, supabaseLogout])
+      await Promise.allSettled([globalLogout, supabaseLogout])
       console.log('Network logout calls settled')
 
       toast.success('Logged out successfully', { id: 'logout' })

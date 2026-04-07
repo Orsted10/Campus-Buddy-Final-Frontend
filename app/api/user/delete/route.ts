@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
 export async function DELETE() {
@@ -29,7 +30,9 @@ export async function DELETE() {
       // We don't throw here to ensure session signout still happens
     }
 
-    // 3. Sign out the current session
+    // 3. Sign out the current session and clear portal cookies
+    const cookieStore = await cookies()
+    cookieStore.delete('culko_session')
     await supabase.auth.signOut()
 
     return NextResponse.json({ success: true, message: 'Account and data wiped permanently' })

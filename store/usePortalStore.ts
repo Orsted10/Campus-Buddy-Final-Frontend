@@ -17,6 +17,7 @@ interface PortalState {
   
   // High-level sync action
   syncAll: () => Promise<void>
+  checkStatus: () => Promise<boolean>
 }
 
 export const usePortalStore = create<PortalState>()(
@@ -34,6 +35,23 @@ export const usePortalStore = create<PortalState>()(
       
       setPortalStatus: (status) => set({ portalStatus: status }),
       
+      checkStatus: async () => {
+        try {
+          const res = await fetch('/api/culko/status')
+          const data = await res.json()
+          if (data.connected) {
+            set({ portalStatus: 'connected' })
+            return true
+          } else {
+            set({ portalStatus: 'no_session' })
+            return false
+          }
+        } catch {
+          set({ portalStatus: 'error' })
+          return false
+        }
+      },
+
       clearData: () => set({
         attendance: [],
         timetable: null,
@@ -46,9 +64,12 @@ export const usePortalStore = create<PortalState>()(
       syncAll: async () => {
         if (get().isSyncing) return
         
+        // Phase 1: Fast Status Update (<100ms)
+        await get().checkStatus()
+        
         set({ isSyncing: true })
         try {
-          // Parallel fetch for speed
+          // Phase 2: Heavy Data Fetch (parallel)
           const [attendRes, ttRes, profileRes, syncRes] = await Promise.all([
             fetch('/api/culko?endpoint=attendance'),
             fetch('/api/culko?endpoint=timetable'),
