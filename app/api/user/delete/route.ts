@@ -28,6 +28,9 @@ export async function DELETE() {
     
     if (adminError) {
       console.error('[DeleteAccount] Auth Admin Error:', adminError.message)
+      return NextResponse.json({ 
+        error: `Auth Deletion Failed: ${adminError.message}. Contact admin if this persists.` 
+      }, { status: 500 })
     }
 
     // 3. Force-clear ALL session cookies
@@ -37,7 +40,7 @@ export async function DELETE() {
     // 4. Sign out the local session
     await supabase.auth.signOut()
 
-    return NextResponse.json({ success: true, message: 'Account and data wiped permanently' })
+    return NextResponse.json({ success: true, message: 'Account and data wiped permanently. You can sign up again.' })
   } catch (error) {
     console.error('[DeleteAccount] Critical Error:', error)
     return NextResponse.json({ 

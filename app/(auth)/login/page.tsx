@@ -16,9 +16,9 @@ export default function LoginPage() {
   const { signIn, signInWithGoogle, user } = useAuth()
   const router = useRouter()
 
-  // Redirect if already authenticated
+  // Redirect ONLY if authenticated AND has a valid profile
   useEffect(() => {
-    if (user) {
+    if (user && user.full_name) {
       router.replace('/dashboard')
     }
   }, [user, router])
