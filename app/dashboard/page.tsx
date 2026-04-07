@@ -14,7 +14,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { getISTDate } from '@/lib/utils-date'
+import { getISTDate, isBetweenTimings, parseTimeString } from '@/lib/utils-date'
 import { MESS_MENU, ACADEMIC_CALENDAR_2026 } from '@/lib/constants'
 import { useRouter } from 'next/navigation'
 
@@ -87,13 +87,14 @@ export default function DashboardPage() {
 
   // 4. Smart Logic: Next Meal
   const nextMeal = useMemo(() => {
-    const hour = currentTime.getUTCHours() + 5 // Rough IST hour
+    const hour = currentTime.getUTCHours() // IST hour (already offset by getISTDate)
     const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][currentTime.getUTCDay()]
     const dayMenu = MESS_MENU.schedule.find(s => s.day === dayName) || MESS_MENU.schedule[0]
     
+    // Check specific meal windows
     if (hour < 10) return { type: 'Breakfast', menu: dayMenu.breakfast, icon: Coffee, time: MESS_MENU.timings.breakfast }
     if (hour < 15) return { type: 'Lunch', menu: dayMenu.lunch, icon: Utensils, time: MESS_MENU.timings.lunch }
-    if (hour < 18) return { type: 'Snacks', menu: dayMenu.snacks, icon: Smile, time: MESS_MENU.timings.snacks }
+    if (hour < 19) return { type: 'Snacks', menu: dayMenu.snacks, icon: Smile, time: MESS_MENU.timings.snacks }
     return { type: 'Dinner', menu: dayMenu.dinner, icon: Moon, time: MESS_MENU.timings.dinner }
   }, [currentTime])
 
@@ -104,11 +105,32 @@ export default function DashboardPage() {
     const schedule = timetableData[dayName] || []
     if (schedule.length === 0) return null
 
-    // For simplicity, we'll just show the first few if we don't have exact time parsing for all slots yet
-    // In a real app, we'd parse "09:00 AM - 10:00 AM" and compare
+    // Find the class active right now
+    const currentClass = schedule.find((c: any) => {
+      try {
+        const [start, end] = c.time.split(' - ')
+        return isBetweenTimings(currentTime, start, end)
+      } catch (e) {
+        return false
+      }
+    })
+
+    // Find the next upcoming class
+    const nextClass = schedule.find((c: any) => {
+      try {
+        const [start] = c.time.split(' - ')
+        const [startH, startM] = parseTimeString(start) // We need helper or parse inline
+        const currentH = currentTime.getUTCHours()
+        const currentM = currentTime.getUTCMinutes()
+        return (startH > currentH) || (startH === currentH && startM > currentM)
+      } catch (e) {
+        return false
+      }
+    })
+
     return {
-      current: schedule[0],
-      next: schedule[1]
+      current: currentClass,
+      next: nextClass
     }
   }, [timetableData, currentTime])
 

@@ -33,7 +33,7 @@ export function isBetweenTimings(currentIST: Date, startStr: string, endStr: str
   }
 }
 
-function parseTimeString(timeStr: string): [number, number] {
+export function parseTimeString(timeStr: string): [number, number] {
   // Format: "07:30 AM" or "12:00 PM"
   const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i)
   if (!match) throw new Error('Invalid time format')
