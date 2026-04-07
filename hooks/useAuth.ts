@@ -209,7 +209,12 @@ export function useAuth() {
 
       toast.success('Logged out successfully', { id: 'logout' })
       
-      // 5. CRITICAL: Hard redirect to landing page (not /login)
+      // 5. CRITICAL: Wipe all local data to prevent "stale state" crashes
+      console.log('Purging all local caches...')
+      window.localStorage.clear()
+      window.sessionStorage.clear()
+      
+      // 6. Hard redirect to landing page (not /login)
       console.log('Redirecting to landing page...')
       window.location.href = '/'
       

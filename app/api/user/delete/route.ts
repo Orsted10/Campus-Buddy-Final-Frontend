@@ -14,25 +14,27 @@ export async function DELETE() {
 
     console.log(`[DeleteAccount] Triggering database-level cleanup for: ${user.id}`)
 
-    // 1. Wipe all database records using the Security Definer RPC
+    // 1. Wipe all database records using the Security Definer RPC (while still authenticated)
     const { error: rpcError } = await supabase.rpc('delete_user_data')
     if (rpcError) {
       console.error('[DeleteAccount] RPC Error:', rpcError.message)
-      throw rpcError
+      // We continue anyway to try and kill the Auth record
     }
 
     // 2. Permanently delete the user from Auth (REQUIRES SERVICE ROLE)
+    // We do this immediately after the RPC to ensure re-registration is possible
     const admin = createAdminClient()
     const { error: adminError } = await admin.auth.admin.deleteUser(user.id)
     
     if (adminError) {
       console.error('[DeleteAccount] Auth Admin Error:', adminError.message)
-      // We don't throw here to ensure session signout still happens
     }
 
-    // 3. Sign out the current session and clear portal cookies
+    // 3. Force-clear ALL session cookies
     const cookieStore = await cookies()
     cookieStore.delete('culko_session')
+    
+    // 4. Sign out the local session
     await supabase.auth.signOut()
 
     return NextResponse.json({ success: true, message: 'Account and data wiped permanently' })

@@ -34,14 +34,22 @@ export default function DashboardPage() {
     lastSync 
   } = usePortalStore()
 
+  // Safety Catch: If user is missing (corrupted session), redirect immediately
+  useEffect(() => {
+    if (!user) {
+      router.replace('/login')
+    }
+  }, [user, router])
+
   // 1. Live Clock
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(getISTDate()), 30000)
     return () => clearInterval(timer)
   }, [])
 
-  // 2. Fetch Dashboard Data
+  // 2. Initial Setup & Background Sync
   const fetchData = async () => {
+    if (!user) return
     try {
       // Sync notifications locally
       const notifRes = await fetch('/api/notifications')
