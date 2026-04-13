@@ -256,7 +256,7 @@ export interface AnnouncementRecord {
   link?: string
 }
 
-export async function fetchCULKOData(endpoint: 'attendance' | 'marks' | 'timetable' | 'profile' | 'announcements') {
+export async function fetchCULKOData(endpoint: 'attendance' | 'marks' | 'timetable' | 'profile' | 'announcements' | 'hostel') {
   try {
     const cookieStore = await cookies()
     const culkoCookies = cookieStore.get('culko_session')
@@ -341,7 +341,8 @@ async function fetchCULKOResource(endpoint: string, cookies: Record<string, stri
     timetable: '/frmMyTimeTable.aspx',
     profile: '/frmStudentProfile.aspx',
     announcements: '/StudentHome.aspx',
-    result: '/result.aspx'
+    result: '/result.aspx',
+    hostel: '/frmStudenHostelDetails.aspx'
   }
   
   const url = BASE_URL + endpointMap[endpoint]
@@ -412,6 +413,8 @@ async function fetchCULKOResource(endpoint: string, cookies: Record<string, stri
       return profile
     case 'announcements':
       return fetchAnnouncementsViaAjax(url, cookies)
+    case 'hostel':
+      return parseHostelDetails(html)
     default:
       throw new Error(`Unknown endpoint: ${endpoint}`)
   }
@@ -1053,6 +1056,51 @@ function parseProfile(html: string): any {
     console.error('Error parsing profile:', e)
   }
   return profile
+}
+
+export function parseHostelDetails(html: string) {
+  const hostel = {
+    status: '',
+    seater: '',
+    name: '',
+    room: '',
+    reportingStatus: ''
+  }
+  
+  try {
+    const $ = cheerio.load(html)
+    
+    $('td, span, div, th').each((_, el) => {
+      const t = $(el).text().trim()
+      const nextText = $(el).next().text().trim() || $(el).parent().next().text().trim()
+      
+      if (t === 'Hostel Status') hostel.status = nextText
+      if (t === 'Seater') hostel.seater = nextText
+      if (t === 'Hostel Name') hostel.name = nextText
+      if (t === 'Room No') hostel.room = nextText
+      if (t === 'Hostel Reporting Status') hostel.reportingStatus = nextText
+    })
+
+    if (!hostel.status || !hostel.room) {
+       $('tr').each((_, row) => {
+          const cells = $(row).find('td, th')
+          if (cells.length >= 2) {
+             const label = $(cells[0]).text().trim()
+             const value = $(cells[1]).text().trim()
+
+             if (label.includes('Hostel Status')) hostel.status = value
+             if (label.includes('Seater')) hostel.seater = value
+             if (label.includes('Hostel Name')) hostel.name = value
+             if (label.includes('Room No')) hostel.room = value
+             if (label.includes('Reporting Status')) hostel.reportingStatus = value
+          }
+       })
+    }
+  } catch (e) {
+    console.error('Error parsing Hostel details', e)
+  }
+  
+  return hostel
 }
 
 

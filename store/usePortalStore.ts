@@ -6,6 +6,7 @@ interface PortalState {
   timetable: any
   marks: any[]
   profile: any
+  hostel: any
   portalStatus: 'connected' | 'no_session' | 'error' | null
   lastSync: string | null
   isSyncing: boolean
@@ -27,6 +28,7 @@ export const usePortalStore = create<PortalState>()(
       timetable: null,
       marks: [],
       profile: null,
+      hostel: null,
       portalStatus: null,
       lastSync: null,
       isSyncing: false,
@@ -57,6 +59,7 @@ export const usePortalStore = create<PortalState>()(
         timetable: null,
         marks: [],
         profile: null,
+        hostel: null,
         portalStatus: null,
         lastSync: null
       }),
@@ -69,18 +72,19 @@ export const usePortalStore = create<PortalState>()(
         
         set({ isSyncing: true })
         try {
-          // Phase 2: Heavy Data Fetch (parallel)
-          const [attendRes, ttRes, profileRes, syncRes] = await Promise.all([
+          const [attendRes, ttRes, profileRes, hostelRes, syncRes] = await Promise.all([
             fetch('/api/culko?endpoint=attendance'),
             fetch('/api/culko?endpoint=timetable'),
             fetch('/api/culko?endpoint=profile'),
+            fetch('/api/culko?endpoint=hostel'),
             fetch('/api/culko?endpoint=announcements') // Background sync session check
           ])
 
-          const [attendance, timetable, profile] = await Promise.all([
+          const [attendance, timetable, profile, hostel] = await Promise.all([
             attendRes.json(),
             ttRes.json(),
-            profileRes.json()
+            profileRes.json(),
+            hostelRes.json()
           ])
 
           const updates: Partial<PortalState> = {
@@ -91,6 +95,7 @@ export const usePortalStore = create<PortalState>()(
           if (attendRes.ok && attendance.success) updates.attendance = attendance.data || []
           if (ttRes.ok && timetable.success) updates.timetable = timetable.data
           if (profileRes.ok && profile.success) updates.profile = profile.data
+          if (hostelRes.ok && hostel.success) updates.hostel = hostel.data
 
           if (syncRes.ok) updates.portalStatus = 'connected'
           else if (syncRes.status === 401) updates.portalStatus = 'no_session'
@@ -110,6 +115,7 @@ export const usePortalStore = create<PortalState>()(
         timetable: state.timetable,
         marks: state.marks,
         profile: state.profile,
+        hostel: state.hostel,
         lastSync: state.lastSync
       })
     }
