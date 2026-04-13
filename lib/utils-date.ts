@@ -34,16 +34,18 @@ export function isBetweenTimings(currentIST: Date, startStr: string, endStr: str
 }
 
 export function parseTimeString(timeStr: string): [number, number] {
-  // Format: "07:30 AM" or "12:00 PM"
-  const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM|am|pm)/i)
+  const match = timeStr.match(/(\d+):(\d+)(?:\s*(AM|PM|am|pm))?/i)
   if (!match) throw new Error('Invalid time format')
   
   let hours = parseInt(match[1])
   const minutes = parseInt(match[2])
-  const ampm = match[3].toUpperCase()
+  const ampm = match[3]?.toUpperCase()
   
   if (ampm === 'PM' && hours < 12) hours += 12
   if (ampm === 'AM' && hours === 12) hours = 0
+  
+  // Auto-correct PM for unlabeled hours 1-7 (university timings)
+  if (!ampm && hours >= 1 && hours <= 7) hours += 12
   
   return [hours, minutes]
 }

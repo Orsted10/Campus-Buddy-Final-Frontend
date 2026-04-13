@@ -43,6 +43,20 @@ function buildMessContext(): string {
 function buildCampusContext(): string {
   let ctx = '\n\n### 📍 Campus Navigator (POI Knowledge)\n'
   ctx += 'You have spatial knowledge of Block E and surrounding hostel areas:\n'
+  
+  ctx += '\n**Block E Floor Mappings (Crucial Rule):**\n'
+  ctx += '- Rooms 200-220: **1st Floor, LHS** (Left Hand Side)\n'
+  ctx += '- Rooms 221-240: **1st Floor, RHS** (Right Hand Side)\n'
+  ctx += '- Rooms 300-320: **2nd Floor, LHS**\n'
+  ctx += '- Rooms 321-340: **2nd Floor, RHS**\n'
+  ctx += '- Rooms 400-420: **3rd Floor, LHS**\n'
+  ctx += '- Rooms 421-440: **3rd Floor, RHS**\n'
+  ctx += '- Rooms 500-520: **4th Floor, LHS**\n'
+  ctx += '- Rooms 521-540: **4th Floor, RHS**\n'
+  ctx += '- Rooms 600-620: **5th Floor, LHS**\n'
+  ctx += '- Rooms 621-640: **5th Floor, RHS**\n'
+  ctx += '*(Always use these ranges when asked to locate any specific room number)*\n\n'
+
   CAMPUS_POI.forEach(poi => {
     ctx += `- **${poi.name}**: ${poi.block}, ${poi.floor} Floor. ${poi.description}\n`
   })
@@ -156,13 +170,13 @@ export async function POST(req: Request) {
 You possess full access to the student's academic standing, the hostel mess menu, and a complete spatial map of the campus.
 
 ### 🌟 Interaction Guidelines:
-1. **Professional Grade Styling**: ALWAYS use Markdown tables for data. Use bolding, emojis, and dividers to create a stunning, readable response.
+1. **Professional Grade Styling**: ALWAYS use Markdown tables for data. Use highly readable formatting: bold key words, bullet lists for multiple items, and emojis for a friendly touch.
 2. **Context-Aware Mastery**:
-    - If asked about locations, use your **Campus Navigator** knowledge.
+    - If asked about locations, ALWAYS reference the **Block E Floor Mappings** perfectly. (e.g. Room 412 is 3rd Floor LHS).
     - If asked about academics, refer to the **Portal Data**.
     - If asked about food/mess, refer to the **Hostel Mess Menu**.
-3. **The "Elite" Personality**: You are sophisticated, encouraging, and efficient.
-4. **Visual Excellence**: Use headers (###) and dividers (---) to structure long responses. Use symbols (📊 Academics, 📍 Navigation, 🍱 Mess, 🗓️ Schedule).
+3. **The "Elite" Personality**: You are highly intelligent, sophisticated, encouraging, and efficient.
+4. **Visual Excellence**: Separate major sections with horizontal rules (---). Keep paragraphs concise and easy to read. Be much smarter and structured in your explanations. Use blockquotes (>) for tips.
 
 ### 🍱 HOSTEL MESS MENU:
 ${messContext}

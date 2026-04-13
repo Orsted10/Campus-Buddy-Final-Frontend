@@ -148,7 +148,7 @@ export default function DashboardPage() {
 
   // Greeting Logic
   const greeting = useMemo(() => {
-    const hour = currentTime.getUTCHours() + 5
+    const hour = currentTime.getUTCHours()
     if (hour < 12) return { text: 'Good Morning', icon: Coffee }
     if (hour < 17) return { text: 'Good Afternoon', icon: Sun }
     return { text: 'Good Evening', icon: Moon }
@@ -170,14 +170,14 @@ export default function DashboardPage() {
             <motion.h1 
               initial={{ opacity: 0, y: 10 }} 
               animate={{ opacity: 1, y: 0 }}
-              className="text-4xl md:text-6xl font-black text-white tracking-tighter leading-none"
+              className="text-4xl md:text-6xl font-black text-foreground tracking-tighter leading-none"
             >
               {greeting.text}, <span className="text-gradient underline decoration-primary/20">{user?.full_name?.split(' ')[0] || 'Buddy'}</span>
             </motion.h1>
             <div className="flex items-center gap-3 mt-4 text-muted-foreground font-bold text-sm">
-                <span className="flex items-center gap-1.5"><CalendarIcon className="w-4 h-4" /> {currentTime.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-white/10" />
-                <span className="flex items-center gap-1.5"><Clock className="w-4 h-4" /> {currentTime.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</span>
+                <span className="flex items-center gap-1.5"><CalendarIcon className="w-4 h-4" /> {currentTime.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'UTC' })}</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-black/10 dark:bg-white/10" />
+                <span className="flex items-center gap-1.5"><Clock className="w-4 h-4" /> {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })}</span>
             </div>
           </div>
           
@@ -251,10 +251,10 @@ export default function DashboardPage() {
                    )}
 
                    {!classStatus?.isLunchBreak && classStatus?.current && classStatus?.next && (
-                     <div className="relative pl-6 border-l-2 border-white/5 py-1 opacity-50">
-                        <div className="absolute -left-[5px] top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-white/20" />
-                        <p className="text-[10px] font-black uppercase">UP NEXT</p>
-                        <h3 className="font-bold text-white text-sm line-clamp-1">{classStatus.next.subject}</h3>
+                     <div className="relative pl-6 border-l-2 border-black/5 dark:border-white/5 py-1 opacity-50">
+                        <div className="absolute -left-[5px] top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-black/20 dark:bg-white/20" />
+                        <p className="text-[10px] font-black uppercase text-muted-foreground">UP NEXT</p>
+                        <h3 className="font-bold text-foreground text-sm line-clamp-1">{classStatus.next.subject}</h3>
                         <p className="text-[10px] text-muted-foreground">{classStatus.next.time}</p>
                      </div>
                    )}
@@ -343,10 +343,10 @@ export default function DashboardPage() {
 
         {/* 3. NOTIFICATIONS (RIGHT COL) */}
         <div className="lg:col-span-4 space-y-6">
-           <Card className="glass-panel h-full border-white/5 glow-olive-sm overflow-hidden flex flex-col">
-              <CardHeader className="flex flex-row items-center justify-between pb-4 border-b border-white/5 bg-white/2">
+            <Card className="glass-panel h-full border-black/5 dark:border-white/5 glow-olive-sm overflow-hidden flex flex-col">
+              <CardHeader className="flex flex-row items-center justify-between pb-4 border-b border-black/5 dark:border-white/5 bg-white/2">
                 <div>
-                  <CardTitle className="text-lg font-black text-white flex items-center gap-2">
+                  <CardTitle className="text-lg font-black text-foreground flex items-center gap-2">
                     <Bell className="w-4 h-4 text-primary" /> Notifications
                   </CardTitle>
                 </div>
@@ -365,11 +365,11 @@ export default function DashboardPage() {
                           key={notif.id}
                           initial={{ opacity: 0, scale: 0.95 }}
                           animate={{ opacity: 1, scale: 1 }}
-                          className={`p-3 rounded-2xl border border-white/5 relative group transition-all hover:bg-white/5 ${notif.read ? 'opacity-60' : 'bg-primary/5'}`}
+                          className={`p-3 rounded-2xl border border-black/5 dark:border-white/5 relative group transition-all hover:bg-black/5 dark:hover:bg-white/5 ${notif.read ? 'opacity-60' : 'bg-primary/5'}`}
                         >
                           <div className="flex justify-between items-start gap-2">
                             <div className="space-y-1">
-                              <p className="font-black text-sm text-white leading-tight">{notif.title}</p>
+                              <p className="font-black text-sm text-foreground leading-tight">{notif.title}</p>
                               <p className="text-[11px] text-muted-foreground line-clamp-2 leading-relaxed">{notif.message}</p>
                             </div>
                           </div>
@@ -389,29 +389,10 @@ export default function DashboardPage() {
                           </div>
                         </motion.div>
                       ))
-                    ) : portalStatus === 'no_session' ? (
-                      <div className="py-20 text-center space-y-6">
-                         <div className="w-20 h-20 mx-auto rounded-[2.5rem] bg-amber-500/10 flex items-center justify-center border border-amber-500/20 relative">
-                            <Bell className="w-8 h-8 text-amber-500" />
-                            <div className="absolute -top-1 -right-1 w-6 h-6 bg-amber-500 rounded-full border-4 border-[#0a0a0a] flex items-center justify-center">
-                               <AlertTriangle className="w-3 h-3 text-black" />
-                            </div>
-                         </div>
-                         <div className="space-y-2 px-6">
-                            <h3 className="text-lg font-black text-white leading-tight">Sync Disconnected</h3>
-                            <p className="text-xs text-muted-foreground font-medium">Your portal session has expired. Notifications are paused.</p>
-                         </div>
-                         <Button 
-                            onClick={() => router.push('/dashboard/academics')}
-                            className="h-12 px-8 rounded-2xl bg-amber-500 hover:bg-amber-600 text-black font-black uppercase tracking-widest text-xs"
-                         >
-                            Reconnect Portal
-                         </Button>
-                      </div>
                     ) : (
-                      <div className="py-32 text-center space-y-3 opacity-20">
+                      <div className="py-32 text-center space-y-3 opacity-40">
                          <Bell className="w-12 h-12 mx-auto text-muted-foreground" />
-                         <p className="text-xs font-black uppercase tracking-widest">{isSyncing ? 'Fetching Alerts...' : 'All caught up'}</p>
+                         <p className="text-xs font-black uppercase tracking-widest">{isSyncing ? 'Fetching Alerts...' : 'No new notifications'}</p>
                       </div>
                     )}
                   </AnimatePresence>
@@ -421,8 +402,8 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <footer className="pt-8 text-center border-t border-white/5">
-         <p className="text-[10px] text-muted-foreground/30 font-black uppercase tracking-[0.5em]">
+      <footer className="pt-8 text-center border-t border-black/5 dark:border-white/5">
+         <p className="text-[10px] text-muted-foreground/50 font-black uppercase tracking-[0.5em]">
             Campus Buddy Elite Engine • AI Augmented Dashboard
          </p>
       </footer>
