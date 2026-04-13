@@ -119,8 +119,8 @@ export default function ChatInterface() {
     <div className={cn(
       "flex flex-col w-full glass-panel overflow-hidden border-white/5 relative transition-all duration-300",
       isFullscreen 
-        ? "fixed inset-0 z-[100] h-screen max-w-none rounded-none shadow-none bg-background md:p-4" 
-        : "h-[calc(100vh-8rem)] max-w-5xl mx-auto rounded-[2.5rem] shadow-2xl"
+        ? "fixed inset-0 z-[100] h-[100dvh] max-w-none rounded-none shadow-none bg-background md:p-4" 
+        : "h-[calc(100dvh-7rem)] md:h-[calc(100vh-8rem)] max-w-5xl mx-auto rounded-3xl md:rounded-[2.5rem] shadow-2xl"
     )}>
       
       {/* Settings / History Sidebar */}
@@ -133,8 +133,8 @@ export default function ChatInterface() {
               onClick={() => setShowHistory(false)} 
             />
             <motion.div 
-              initial={{ x: -400 }} animate={{ x: 0 }} exit={{ x: -400 }} transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="absolute left-0 top-0 bottom-0 w-80 glass-strong border-r border-white/10 z-50 flex flex-col shadow-2xl"
+               initial={{ x: -400 }} animate={{ x: 0 }} exit={{ x: -400 }} transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+               className="absolute left-0 top-0 bottom-0 w-full md:w-80 glass-strong border-r border-white/10 z-50 flex flex-col shadow-2xl"
             >
               <div className="p-6 border-b border-white/5 flex items-center justify-between bg-black/5">
                  <h3 className="font-bold text-foreground">Chat History</h3>
@@ -228,10 +228,10 @@ export default function ChatInterface() {
                 <div className="w-24 h-24 rounded-[2rem] bg-gradient-to-br from-primary via-primary/50 to-transparent p-[2px] mx-auto mb-8 shadow-2xl relative">
                   <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full" />
                   <div className="w-full h-full bg-background rounded-[2rem] flex items-center justify-center relative z-10">
-                    <Sparkles className="w-10 h-10 text-primary" />
+                    <Sparkles className="w-8 h-8 md:w-10 md:h-10 text-primary" />
                   </div>
                 </div>
-                <h2 className="text-3xl md:text-4xl font-black text-foreground mb-4 tracking-tight">How can I assist you today?</h2>
+                <h2 className="text-2xl md:text-4xl font-black text-foreground mb-4 tracking-tight">How can I assist you today?</h2>
                 <p className="text-muted-foreground text-sm max-w-md mx-auto leading-relaxed">
                   I have real-time access to your <span className="text-primary font-bold">Attendance</span>, <span className="text-primary font-bold">Marks</span>, <span className="text-primary font-bold">Timetable</span>, and <span className="text-primary font-bold">Campus Map</span>. Ask me anything.
                 </p>
@@ -320,7 +320,7 @@ export default function ChatInterface() {
       )}>
         <form onSubmit={handleSubmit} className="relative group max-w-4xl mx-auto">
           <div className="absolute inset-0 bg-primary/20 blur-2xl group-focus-within:bg-primary/30 transition-all rounded-3xl -z-10 opacity-30" />
-          <div className="flex gap-3 items-center glass bg-white/80 dark:bg-black/40 backdrop-blur-xl rounded-2xl p-2 pl-5 border-black/10 dark:border-white/10 group-focus-within:border-primary/50 transition-all shadow-lg">
+          <div className="flex gap-2 md:gap-3 items-center glass bg-white/80 dark:bg-black/40 backdrop-blur-xl rounded-2xl p-1.5 md:p-2 pl-4 md:pl-5 border-black/10 dark:border-white/10 group-focus-within:border-primary/50 transition-all shadow-lg">
             <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}

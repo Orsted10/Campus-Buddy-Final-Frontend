@@ -119,9 +119,9 @@ export default function AttendancePage() {
             <GraduationCap className="w-8 h-8 text-primary" />
           </div>
           <div className="flex flex-col">
-            <h1 className="text-3xl font-bold tracking-tight">Attendance Analytics</h1>
+            <h1 className="text-xl md:text-3xl font-black text-foreground tracking-tight">Attendance Analytics</h1>
             <div className="flex items-center gap-2 mt-1">
-              <p className="text-muted-foreground text-sm">Real-time attendance predictions & safe-skip analysis</p>
+              <p className="text-muted-foreground text-[10px] md:text-sm">Real-time attendance predictions & safe-skip analysis</p>
             </div>
           </div>
         </div>
@@ -149,7 +149,7 @@ export default function AttendancePage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
           <AnimatePresence>
             {attendance.map((subject: any, idx: number) => {
               const attended = parseInt(subject.attended) || 0
@@ -165,10 +165,10 @@ export default function AttendancePage() {
                   transition={{ delay: idx * 0.05 }}
                 >
                   <Card className="overflow-hidden border-black/5 dark:border-white/5 glass shadow-sm hover:shadow-md transition-shadow">
-                    <CardHeader className="pb-3 border-b border-black/5 dark:border-white/5">
-                      <CardTitle className="text-lg font-black text-foreground">{subject.name}</CardTitle>
+                    <CardHeader className="p-4 md:pb-3 border-b border-black/5 dark:border-white/5">
+                      <CardTitle className="text-base md:text-lg font-black text-foreground line-clamp-1">{subject.name}</CardTitle>
                     </CardHeader>
-                    <CardContent className="pt-6">
+                    <CardContent className="p-4 md:pt-6">
                       <AttendanceRing 
                         percentage={percentageRaw} 
                         attended={attended} 

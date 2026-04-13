@@ -50,8 +50,8 @@ export default function HostelPage() {
     <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-8 pb-20">
       <div className="flex items-center justify-between border-b border-black/5 dark:border-white/5 pb-6">
         <div>
-          <h1 className="text-3xl font-black text-foreground tracking-tighter">Hostel Central</h1>
-          <p className="text-muted-foreground mt-1">Manage your accommodation and services</p>
+          <h1 className="text-2xl md:text-3xl font-black text-foreground tracking-tighter">Hostel Central</h1>
+          <p className="text-[10px] md:text-sm text-muted-foreground mt-1">Manage your accommodation and services</p>
         </div>
         <button 
            onClick={() => syncAll()} 

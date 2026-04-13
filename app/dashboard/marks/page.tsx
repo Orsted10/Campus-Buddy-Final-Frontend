@@ -40,8 +40,8 @@ export default async function MarksPage() {
           <Award className="w-8 h-8 text-primary relative z-10" />
         </div>
         <div className="flex flex-col">
-          <h1 className="text-3xl md:text-4xl font-black tracking-tight text-foreground">Grades & Marks</h1>
-          <div className="flex items-center gap-2 mt-2">
+          <h1 className="text-2xl md:text-4xl font-black tracking-tight text-foreground">Grades & Marks</h1>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mt-2 md:mt-2">
             <p className="text-muted-foreground font-medium">Detailed evaluation breakdowns grouped by subject</p>
             <span className="text-muted-foreground mx-1">•</span>
             {isCached ? (
@@ -88,11 +88,11 @@ export default async function MarksPage() {
               <AccordionItem 
                 key={idx} 
                 value={`item-${idx}`} 
-                className={`glass-panel px-6 py-2 overflow-hidden transition-all duration-300 hover:bg-card/60 ${glowColor} rounded-2xl`}
+                className={`glass-panel px-3 sm:px-6 py-1 sm:py-2 overflow-hidden transition-all duration-300 hover:bg-card/60 ${glowColor} rounded-2xl`}
               >
-                <AccordionTrigger className="hover:no-underline py-5 text-left group">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between w-full pr-4 gap-4">
-                    <span className="font-bold text-xl text-foreground group-hover:text-primary transition-colors">{subject.subject}</span>
+                <AccordionTrigger className="hover:no-underline py-4 sm:py-5 text-left group">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between w-full pr-1 sm:pr-4 gap-2 sm:gap-4">
+                    <span className="font-bold text-base sm:text-xl text-foreground group-hover:text-primary transition-colors leading-tight">{subject.subject}</span>
                     {total > 0 && (
                       <span className="text-sm font-bold bg-primary/5 dark:bg-background/50 border border-black/10 dark:border-white/10 text-foreground px-4 py-1.5 rounded-full backdrop-blur-md">
                         <span className={percentage >= 80 ? 'text-emerald-400' : percentage >= 50 ? 'text-primary' : 'text-red-400'}>

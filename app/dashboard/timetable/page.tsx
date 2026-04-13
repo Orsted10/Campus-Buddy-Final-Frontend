@@ -84,7 +84,7 @@ export default function TimetablePage() {
           <motion.h1 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-4xl md:text-5xl font-black tracking-tight"
+            className="text-3xl md:text-5xl font-black tracking-tight"
           >
             Daily <span className="text-gradient">Timetable</span>
           </motion.h1>
@@ -128,7 +128,7 @@ export default function TimetablePage() {
               <span className="text-[10px] font-black uppercase tracking-tighter mb-1 opacity-70">
                 Week Day
               </span>
-              <span className="text-lg font-black">{day === 'Wednesday' ? 'Wed' : day.substring(0, 3)}</span>
+              <span className="text-base md:text-lg font-black">{day === 'Wednesday' ? 'Wed' : day.substring(0, 3)}</span>
             </button>
           )
         })}
@@ -189,12 +189,12 @@ export default function TimetablePage() {
                   transition={{ delay: idx * 0.05 }}
                 >
                   <Card className="glass group hover:bg-white/[0.03] transition-all border-black/5 dark:border-white/5 overflow-hidden">
-                    <CardContent className="p-6 md:p-8 flex items-center gap-6">
+                    <CardContent className="p-4 md:p-8 flex flex-col sm:flex-row items-stretch sm:items-center gap-4 md:gap-6">
                       {/* Time Block */}
-                      <div className="flex flex-col items-center justify-center min-w-[100px] border-r border-black/5 dark:border-white/5 pr-6">
-                        <span className="text-[10px] font-black uppercase text-primary tracking-widest mb-1">Time Slot</span>
+                      <div className="flex sm:flex-col items-center justify-between sm:justify-center min-w-[100px] border-b sm:border-b-0 sm:border-r border-black/5 dark:border-white/5 pb-2 sm:pb-0 sm:pr-6 gap-2">
+                        <span className="text-[10px] font-black uppercase text-primary tracking-widest">Time Slot</span>
                         <span className="text-sm font-black text-foreground tabular-nums text-center leading-tight">
-                           {slot.time.replace(/\s+/g, '\n')}
+                           {slot.time}
                         </span>
                       </div>
 

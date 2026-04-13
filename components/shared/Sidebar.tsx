@@ -44,7 +44,11 @@ const adminNavItems = [
   { href: '/dashboard/admin', label: 'Admin Panel', icon: Shield },
 ]
 
-export default function Sidebar() {
+interface SidebarProps {
+  mobile?: boolean
+}
+
+export default function Sidebar({ mobile }: SidebarProps) {
   const pathname = usePathname()
   const user = useAuthStore((state) => state.user)
   const { signOut } = useAuth()
@@ -64,7 +68,10 @@ export default function Sidebar() {
     : studentNavItems
 
   return (
-    <aside className="w-64 glass-panel m-4 rounded-3xl hidden md:flex flex-col relative z-20 border-white/5 bg-background/30 shadow-2xl overflow-hidden before:absolute before:inset-0 before:-z-10 before:bg-gradient-to-b before:from-white/[0.04] before:to-transparent">
+    <aside className={cn(
+      "w-64 glass-panel flex flex-col relative z-20 transition-all border-white/5 bg-background/30 shadow-2xl overflow-hidden before:absolute before:inset-0 before:-z-10 before:bg-gradient-to-b before:from-white/[0.04] before:to-transparent h-full",
+      mobile ? "w-full rounded-none m-0" : "hidden md:flex m-4 rounded-3xl"
+    )}>
       <div className="p-6 border-b border-white/5 relative">
         <h1 className="text-2xl font-black tracking-tighter text-gradient flex items-center gap-2">
           <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center shadow-[0_0_15px_rgba(139,92,246,0.5)]">

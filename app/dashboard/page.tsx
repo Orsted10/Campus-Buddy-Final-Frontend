@@ -170,14 +170,13 @@ export default function DashboardPage() {
             <motion.h1 
               initial={{ opacity: 0, y: 10 }} 
               animate={{ opacity: 1, y: 0 }}
-              className="text-4xl md:text-6xl font-black text-foreground tracking-tighter leading-none"
+              className="text-3xl md:text-6xl font-black text-foreground tracking-tighter leading-none"
             >
               {greeting.text}, <span className="text-gradient underline decoration-primary/20">{user?.full_name?.split(' ')[0] || 'Buddy'}</span>
             </motion.h1>
-            <div className="flex items-center gap-3 mt-4 text-muted-foreground font-bold text-sm">
-                <span className="flex items-center gap-1.5"><CalendarIcon className="w-4 h-4" /> {currentTime.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'UTC' })}</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-black/10 dark:bg-black/10 dark:bg-white/10" />
-                <span className="flex items-center gap-1.5"><Clock className="w-4 h-4" /> {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })}</span>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-4 text-muted-foreground font-bold text-[10px] md:text-sm">
+                <span className="flex items-center gap-1.5"><CalendarIcon className="w-3 h-3 md:w-4 md:h-4" /> {currentTime.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' })}</span>
+                <span className="flex items-center gap-1.5"><Clock className="w-3 h-3 md:w-4 md:h-4" /> {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })}</span>
             </div>
           </div>
           
@@ -201,7 +200,7 @@ export default function DashboardPage() {
       <div className="grid gap-6 lg:grid-cols-12">
         {/* 2. SMART TIMELINE (LEFT COL) */}
         <div className="lg:col-span-8 space-y-6">
-          <div className="grid gap-6 md:grid-cols-2">
+          <div className="grid gap-6 sm:grid-cols-2">
              {/* Next Up Class Widget */}
              <Card className="glass-panel border-black/5 dark:border-white/5 overflow-hidden group">
                 <CardHeader className="pb-2">
