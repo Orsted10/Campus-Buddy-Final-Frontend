@@ -123,7 +123,7 @@ export function useAuth() {
     password: string,
     fullName: string,
     role: 'student' | 'admin' | 'hostel_staff' = 'student',
-    studentId?: string
+    studentId?: string | null
   ) => {
     try {
       const { data, error } = await supabase.auth.signUp({
@@ -133,7 +133,7 @@ export function useAuth() {
           data: {
             full_name: fullName,
             role,
-            student_id: studentId,
+            student_id: studentId?.trim() ? studentId.trim() : null,
           },
         },
       })

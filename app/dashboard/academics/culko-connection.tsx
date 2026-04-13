@@ -7,6 +7,7 @@ import {
   ExternalLink, RefreshCw, Loader2, GraduationCap,
   Calendar, CheckCircle2, Link2, Terminal, Eye, EyeOff, AlertCircle
 } from 'lucide-react'
+import { usePortalStore } from '@/store/usePortalStore'
 
 type Step = 'credentials' | 'waiting' | 'captcha' | 'submitting' | 'done'
 
@@ -29,21 +30,23 @@ export default function CULKOConnectionManager() {
 
   const checkConnection = async () => {
     try {
-      const res = await fetch('/api/culko?endpoint=profile')
+      const res = await fetch('/api/culko/status')
       if (res.ok) {
         const data = await res.json()
-        // Only mark as connected if we got LIVE data, not cached
-        if (data.success && data.isCached === false) {
-          setIsConnected(true)
-        } else {
-          setIsConnected(false)
-        }
+        setIsConnected(data.connected)
       } else {
         setIsConnected(false)
       }
     } catch {
       setIsConnected(false)
     }
+  }
+
+  const handleDisconnect = async () => {
+    setIsConnected(false)
+    usePortalStore.getState().clearData()
+    await fetch('/api/culko/logout')
+    toast.info('Session disconnected')
   }
 
   const handleInit = async () => {
@@ -140,7 +143,7 @@ export default function CULKOConnectionManager() {
           </button>
         </div>
         <button
-          onClick={() => setIsConnected(false)}
+          onClick={handleDisconnect}
           className="text-xs text-muted-foreground hover:text-destructive transition-colors"
         >
           Disconnect session

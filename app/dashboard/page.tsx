@@ -105,14 +105,14 @@ export default function DashboardPage() {
     const lunchEnd = 13 * 60 + 55
     const isLunchBreak = absMins >= lunchStart && absMins < lunchEnd
 
-    if (!timetableData) return { isLunchBreak, current: null, next: null }
+    if (!timetableData || typeof timetableData !== 'object' || Array.isArray(timetableData)) return { isLunchBreak, current: null, next: null }
     const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][currentTime.getUTCDay()]
     const schedule = timetableData[dayName] || []
     
     // Find current class
     const currentClass = isLunchBreak ? null : schedule.find((c: any) => {
       try {
-        const [start, end] = c.time.split(' - ')
+        const [start, end] = c.time.split(/\s*-\s*/)
         return isBetweenTimings(currentTime, start, end)
       } catch (e) {
         return false
@@ -122,7 +122,7 @@ export default function DashboardPage() {
     // Find next class
     const nextClass = schedule.find((c: any) => {
       try {
-        const [start] = c.time.split(' - ')
+        const [start] = c.time.split(/\s*-\s*/)
         const [startH, startM] = parseTimeString(start)
         return (startH > hour) || (startH === hour && startM > mins)
       } catch (e) {
@@ -139,7 +139,8 @@ export default function DashboardPage() {
 
   // 6. Smart Logic: Attendance Warning
   const lowAttendance = useMemo(() => {
-    return attendanceData.filter(a => {
+    const validAttendance = Array.isArray(attendanceData) ? attendanceData : []
+    return validAttendance.filter(a => {
       const pct = parseFloat(a.percentage)
       return !isNaN(pct) && pct < 75
     })
