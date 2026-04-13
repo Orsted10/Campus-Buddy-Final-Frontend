@@ -109,8 +109,8 @@ export default function CULKOConnectionManager() {
     setSessionId(null)
   }
 
-  const inputClass = "w-full border border-white/8 text-foreground placeholder:text-muted-foreground/50 rounded-xl px-4 py-3 text-sm font-medium outline-none focus:border-primary focus:ring-1 focus:ring-primary/40 transition-all"
-  const inputStyle = { backgroundColor: 'oklch(0.14 0.018 120)' }
+  const inputClass = "w-full border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 text-foreground placeholder:text-muted-foreground/50 rounded-xl px-4 py-3 text-sm font-medium outline-none focus:border-primary focus:ring-1 focus:ring-primary/40 transition-all"
+  const inputStyle = {}
 
   if (isConnected) {
     return (
