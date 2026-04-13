@@ -32,17 +32,19 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  // 1. Protected routes - redirect to login if not authenticated
-  const isProtectedRoute = 
-    request.nextUrl.pathname.startsWith('/dashboard') ||
-    request.nextUrl.pathname.startsWith('/chat') ||
-    request.nextUrl.pathname.startsWith('/hostel') ||
-    request.nextUrl.pathname.startsWith('/academics') ||
-    request.nextUrl.pathname.startsWith('/navigation') ||
-    request.nextUrl.pathname.startsWith('/library') ||
-    request.nextUrl.pathname.startsWith('/notifications') ||
-    request.nextUrl.pathname.startsWith('/admin') ||
-    request.nextUrl.pathname.startsWith('/onboarding')
+  const { pathname } = request.nextUrl
+  const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/signup')
+  
+  // 1. Redirect authenticated users away from Login/Signup
+  if (user && isAuthPage) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/dashboard'
+    return NextResponse.redirect(url)
+  }
+
+  // 2. Protected routes logic
+  const protectedPaths = ['/dashboard', '/chat', '/hostel', '/academics', '/navigation', '/library', '/notifications', '/admin', '/onboarding']
+  const isProtectedRoute = protectedPaths.some(path => pathname.startsWith(path))
 
   if (!user && isProtectedRoute) {
     const url = request.nextUrl.clone()
@@ -50,8 +52,11 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // 2. Onboarding enforcement - redirect Google/new users to complete their profile
-  if (user && isProtectedRoute && !request.nextUrl.pathname.startsWith('/onboarding') && !request.nextUrl.pathname.startsWith('/api')) {
+  // 3. Optimized Onboarding enforcement
+  // Only check profile for actual page navigation (skips JSON/assets)
+  const isPageRequest = isProtectedRoute && !pathname.includes('.') && !request.nextUrl.pathname.startsWith('/api')
+
+  if (user && isPageRequest && !pathname.startsWith('/onboarding')) {
     const { data: profile } = await supabase
       .from('profiles')
       .select('student_id')
@@ -63,6 +68,8 @@ export async function updateSession(request: NextRequest) {
     if (!profile?.student_id && !isOnboardingSuccess) {
        const url = request.nextUrl.clone()
        url.pathname = '/onboarding'
+       // Prevent loop if we're somehow already navigating there
+       if (pathname === '/onboarding') return supabaseResponse
        return NextResponse.redirect(url)
     }
   }

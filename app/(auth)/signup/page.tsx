@@ -22,12 +22,10 @@ export default function SignupPage() {
   const { signUp, signInWithGoogle, user } = useAuth()
   const router = useRouter()
 
-  // Redirect ONLY if authenticated AND has a valid profile
+  // Redirect logic moved to server-side middleware for better stability
   useEffect(() => {
-    if (user && user.full_name) {
-      router.replace('/dashboard')
-    }
-  }, [user, router])
+    // Middleware handles auth-state based redirection
+  }, [user])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
