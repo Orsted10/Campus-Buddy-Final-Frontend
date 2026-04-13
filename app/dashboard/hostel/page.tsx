@@ -63,7 +63,12 @@ export default function HostelPage() {
       </div>
 
       {/* PORTAL SYNC STATES */}
-      {portalStatus === 'no_session' || portalStatus === 'error' || portalStatus === null ? (
+      {isSyncing ? (
+        <Card className="glass border-black/5 dark:border-white/5 flex flex-col items-center justify-center py-12">
+          <RefreshCw className="w-10 h-10 text-primary animate-spin mb-4" />
+          <p className="text-muted-foreground font-medium animate-pulse">Syncing live hostel data...</p>
+        </Card>
+      ) : (portalStatus === 'no_session' || portalStatus === 'error' || portalStatus === null) ? (
         <Card className="glass border-primary/20 bg-primary/5">
           <CardHeader className="text-center pb-2">
             <ShieldCheck className="w-12 h-12 text-primary mx-auto mb-2 opacity-80" />
@@ -76,12 +81,7 @@ export default function HostelPage() {
             </Link>
           </CardContent>
         </Card>
-      ) : isSyncing ? (
-        <Card className="glass border-black/5 dark:border-white/5 flex flex-col items-center justify-center py-12">
-          <RefreshCw className="w-10 h-10 text-primary animate-spin mb-4" />
-          <p className="text-muted-foreground font-medium animate-pulse">Syncing live hostel data...</p>
-        </Card>
-      ) : portalStatus === 'connected' && !hasHostel ? (
+      ) : !hasHostel ? (
         <Card className="glass border border-dashed border-muted-foreground/30 bg-muted/10">
           <CardContent className="flex flex-col items-center justify-center text-center py-16 space-y-4">
             <div className="w-20 h-20 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center">

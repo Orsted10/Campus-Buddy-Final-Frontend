@@ -97,8 +97,13 @@ export const usePortalStore = create<PortalState>()(
           if (profileRes.ok && profile.success) updates.profile = profile.data
           if (hostelRes.ok && hostel.success) updates.hostel = hostel.data
 
-          if (syncRes.ok) updates.portalStatus = 'connected'
-          else if (syncRes.status === 401) updates.portalStatus = 'no_session'
+          const anySuccess = attendRes.ok || ttRes.ok || profileRes.ok || hostelRes.ok || syncRes.ok
+          
+          if (anySuccess) {
+            updates.portalStatus = 'connected'
+          } else if (syncRes.status === 401 || attendRes.status === 401) {
+            updates.portalStatus = 'no_session'
+          }
 
           set(updates)
         } catch (err) {
