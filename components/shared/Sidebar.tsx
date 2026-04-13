@@ -87,8 +87,8 @@ export default function Sidebar() {
                 className={cn(
                   'flex items-center gap-3 px-4 py-3 rounded-xl transition-all relative z-10',
                   isActive
-                    ? 'text-white font-semibold'
-                    : 'text-muted-foreground font-medium hover:text-white'
+                    ? 'text-foreground font-semibold'
+                    : 'text-muted-foreground font-medium hover:text-foreground'
                 )}
               >
                 {/* Active Indicator Glow */}
@@ -125,13 +125,13 @@ export default function Sidebar() {
           >
             <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-purple-400 p-[2px] shadow-lg">
                <div className="w-full h-full bg-card rounded-full flex items-center justify-center">
-                  <span className="text-white font-bold text-lg">
+                  <span className="text-foreground dark:text-white font-bold text-lg">
                     {user?.full_name?.charAt(0) || 'U'}
                   </span>
                </div>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-white truncate">{user?.full_name}</p>
+              <p className="text-sm font-bold text-foreground truncate">{user?.full_name}</p>
               <p className="text-[10px] text-primary uppercase tracking-wider font-bold">{user?.role}</p>
             </div>
           </motion.div>

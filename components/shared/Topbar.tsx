@@ -37,7 +37,7 @@ export default function Topbar() {
             </SheetContent>
           </Sheet>
           
-          <h2 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-white/60">
+          <h2 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/60">
             Welcome back!
           </h2>
         </div>
