@@ -150,7 +150,7 @@ export default function AttendancePage() {
         </Card>
       ) : (
         <div className="grid gap-6">
-          <AnimatePresence mode="popLayout">
+          <AnimatePresence>
             {attendance.map((subject: any, idx: number) => {
               const attended = parseInt(subject.attended) || 0
               const total = parseInt(subject.total) || 0
@@ -159,7 +159,7 @@ export default function AttendancePage() {
               
               return (
                 <motion.div
-                  key={subject.name}
+                  key={`${subject.name}-${idx}`}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: idx * 0.05 }}
