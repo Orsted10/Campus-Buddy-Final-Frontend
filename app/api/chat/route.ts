@@ -218,7 +218,12 @@ ${academicContext || '*Portal not currently synced. Advise the user to connect t
           title: messages[0]?.content?.slice(0, 50) || 'New Chat',
         })
         .select().single()
-      if (!chatError) currentChatId = newChat.id
+      
+      if (chatError) {
+        console.error('CHAT INSERTION ERROR (RLS/Auth Check):', chatError)
+      } else if (newChat) {
+        currentChatId = newChat.id
+      }
     }
 
     if (currentChatId) {

@@ -111,10 +111,10 @@ export default function MessMenuPage() {
         <motion.div 
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="glass-strong px-6 py-4 rounded-3xl border-white/5 flex flex-col items-center justify-center min-w-[160px] shadow-2xl"
+          className="glass-strong px-6 py-4 rounded-3xl border-black/5 dark:border-white/5 flex flex-col items-center justify-center min-w-[160px] shadow-2xl"
         >
           <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1">Campus Time</span>
-          <span className="text-2xl font-black text-white tabular-nums tracking-tighter">
+          <span className="text-2xl font-black text-foreground tabular-nums tracking-tighter">
             {istNow.getUTCHours().toString().padStart(2, '0')}:{istNow.getUTCMinutes().toString().padStart(2, '0')}
           </span>
           <div className="flex items-center gap-1.5 mt-1">
@@ -138,7 +138,7 @@ export default function MessMenuPage() {
                 "relative group flex flex-col items-center justify-center min-w-[90px] py-4 rounded-[2rem] transition-all border shrink-0",
                 isActive 
                   ? "bg-primary text-background border-primary glow-olive-sm scale-110 z-10" 
-                  : "glass border-white/5 text-muted-foreground hover:border-white/10 hover:text-white"
+                  : "glass border-black/5 dark:border-white/5 text-muted-foreground hover:border-black/10 dark:border-white/10 hover:text-foreground"
               )}
             >
               {isToday && !isActive && (
@@ -176,7 +176,7 @@ export default function MessMenuPage() {
                 transition={{ delay: idx * 0.05 }}
               >
                 <Card className={cn(
-                  "glass h-full group hover:bg-white/[0.03] transition-all border-white/5 overflow-hidden relative",
+                  "glass h-full group hover:bg-white/[0.03] transition-all border-black/5 dark:border-white/5 overflow-hidden relative",
                   isLive && "border-primary/40 shadow-[0_0_40px_-15px_rgba(163,230,53,0.3)] ring-1 ring-primary/20"
                 )}>
                   <div className={cn(
@@ -191,13 +191,13 @@ export default function MessMenuPage() {
                           "w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border transition-all duration-500",
                           isLive 
                             ? "bg-primary text-background border-primary scale-110 shadow-lg"
-                            : "glass border-white/10 text-muted-foreground group-hover:border-primary/30 group-hover:text-primary"
+                            : "glass border-black/10 dark:border-white/10 text-muted-foreground group-hover:border-primary/30 group-hover:text-primary"
                         )}>
                           <Icon className="w-5 h-5" />
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
-                            <h3 className="text-xl font-black text-white tracking-tight">{meal.name}</h3>
+                            <h3 className="text-xl font-black text-foreground tracking-tight">{meal.name}</h3>
                             {isLive && (
                               <div className="flex items-center gap-1 bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-full">
                                 <Zap className="w-2.5 h-2.5 text-primary fill-primary" />
@@ -214,18 +214,18 @@ export default function MessMenuPage() {
                     </div>
 
                     <div className="space-y-6">
-                      <div className="p-5 rounded-3xl bg-black/20 border border-white/5 relative overflow-hidden group/box hover:border-white/10 transition-colors">
+                      <div className="p-5 rounded-3xl bg-black/20 border border-black/5 dark:border-white/5 relative overflow-hidden group/box hover:border-black/10 dark:border-white/10 transition-colors">
                         <div className="absolute top-0 right-0 p-3 opacity-10">
                            <Pizza className="w-12 h-12" />
                         </div>
                         <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/60 mb-3 ml-1">Today's Special</h4>
-                        <p className="text-base text-white/90 font-bold leading-relaxed line-clamp-3">
+                        <p className="text-base text-foreground/90 font-bold leading-relaxed line-clamp-3">
                           {meal.items}
                         </p>
                       </div>
 
                       {meal.common && (
-                        <div className="flex gap-4 p-4 rounded-2xl bg-white/[0.02] border border-white/5">
+                        <div className="flex gap-4 p-4 rounded-2xl bg-white/[0.02] border border-black/5 dark:border-white/5">
                            <Info className="w-5 h-5 text-muted-foreground/30 shrink-0 mt-0.5" />
                            <div>
                               <h5 className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1">Common Items</h5>

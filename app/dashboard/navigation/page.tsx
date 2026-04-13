@@ -83,7 +83,7 @@ export default function NavigationPage() {
           className="relative group w-full md:w-96"
         >
           <div className="absolute inset-0 bg-primary/20 blur-xl group-hover:bg-primary/30 transition-all rounded-3xl -z-10 opacity-50" />
-          <div className="relative glass-panel rounded-2xl flex items-center px-4 py-3 border-white/10 group-focus-within:border-primary/50 transition-all">
+          <div className="relative glass-panel rounded-2xl flex items-center px-4 py-3 border-black/10 dark:border-white/10 group-focus-within:border-primary/50 transition-all">
             <Search className="w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
             <input 
               type="text" 
@@ -111,7 +111,7 @@ export default function NavigationPage() {
           <div className="w-20 h-20 rounded-3xl bg-primary/20 flex items-center justify-center mb-6 border border-primary/30 backdrop-blur-xl animate-pulse">
             <Sparkles className="w-10 h-10 text-primary" />
           </div>
-          <h2 className="text-2xl md:text-3xl font-black text-white mb-2">3D Hologram View</h2>
+          <h2 className="text-2xl md:text-3xl font-black text-foreground mb-2">3D Hologram View</h2>
           <p className="text-muted-foreground text-sm max-w-md">
             Conceptualizing a futuristic 3D building projection for your campus. Building the foundational POI grid first.
           </p>
@@ -127,7 +127,7 @@ export default function NavigationPage() {
       {/* Filters Section */}
       <div className="space-y-6">
         <div className="flex items-center gap-4 overflow-x-auto pb-4 scrollbar-hide">
-          <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-surface-2 border border-white/5 text-muted-foreground mr-2 shrink-0">
+          <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-surface-2 border border-black/5 dark:border-white/5 text-muted-foreground mr-2 shrink-0">
             <Filter className="w-4 h-4" />
             <span className="text-xs font-bold uppercase tracking-wider">Categories</span>
           </div>
@@ -142,7 +142,7 @@ export default function NavigationPage() {
                   "flex items-center gap-2 px-5 py-2.5 rounded-2xl transition-all whitespace-nowrap shrink-0 border text-sm font-bold",
                   isActive 
                     ? "bg-primary text-background border-primary glow-olive-sm scale-105" 
-                    : "glass border-white/5 text-muted-foreground hover:border-white/20 hover:text-white"
+                    : "glass border-black/5 dark:border-white/5 text-muted-foreground hover:border-black/20 dark:border-white/20 hover:text-foreground"
                 )}
               >
                 <Icon className="w-4 h-4" />
@@ -153,7 +153,7 @@ export default function NavigationPage() {
         </div>
 
         <div className="flex items-center gap-2 overflow-x-auto pb-4 scrollbar-hide">
-           <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-surface-2 border border-white/5 text-muted-foreground mr-2 shrink-0">
+           <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-surface-2 border border-black/5 dark:border-white/5 text-muted-foreground mr-2 shrink-0">
             <Layers className="w-4 h-4" />
             <span className="text-xs font-bold uppercase tracking-wider">Floors</span>
           </div>
@@ -165,7 +165,7 @@ export default function NavigationPage() {
                 "px-6 py-2 rounded-xl transition-all text-sm font-bold border shrink-0",
                 activeFloor === floor
                   ? "bg-white text-black border-white"
-                  : "glass border-white/5 text-muted-foreground hover:border-white/10"
+                  : "glass border-black/5 dark:border-white/5 text-muted-foreground hover:border-black/10 dark:border-white/10"
               )}
             >
               {floor === 'All' ? 'All Floors' : `${floor} Floor`}
@@ -186,15 +186,15 @@ export default function NavigationPage() {
               exit={{ opacity: 0, scale: 0.9 }}
               transition={{ duration: 0.2, delay: idx * 0.03 }}
             >
-              <Card className="glass h-full group hover:bg-white/[0.03] transition-colors border-white/5 overflow-hidden">
+              <Card className="glass h-full group hover:bg-white/[0.03] transition-colors border-black/5 dark:border-white/5 overflow-hidden">
                 <CardContent className="p-6 relative">
                   {/* Decorative Floor Badge */}
                   <div className="absolute top-4 right-4 flex flex-col items-end gap-2">
-                    <div className="px-3 py-1 rounded-lg bg-surface-3 border border-white/10 text-[10px] font-black uppercase text-primary tracking-tighter">
+                    <div className="px-3 py-1 rounded-lg bg-surface-3 border border-black/10 dark:border-white/10 text-[10px] font-black uppercase text-primary tracking-tighter">
                       {poi.floor} Floor
                     </div>
                     {poi.side !== 'N/A' && (
-                      <div className="px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-[9px] font-bold uppercase text-muted-foreground">
+                      <div className="px-2 py-0.5 rounded-md bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-[9px] font-bold uppercase text-muted-foreground">
                         {poi.side}
                       </div>
                     )}
@@ -205,7 +205,7 @@ export default function NavigationPage() {
                       <MapPin className="w-5 h-5 transition-transform group-hover:scale-110" />
                     </div>
                     <div className="flex-1 min-w-0 pr-16">
-                      <h3 className="text-lg font-black text-white group-hover:text-primary transition-colors truncate">
+                      <h3 className="text-lg font-black text-foreground group-hover:text-primary transition-colors truncate">
                         {poi.name}
                       </h3>
                       <div className="flex items-center gap-2 mt-1">
@@ -218,7 +218,7 @@ export default function NavigationPage() {
                   </div>
 
                   <div className="mt-6 flex flex-col gap-3">
-                    <div className="flex items-start gap-3 p-3 rounded-xl bg-black/20 border border-white/5">
+                    <div className="flex items-start gap-3 p-3 rounded-xl bg-black/20 border border-black/5 dark:border-white/5">
                       <Info className="w-4 h-4 text-primary shrink-0 mt-0.5" />
                       <p className="text-sm text-muted-foreground leading-snug">
                         {poi.description}
@@ -254,10 +254,10 @@ export default function NavigationPage() {
           animate={{ opacity: 1 }}
           className="py-20 text-center space-y-4"
         >
-          <div className="w-20 h-20 rounded-full bg-surface-2 flex items-center justify-center mx-auto border border-white/5">
+          <div className="w-20 h-20 rounded-full bg-surface-2 flex items-center justify-center mx-auto border border-black/5 dark:border-white/5">
             <Search className="w-10 h-10 text-muted-foreground/20" />
           </div>
-          <h3 className="text-xl font-bold text-white">No locations found</h3>
+          <h3 className="text-xl font-bold text-foreground">No locations found</h3>
           <p className="text-muted-foreground">Try adjusting your filters or search keywords.</p>
           <button 
             onClick={() => { setSearchQuery(''); setActiveCategory('All'); setActiveFloor('All'); }}

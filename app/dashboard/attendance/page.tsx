@@ -135,7 +135,7 @@ export default function AttendancePage() {
            <button 
              onClick={() => syncAll()} 
              disabled={isSyncing}
-             className="w-10 h-10 rounded-xl glass border-white/5 flex items-center justify-center hover:border-primary/30 transition-all group"
+             className="w-10 h-10 rounded-xl glass border-black/5 dark:border-white/5 flex items-center justify-center hover:border-primary/30 transition-all group"
            >
              <RefreshCw className={`w-4 h-4 text-primary ${isSyncing ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`} />
            </button>
@@ -164,9 +164,9 @@ export default function AttendancePage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: idx * 0.05 }}
                 >
-                  <Card className="overflow-hidden border-white/5 glass shadow-sm hover:shadow-md transition-shadow">
-                    <CardHeader className="pb-3 border-b border-white/5">
-                      <CardTitle className="text-lg font-black text-white">{subject.name}</CardTitle>
+                  <Card className="overflow-hidden border-black/5 dark:border-white/5 glass shadow-sm hover:shadow-md transition-shadow">
+                    <CardHeader className="pb-3 border-b border-black/5 dark:border-white/5">
+                      <CardTitle className="text-lg font-black text-foreground">{subject.name}</CardTitle>
                     </CardHeader>
                     <CardContent className="pt-6">
                       <AttendanceRing 

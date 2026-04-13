@@ -19,6 +19,34 @@ import {
 } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
 
+const Switch = ({ checked, onChange }: { checked: boolean, onChange: () => void }) => (
+  <button 
+    onClick={onChange}
+    className={`w-10 h-6 flex items-center rounded-full px-1 transition-colors ${checked ? 'bg-primary' : 'bg-black/20 dark:bg-white/20'}`}
+  >
+    <motion.div 
+      layout
+      className="w-4 h-4 bg-white rounded-full shadow-md"
+      animate={{ x: checked ? 16 : 0 }}
+      transition={{ type: "spring", stiffness: 500, damping: 30 }}
+    />
+  </button>
+)
+
+const ThemeToggle = ({ theme, active, onClick, icon: Icon }: { theme: string, active: boolean, onClick: () => void, icon: any }) => (
+  <button 
+    onClick={onClick}
+    className={`flex-1 flex flex-col items-center gap-2 p-4 rounded-xl border transition-all ${
+      active 
+        ? 'glass-strong border-primary/50 text-foreground shadow-lg shadow-primary/20 bg-primary/5' 
+        : 'glass border-black/5 dark:border-white/5 text-muted-foreground hover:bg-black/5 dark:hover:bg-white/5 hover:text-foreground'
+    }`}
+  >
+    <Icon className={`w-6 h-6 ${active ? 'text-primary' : ''}`} />
+    <span className="text-xs font-bold">{theme}</span>
+  </button>
+)
+
 export default function SettingsPage() {
   const user = useAuthStore((state: any) => state.user)
   const clearUser = useAuthStore((state: any) => state.clearUser)
@@ -48,6 +76,16 @@ export default function SettingsPage() {
     }
   }
 
+  const [toggles, setToggles] = useState({
+    push: true,
+    email: false,
+    aiStrict: false,
+    autoSync: true
+  })
+  
+  const [activeTab, setActiveTab] = useState('General')
+  const [activeTheme, setActiveTheme] = useState('System')
+
   interface Item {
     label: string;
     value: string;
@@ -73,17 +111,31 @@ export default function SettingsPage() {
       title: 'App Preferences',
       icon: Shield,
       items: [
-        { label: 'Notifications', value: 'Enabled', type: 'toggle' },
-        { label: 'Smart Dashboard', value: 'Active', status: 'Optimal' },
-        { label: 'Portal Sync', value: 'Auto-Refresh', status: 'Enabled' },
+        { label: 'Portal Auto-Sync', value: 'autoSync', type: 'toggle' },
+        { label: 'Data Refresh Rate', value: 'Every 5 mins', status: 'Optimal' },
+        { label: 'Strict Elite Persona (AI)', value: 'aiStrict', type: 'toggle' },
+      ]
+    },
+    {
+      id: 'notifications',
+      title: 'Notifications',
+      icon: Bell,
+      items: [
+        { label: 'Push Notifications', value: 'push', type: 'toggle' },
+        { label: 'Email Alerts (Daily)', value: 'email', type: 'toggle' },
       ]
     }
   ]
+  
+  const handleToggle = (key: keyof typeof toggles) => {
+    setToggles(prev => ({ ...prev, [key]: !prev[key] }))
+    toast.success(`${key} preference updated`)
+  }
 
   return (
     <div className="max-w-4xl mx-auto p-4 md:p-8 space-y-8 pb-20">
       <header>
-        <h1 className="text-4xl font-black text-white tracking-tighter">Settings</h1>
+        <h1 className="text-4xl font-black text-foreground tracking-tighter">Settings</h1>
         <p className="text-muted-foreground mt-2 font-medium">Manage your Elite account and app preferences.</p>
       </header>
 
@@ -93,7 +145,7 @@ export default function SettingsPage() {
             {['General', 'Security', 'Data', 'Notifications'].map((t, i) => (
                 <button 
                    key={t}
-                   className={`w-full text-left p-3 rounded-xl text-sm font-bold flex items-center justify-between transition-all ${i === 0 ? 'bg-primary text-background' : 'text-muted-foreground hover:bg-white/5'}`}
+                   className={`w-full text-left p-3 rounded-xl text-sm font-bold flex items-center justify-between transition-all ${i === 0 ? 'bg-primary text-background' : 'text-muted-foreground hover:bg-black/5 dark:bg-white/5'}`}
                 >
                     {t}
                     {i === 0 && <ChevronRight className="w-4 h-4" />}
@@ -104,8 +156,8 @@ export default function SettingsPage() {
         {/* Main Content Area */}
         <div className="md:col-span-2 space-y-8">
             {sections.map((section, idx) => (
-                <Card key={section.id} className="glass-panel border-white/5 overflow-hidden animate-in fade-in slide-in-from-bottom-4" style={{ animationDelay: `${idx * 0.1}s` }}>
-                    <CardHeader className="border-b border-white/5 bg-white/2 pb-4">
+                <Card key={section.id} className="glass-panel border-black/5 dark:border-white/5 overflow-hidden animate-in fade-in slide-in-from-bottom-4" style={{ animationDelay: `${idx * 0.1}s` }}>
+                    <CardHeader className="border-b border-black/5 dark:border-white/5 bg-black/[0.02] dark:bg-white/2 pb-4">
                         <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
                                 <section.icon className="w-5 h-5 text-primary" />
@@ -115,18 +167,40 @@ export default function SettingsPage() {
                     </CardHeader>
                     <CardContent className="p-0">
                         {section.items.map((item, i) => (
-                            <div key={item.label} className={`p-5 flex items-center justify-between border-b border-white/5 hover:bg-white/2 transition-colors ${i === section.items.length - 1 ? 'border-none' : ''}`}>
+                            <div key={item.label} className={`p-5 flex items-center justify-between border-b border-black/5 dark:border-white/5 hover:bg-black/[0.02] dark:bg-white/2 transition-colors ${i === section.items.length - 1 ? 'border-none' : ''}`}>
                                 <span className="text-sm font-bold text-muted-foreground">{item.label}</span>
-                                {item.isBadge ? (
+                                {item.type === 'toggle' ? (
+                                    <Switch 
+                                      checked={toggles[item.value as keyof typeof toggles]} 
+                                      onChange={() => handleToggle(item.value as keyof typeof toggles)} 
+                                    />
+                                ) : item.isBadge ? (
                                     <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 uppercase text-[10px] tracking-widest">{item.value}</Badge>
                                 ) : (
-                                    <span className="text-sm font-black text-white">{item.value}</span>
+                                    <span className="text-sm font-black text-foreground">{item.value}</span>
                                 )}
                             </div>
                         ))}
                     </CardContent>
                 </Card>
             ))}
+
+            {/* THEME SELECTOR */}
+            <Card className="glass-panel border-black/5 dark:border-white/5 overflow-hidden animate-in fade-in slide-in-from-bottom-4" style={{ animationDelay: `0.3s` }}>
+                <CardHeader className="border-b border-black/5 dark:border-white/5 bg-black/[0.02] dark:bg-white/2 pb-4">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                            <Sun className="w-5 h-5 text-primary" />
+                        </div>
+                        <CardTitle className="text-xl font-black">Appearance</CardTitle>
+                    </div>
+                </CardHeader>
+                <CardContent className="p-5 flex gap-4">
+                    <ThemeToggle theme="Light" icon={Sun} active={activeTheme === 'Light'} onClick={() => { setActiveTheme('Light'); document.documentElement.classList.remove('dark') }} />
+                    <ThemeToggle theme="Dark" icon={Moon} active={activeTheme === 'Dark'} onClick={() => { setActiveTheme('Dark'); document.documentElement.classList.add('dark') }} />
+                    <ThemeToggle theme="System" icon={Shield} active={activeTheme === 'System'} onClick={() => setActiveTheme('System')} />
+                </CardContent>
+            </Card>
 
             {/* DANGER ZONE */}
             <Card className="border-destructive/20 bg-destructive/5 overflow-hidden">
@@ -136,7 +210,7 @@ export default function SettingsPage() {
                             <ShieldAlert className="w-5 h-5 text-destructive" />
                         </div>
                         <div>
-                            <CardTitle className="text-xl font-black text-white">Danger Zone</CardTitle>
+                            <CardTitle className="text-xl font-black text-foreground">Danger Zone</CardTitle>
                             <CardDescription className="text-destructive font-bold text-xs uppercase tracking-tight">Irreversible actions</CardDescription>
                         </div>
                     </div>
@@ -154,7 +228,7 @@ export default function SettingsPage() {
                         </DialogTrigger>
                         <DialogContent className="glass-panel border-destructive/30 bg-background/95">
                             <DialogHeader>
-                                <DialogTitle className="text-2xl font-black text-white flex items-center gap-2">
+                                <DialogTitle className="text-2xl font-black text-foreground flex items-center gap-2">
                                     <AlertTriangle className="text-destructive w-6 h-6" /> Permanent Deletion
                                 </DialogTitle>
                                 <DialogDescription className="text-muted-foreground mt-4 leading-relaxed">
@@ -169,7 +243,7 @@ export default function SettingsPage() {
                                     value={deleteConfirm}
                                     onChange={(e) => setDeleteConfirm(e.target.value)}
                                     placeholder="DELETE"
-                                    className="w-full bg-white/5 border border-destructive/20 rounded-xl px-4 py-3 font-black tracking-widest text-destructive outline-none focus:border-destructive/50 transition-all text-center"
+                                    className="w-full bg-black/5 dark:bg-white/5 border border-destructive/20 rounded-xl px-4 py-3 font-black tracking-widest text-destructive outline-none focus:border-destructive/50 transition-all text-center"
                                 />
                             </div>
                             <DialogFooter className="gap-3">

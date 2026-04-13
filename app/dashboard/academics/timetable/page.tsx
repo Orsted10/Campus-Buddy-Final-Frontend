@@ -109,7 +109,7 @@ export default function TimetablePage() {
             <button 
               onClick={fetchTimetable}
               disabled={loading}
-              className="glass p-3 rounded-2xl border-white/5 hover:border-primary/30 text-muted-foreground hover:text-primary transition-all disabled:opacity-50"
+              className="glass p-3 rounded-2xl border-black/5 dark:border-white/5 hover:border-primary/30 text-muted-foreground hover:text-primary transition-all disabled:opacity-50"
             >
               <RefreshCw className={cn("w-5 h-5", loading && "animate-spin")} />
             </button>
@@ -130,7 +130,7 @@ export default function TimetablePage() {
                 "relative group flex flex-col items-center justify-center min-w-[100px] py-4 rounded-[2rem] transition-all border shrink-0",
                 isActive 
                   ? "bg-primary text-background border-primary glow-olive-sm scale-110 z-10" 
-                  : "glass border-white/5 text-muted-foreground hover:border-white/10 hover:text-white"
+                  : "glass border-black/5 dark:border-white/5 text-muted-foreground hover:border-black/10 dark:border-white/10 hover:text-foreground"
               )}
             >
               {isToday && !isActive && (
@@ -150,14 +150,14 @@ export default function TimetablePage() {
         {loading ? (
           <div className="grid gap-4">
             {[1, 2, 3].map(i => (
-              <div key={i} className="h-32 glass rounded-[2rem] animate-pulse border-white/5" />
+              <div key={i} className="h-32 glass rounded-[2rem] animate-pulse border-black/5 dark:border-white/5" />
             ))}
           </div>
         ) : error ? (
           <Card className="glass border-destructive/20 bg-destructive/5 rounded-[2rem]">
             <CardContent className="p-12 text-center space-y-4">
               <AlertCircle className="w-12 h-12 text-destructive mx-auto" />
-              <h3 className="text-xl font-bold text-white">Something went wrong</h3>
+              <h3 className="text-xl font-bold text-foreground">Something went wrong</h3>
               <p className="text-muted-foreground max-w-sm mx-auto">{error}</p>
               <button 
                 onClick={() => window.location.href = '/dashboard/academics'}
@@ -168,10 +168,10 @@ export default function TimetablePage() {
             </CardContent>
           </Card>
         ) : daySchedule.length === 0 ? (
-          <div className="py-20 text-center space-y-4 glass rounded-[2.5rem] border-white/5">
+          <div className="py-20 text-center space-y-4 glass rounded-[2.5rem] border-black/5 dark:border-white/5">
              <BookOpen className="w-16 h-16 text-muted-foreground/20 mx-auto" />
              <div>
-                <h3 className="text-xl font-bold text-white">No classes on {selectedDay}</h3>
+                <h3 className="text-xl font-bold text-foreground">No classes on {selectedDay}</h3>
                 <p className="text-muted-foreground text-sm">Either it's a holiday or your data needs a sync.</p>
              </div>
           </div>
@@ -185,12 +185,12 @@ export default function TimetablePage() {
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: idx * 0.05 }}
                 >
-                  <Card className="glass group hover:bg-white/[0.03] transition-all border-white/5 overflow-hidden">
+                  <Card className="glass group hover:bg-white/[0.03] transition-all border-black/5 dark:border-white/5 overflow-hidden">
                     <CardContent className="p-6 md:p-8 flex items-center gap-6">
                       {/* Time Block */}
-                      <div className="flex flex-col items-center justify-center min-w-[100px] border-r border-white/5 pr-6">
+                      <div className="flex flex-col items-center justify-center min-w-[100px] border-r border-black/5 dark:border-white/5 pr-6">
                         <span className="text-[10px] font-black uppercase text-primary tracking-widest mb-1">Time Slot</span>
-                        <span className="text-sm font-black text-white tabular-nums text-center leading-tight">
+                        <span className="text-sm font-black text-foreground tabular-nums text-center leading-tight">
                            {slot.time.replace(/\s+/g, '\n')}
                         </span>
                       </div>
@@ -199,7 +199,7 @@ export default function TimetablePage() {
                       <div className="flex-1 space-y-4">
                         <div className="flex items-start justify-between gap-4">
                            <div>
-                              <h3 className="text-lg font-black text-white group-hover:text-primary transition-colors leading-tight">
+                              <h3 className="text-lg font-black text-foreground group-hover:text-primary transition-colors leading-tight">
                                 {slot.subject}
                               </h3>
                               <div className="flex flex-wrap gap-4 mt-2">
@@ -216,9 +216,9 @@ export default function TimetablePage() {
                            
                            <motion.button 
                              whileHover={{ scale: 1.1 }}
-                             className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity border border-white/10"
+                             className="w-10 h-10 rounded-xl bg-black/5 dark:bg-white/5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity border border-black/10 dark:border-white/10"
                            >
-                             <ChevronRight className="w-4 h-4 text-white" />
+                             <ChevronRight className="w-4 h-4 text-foreground" />
                            </motion.button>
                         </div>
                       </div>

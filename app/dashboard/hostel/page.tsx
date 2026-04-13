@@ -46,7 +46,7 @@ export default function HostelPage() {
           
           return (
             <Link key={index} href={feature.href} className={!isAvailable ? 'pointer-events-none' : ''}>
-              <Card className={`hover:shadow-lg transition-all cursor-pointer h-full ${!isAvailable ? 'opacity-60' : 'hover:border-primary/50 border-white/5'}`}>
+              <Card className={`hover:shadow-lg transition-all cursor-pointer h-full ${!isAvailable ? 'opacity-60' : 'hover:border-primary/50 border-black/5 dark:border-white/5'}`}>
                 <CardHeader>
                   <Icon className={`w-10 h-10 mb-2 ${isAvailable ? 'text-primary' : 'text-muted-foreground'}`} />
                   <CardTitle>{feature.title}</CardTitle>

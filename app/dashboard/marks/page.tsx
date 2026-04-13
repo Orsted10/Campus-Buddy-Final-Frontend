@@ -34,13 +34,13 @@ export default async function MarksPage() {
       {/* Background ambient glow */}
       <div className="absolute top-0 right-10 w-64 h-64 bg-primary/20 rounded-full blur-[100px] -z-10" />
       
-      <div className="flex items-center gap-4 mb-10 border-b border-white/5 pb-8">
+      <div className="flex items-center gap-4 mb-10 border-b border-black/5 dark:border-white/5 pb-8">
         <div className="p-4 glass-panel rounded-2xl relative group">
           <div className="absolute inset-0 bg-primary/20 rounded-2xl blur-xl group-hover:bg-primary/30 transition-all" />
           <Award className="w-8 h-8 text-primary relative z-10" />
         </div>
         <div className="flex flex-col">
-          <h1 className="text-3xl md:text-4xl font-black tracking-tight text-white">Grades & Marks</h1>
+          <h1 className="text-3xl md:text-4xl font-black tracking-tight text-foreground">Grades & Marks</h1>
           <div className="flex items-center gap-2 mt-2">
             <p className="text-muted-foreground font-medium">Detailed evaluation breakdowns grouped by subject</p>
             <span className="text-muted-foreground mx-1">•</span>
@@ -60,9 +60,9 @@ export default async function MarksPage() {
       </div>
 
       {subjects.length === 0 ? (
-        <Card className="glass-panel border-dashed border-white/10">
+        <Card className="glass-panel border-dashed border-black/10 dark:border-white/10">
           <CardContent className="py-16 text-center">
-            <h3 className="text-xl font-bold text-white mb-2">No Data Available</h3>
+            <h3 className="text-xl font-bold text-foreground mb-2">No Data Available</h3>
             <p className="text-muted-foreground">No marks data found. Your results may not be published yet.</p>
           </CardContent>
         </Card>
@@ -92,9 +92,9 @@ export default async function MarksPage() {
               >
                 <AccordionTrigger className="hover:no-underline py-5 text-left group">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between w-full pr-4 gap-4">
-                    <span className="font-bold text-xl text-white group-hover:text-primary transition-colors">{subject.subject}</span>
+                    <span className="font-bold text-xl text-foreground group-hover:text-primary transition-colors">{subject.subject}</span>
                     {total > 0 && (
-                      <span className="text-sm font-bold bg-background/50 border border-white/10 text-white px-4 py-1.5 rounded-full backdrop-blur-md">
+                      <span className="text-sm font-bold bg-primary/5 dark:bg-background/50 border border-black/10 dark:border-white/10 text-foreground px-4 py-1.5 rounded-full backdrop-blur-md">
                         <span className={percentage >= 80 ? 'text-emerald-400' : percentage >= 50 ? 'text-primary' : 'text-red-400'}>
                           {obtained.toFixed(1)}
                         </span> 
@@ -104,7 +104,7 @@ export default async function MarksPage() {
                     )}
                   </div>
                 </AccordionTrigger>
-                <AccordionContent className="pb-6 pt-4 border-t border-white/5">
+                <AccordionContent className="pb-6 pt-4 border-t border-black/5 dark:border-white/5">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {evals.map((evaluation: any, eIdx: number) => {
                       const isNumber = !isNaN(parseFloat(evaluation.marks))
@@ -114,11 +114,11 @@ export default async function MarksPage() {
                         ? (marksVal / maxVal >= 0.8 ? 'text-emerald-400 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]' 
                           : (marksVal / maxVal >= 0.4 ? 'text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]' 
                           : 'text-red-400 drop-shadow-[0_0_8px_rgba(239,68,68,0.5)]'))
-                        : 'text-white'
+                        : 'text-foreground'
 
                       return (
-                        <div key={eIdx} className="bg-background/40 border border-white/5 rounded-xl p-4 flex justify-between items-center transition-all hover:bg-background/60 hover:-translate-y-1 hover:shadow-lg group">
-                          <span className="text-sm font-semibold text-muted-foreground group-hover:text-white transition-colors truncate mr-3" title={evaluation.type}>
+                        <div key={eIdx} className="bg-background/40 border border-black/5 dark:border-white/5 rounded-xl p-4 flex justify-between items-center transition-all hover:bg-background/60 hover:-translate-y-1 hover:shadow-lg group">
+                          <span className="text-sm font-semibold text-muted-foreground group-hover:text-foreground transition-colors truncate mr-3" title={evaluation.type}>
                             {evaluation.type}
                           </span>
                           <div className="flex flex-col items-end shrink-0">

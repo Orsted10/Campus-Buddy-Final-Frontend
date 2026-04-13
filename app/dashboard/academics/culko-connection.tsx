@@ -109,7 +109,7 @@ export default function CULKOConnectionManager() {
     setSessionId(null)
   }
 
-  const inputClass = "w-full border border-white/8 text-white placeholder:text-muted-foreground/50 rounded-xl px-4 py-3 text-sm font-medium outline-none focus:border-primary focus:ring-1 focus:ring-primary/40 transition-all"
+  const inputClass = "w-full border border-white/8 text-foreground placeholder:text-muted-foreground/50 rounded-xl px-4 py-3 text-sm font-medium outline-none focus:border-primary focus:ring-1 focus:ring-primary/40 transition-all"
   const inputStyle = { backgroundColor: 'oklch(0.14 0.018 120)' }
 
   if (isConnected) {
@@ -123,7 +123,7 @@ export default function CULKOConnectionManager() {
           <CheckCircle2 className="w-8 h-8 text-primary" />
         </div>
         <div>
-          <h3 className="text-xl font-black text-white">Portal Synced!</h3>
+          <h3 className="text-xl font-black text-foreground">Portal Synced!</h3>
           <p className="text-muted-foreground mt-2 text-sm">
             Your session is active. Attendance, marks, and timetable are live.
           </p>
@@ -131,13 +131,13 @@ export default function CULKOConnectionManager() {
         <div className="flex justify-center gap-3 flex-wrap">
           <button
             onClick={() => window.location.href = '/dashboard/attendance'}
-            className="glass border border-white/10 text-white font-semibold px-5 py-2.5 rounded-xl text-sm flex items-center gap-2 hover:border-primary/30 transition-all"
+            className="glass border border-black/10 dark:border-white/10 text-foreground font-semibold px-5 py-2.5 rounded-xl text-sm flex items-center gap-2 hover:border-primary/30 transition-all"
           >
             <GraduationCap className="w-4 h-4 text-primary" /> Attendance
           </button>
           <button
             onClick={() => window.location.href = '/dashboard/marks'}
-            className="glass border border-white/10 text-white font-semibold px-5 py-2.5 rounded-xl text-sm flex items-center gap-2 hover:border-primary/30 transition-all"
+            className="glass border border-black/10 dark:border-white/10 text-foreground font-semibold px-5 py-2.5 rounded-xl text-sm flex items-center gap-2 hover:border-primary/30 transition-all"
           >
             <Calendar className="w-4 h-4 text-primary" /> Marks
           </button>
@@ -160,7 +160,7 @@ export default function CULKOConnectionManager() {
           <Link2 className="w-5 h-5 text-primary" />
         </div>
         <div>
-          <h3 className="font-black text-white">CULKO Portal Sync</h3>
+          <h3 className="font-black text-foreground">CULKO Portal Sync</h3>
           <p className="text-xs text-muted-foreground">Automated login — just solve the CAPTCHA</p>
         </div>
       </div>
@@ -189,7 +189,7 @@ export default function CULKOConnectionManager() {
                 <input type={showPwd ? 'text' : 'password'} placeholder="Your portal password" value={password} onChange={e => setPassword(e.target.value)} className={`${inputClass} pr-12`} style={inputStyle}
                   onKeyDown={e => { if (e.key === 'Enter') handleInit() }}
                 />
-                <button type="button" onClick={() => setShowPwd(!showPwd)} className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white transition-colors">
+                <button type="button" onClick={() => setShowPwd(!showPwd)} className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
                   {showPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
@@ -214,7 +214,7 @@ export default function CULKOConnectionManager() {
               <div className="absolute inset-0 rounded-full border-2 border-primary border-t-transparent animate-spin" />
             </div>
             <div>
-              <p className="font-bold text-white">{statusMsg}</p>
+              <p className="font-bold text-foreground">{statusMsg}</p>
               <p className="text-xs text-muted-foreground mt-1">This takes 15–30 seconds. Portal is loading...</p>
             </div>
             <button onClick={handleReset} className="text-xs text-muted-foreground hover:text-destructive transition-colors mt-4">Cancel</button>
@@ -224,11 +224,11 @@ export default function CULKOConnectionManager() {
         {/* ── CAPTCHA STEP ── */}
         {step === 'captcha' && (
           <motion.div key="captcha" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-4">
-            <div className="rounded-xl overflow-hidden border border-white/10 bg-white p-3 flex items-center justify-center">
+            <div className="rounded-xl overflow-hidden border border-black/10 dark:border-white/10 bg-white p-3 flex items-center justify-center">
               {captchaImage ? (
                 <img src={captchaImage} alt="CAPTCHA" className="max-h-20 object-contain" />
               ) : (
-                <div className="w-48 h-16 bg-white/10 animate-pulse rounded" />
+                <div className="w-48 h-16 bg-black/10 dark:bg-white/10 animate-pulse rounded" />
               )}
             </div>
             <div className="space-y-1.5">
@@ -245,7 +245,7 @@ export default function CULKOConnectionManager() {
               />
             </div>
             <div className="flex gap-3">
-              <button onClick={handleReset} className="flex-1 glass border border-white/10 text-white font-semibold py-3 rounded-xl text-sm hover:border-white/20 transition-all">Cancel</button>
+              <button onClick={handleReset} className="flex-1 glass border border-black/10 dark:border-white/10 text-foreground font-semibold py-3 rounded-xl text-sm hover:border-black/20 dark:border-white/20 transition-all">Cancel</button>
               <motion.button
                 onClick={handleSubmitCaptcha}
                 disabled={!captchaText.trim()}
@@ -267,7 +267,7 @@ export default function CULKOConnectionManager() {
               <div className="absolute inset-0 rounded-full border-2 border-primary border-t-transparent animate-spin" />
             </div>
             <div>
-              <p className="font-bold text-white">{statusMsg}</p>
+              <p className="font-bold text-foreground">{statusMsg}</p>
               <p className="text-xs text-muted-foreground mt-1">Almost done, logging you in...</p>
             </div>
           </motion.div>

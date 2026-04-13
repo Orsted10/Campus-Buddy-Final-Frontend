@@ -134,7 +134,7 @@ export default function AcademicCalendarPage() {
         </div>
 
         {/* Legend */}
-        <div className="flex items-center gap-4 glass px-6 py-3 rounded-2xl border-white/5 text-[10px] font-black uppercase tracking-widest">
+        <div className="flex items-center gap-4 glass px-6 py-3 rounded-2xl border-black/5 dark:border-white/5 text-[10px] font-black uppercase tracking-widest">
            <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" /> Teaching</div>
            <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" /> Holiday</div>
            <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]" /> Exam</div>
@@ -143,14 +143,14 @@ export default function AcademicCalendarPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Calendar Grid */}
-        <Card className="lg:col-span-7 glass border-white/5 rounded-[2.5rem] overflow-hidden shadow-2xl">
+        <Card className="lg:col-span-7 glass border-black/5 dark:border-white/5 rounded-[2.5rem] overflow-hidden shadow-2xl">
           <CardContent className="p-0">
              {/* Calendar Header */}
-             <div className="p-8 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
-                <h2 className="text-2xl font-black text-white">{months[currentMonth]} {currentYear}</h2>
+             <div className="p-8 border-b border-black/5 dark:border-white/5 flex items-center justify-between bg-white/[0.02]">
+                <h2 className="text-2xl font-black text-foreground">{months[currentMonth]} {currentYear}</h2>
                 <div className="flex items-center gap-2">
-                   <button onClick={prevMonth} className="p-2 hover:bg-white/5 rounded-xl transition-colors"><ChevronLeft className="w-6 h-6" /></button>
-                   <button onClick={nextMonth} className="p-2 hover:bg-white/5 rounded-xl transition-colors"><ChevronRight className="w-6 h-6" /></button>
+                   <button onClick={prevMonth} className="p-2 hover:bg-black/5 dark:bg-white/5 rounded-xl transition-colors"><ChevronLeft className="w-6 h-6" /></button>
+                   <button onClick={nextMonth} className="p-2 hover:bg-black/5 dark:bg-white/5 rounded-xl transition-colors"><ChevronRight className="w-6 h-6" /></button>
                 </div>
              </div>
 
@@ -186,7 +186,7 @@ export default function AcademicCalendarPage() {
                               ? "bg-primary text-background border-primary glow-olive-sm z-10 scale-105" 
                               : isToday 
                                 ? "bg-primary/10 border-primary/30 text-primary" 
-                                : "hover:bg-white/5 border-transparent hover:border-white/10 text-white/70 hover:text-white"
+                                : "hover:bg-black/5 dark:bg-white/5 border-transparent hover:border-black/10 dark:border-white/10 text-foreground/70 hover:text-foreground"
                           )}
                         >
                           <span className="text-base md:text-xl font-black tabular-nums">{day}</span>
@@ -221,29 +221,29 @@ export default function AcademicCalendarPage() {
                animate={{ opacity: 1, x: 0 }}
                exit={{ opacity: 0, x: -20 }}
              >
-                <Card className="glass border-white/5 rounded-[2.5rem] overflow-hidden">
+                <Card className="glass border-black/5 dark:border-white/5 rounded-[2.5rem] overflow-hidden">
                    <CardContent className="p-8 space-y-6">
                       <div className="flex items-center justify-between">
                         <div className="space-y-1">
                            <h3 className="text-sm font-black text-primary uppercase tracking-[0.2em]">Selected Date</h3>
-                           <p className="text-3xl font-black text-white">
+                           <p className="text-3xl font-black text-foreground">
                              {selectedDate ? new Date(selectedDate).toLocaleDateString('en-US', { day: 'numeric', month: 'long' }) : 'Select a date'}
                            </p>
                         </div>
                         {selectedEvent?.timetableOverride && (
                            <div className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
                               <p className="text-[10px] font-black uppercase text-emerald-500 tracking-widest leading-none">Override</p>
-                              <p className="text-xs font-bold text-white mt-1">{selectedEvent.timetableOverride}</p>
+                              <p className="text-xs font-bold text-foreground mt-1">{selectedEvent.timetableOverride}</p>
                            </div>
                         )}
                       </div>
 
-                      <div className="h-px bg-white/5 w-full" />
+                      <div className="h-px bg-black/5 dark:bg-white/5 w-full" />
 
                       {selectedEvent ? (
                         <div className="space-y-6">
                            {/* Status Header */}
-                           <div className="flex items-start gap-4 p-4 rounded-3xl bg-white/[0.02] border border-white/5">
+                           <div className="flex items-start gap-4 p-4 rounded-3xl bg-white/[0.02] border border-black/5 dark:border-white/5">
                               <div className={cn(
                                 "w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border",
                                 selectedEvent.type === 'teaching' && "bg-emerald-500/10 border-emerald-500/20 text-emerald-500",
@@ -257,8 +257,8 @@ export default function AcademicCalendarPage() {
                                  {selectedEvent.type === 'special' && <GraduationCap className="w-6 h-6" />}
                               </div>
                               <div>
-                                 <h4 className="font-black text-white uppercase text-xs tracking-widest leading-none mb-1">Status</h4>
-                                 <p className="text-lg font-bold text-white/90">
+                                 <h4 className="font-black text-foreground uppercase text-xs tracking-widest leading-none mb-1">Status</h4>
+                                 <p className="text-lg font-bold text-foreground/90">
                                    {selectedEvent.type === 'teaching' && 'Normal Teaching Day'}
                                    {selectedEvent.type === 'holiday' && 'Public Holiday'}
                                    {selectedEvent.type === 'exam' && 'Examination Period'}
@@ -280,9 +280,9 @@ export default function AcademicCalendarPage() {
                                  <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 scrollbar-hide">
                                     {daySchedule.length > 0 ? (
                                        daySchedule.map((slot: any, idx: number) => (
-                                          <div key={idx} className="glass p-4 rounded-2xl border-white/5 space-y-2 group hover:border-primary/30 transition-all">
+                                          <div key={idx} className="glass p-4 rounded-2xl border-black/5 dark:border-white/5 space-y-2 group hover:border-primary/30 transition-all">
                                              <div className="flex items-center justify-between">
-                                                <p className="text-sm font-black text-white group-hover:text-primary transition-colors">{slot.subject}</p>
+                                                <p className="text-sm font-black text-foreground group-hover:text-primary transition-colors">{slot.subject}</p>
                                                 <p className="text-[10px] font-bold text-muted-foreground tabular-nums">{slot.time}</p>
                                              </div>
                                              <div className="flex items-center gap-4">
@@ -296,7 +296,7 @@ export default function AcademicCalendarPage() {
                                           </div>
                                        ))
                                     ) : (
-                                       <div className="py-8 text-center glass rounded-2xl border-dashed border-white/10 opacity-60">
+                                       <div className="py-8 text-center glass rounded-2xl border-dashed border-black/10 dark:border-white/10 opacity-60">
                                           <p className="text-xs font-bold">No classes scheduled</p>
                                        </div>
                                     )}
@@ -308,14 +308,14 @@ export default function AcademicCalendarPage() {
                               <div className="p-6 rounded-3xl bg-blue-500/5 border border-blue-500/10 text-center space-y-3">
                                  <Palmtree className="w-10 h-10 text-blue-500 mx-auto" />
                                  <div>
-                                    <h5 className="text-white font-black">{selectedEvent.event}</h5>
+                                    <h5 className="text-foreground font-black">{selectedEvent.event}</h5>
                                     <p className="text-xs text-muted-foreground mt-1">Campus closed for academic holiday.</p>
                                  </div>
                               </div>
                            )}
 
                            <Link href="/dashboard/timetable" className="block">
-                              <button className="w-full py-4 rounded-2xl bg-white/5 border border-white/5 text-white font-black uppercase text-xs tracking-widest hover:bg-primary hover:text-background hover:border-primary transition-all flex items-center justify-center gap-2 group">
+                              <button className="w-full py-4 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 text-foreground font-black uppercase text-xs tracking-widest hover:bg-primary hover:text-background hover:border-primary transition-all flex items-center justify-center gap-2 group">
                                  Open Detailed Planner <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                               </button>
                            </Link>
@@ -338,13 +338,13 @@ export default function AcademicCalendarPage() {
              rel="noopener noreferrer"
              className="block"
            >
-              <Card className="glass border-white/5 rounded-[2rem] overflow-hidden p-6 hover:bg-white/[0.03] transition-colors cursor-pointer group">
+              <Card className="glass border-black/5 dark:border-white/5 rounded-[2rem] overflow-hidden p-6 hover:bg-white/[0.03] transition-colors cursor-pointer group">
                  <div className="flex items-center gap-4">
                     <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-background transition-all shrink-0">
                        <CalendarIcon className="w-5 h-5" />
                     </div>
                     <div className="flex-1">
-                       <h4 className="text-sm font-black text-white">Download PDF</h4>
+                       <h4 className="text-sm font-black text-foreground">Download PDF</h4>
                        <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-black">Official Schedule</p>
                     </div>
                     <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />

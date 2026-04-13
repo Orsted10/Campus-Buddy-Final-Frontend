@@ -59,7 +59,7 @@ export default function AcademicsPage() {
                 "transition-all h-full",
                 isAvailable 
                   ? "hover:shadow-lg hover:border-primary/50 cursor-pointer" 
-                  : "opacity-60 border-white/5"
+                  : "opacity-60 border-black/5 dark:border-white/5"
               )}>
                 <CardHeader>
                   <Icon className={cn("w-10 h-10 mb-2", isAvailable ? "text-primary" : "text-muted-foreground")} />

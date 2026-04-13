@@ -176,7 +176,7 @@ export default function DashboardPage() {
             </motion.h1>
             <div className="flex items-center gap-3 mt-4 text-muted-foreground font-bold text-sm">
                 <span className="flex items-center gap-1.5"><CalendarIcon className="w-4 h-4" /> {currentTime.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'UTC' })}</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-black/10 dark:bg-white/10" />
+                <span className="w-1.5 h-1.5 rounded-full bg-black/10 dark:bg-black/10 dark:bg-white/10" />
                 <span className="flex items-center gap-1.5"><Clock className="w-4 h-4" /> {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })}</span>
             </div>
           </div>
@@ -186,11 +186,11 @@ export default function DashboardPage() {
                whileHover={{ scale: 1.05 }}
                whileTap={{ scale: 0.95 }}
                onClick={() => router.push('/dashboard/settings')}
-               className="w-12 h-12 rounded-2xl glass-panel border-white/5 flex items-center justify-center text-muted-foreground hover:text-white transition-colors"
+               className="w-12 h-12 rounded-2xl glass-panel border-black/5 dark:border-white/5 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
              >
                 <SettingsIcon className="w-5 h-5" />
              </motion.button>
-             <Badge variant="outline" className={`h-12 px-6 rounded-2xl border-white/5 font-black uppercase tracking-widest flex items-center gap-2 ${todayStatus.type === 'teaching' ? 'bg-primary/5 text-primary border-primary/20' : 'bg-blue-500/5 text-blue-400 border-blue-500/20'}`}>
+             <Badge variant="outline" className={`h-12 px-6 rounded-2xl border-black/5 dark:border-white/5 font-black uppercase tracking-widest flex items-center gap-2 ${todayStatus.type === 'teaching' ? 'bg-primary/5 text-primary border-primary/20' : 'bg-blue-500/5 text-blue-400 border-blue-500/20'}`}>
                 <div className={`w-2 h-2 rounded-full animate-pulse ${todayStatus.type === 'teaching' ? 'bg-primary' : 'bg-blue-400'}`} />
                 {todayStatus.name}
              </Badge>
@@ -203,7 +203,7 @@ export default function DashboardPage() {
         <div className="lg:col-span-8 space-y-6">
           <div className="grid gap-6 md:grid-cols-2">
              {/* Next Up Class Widget */}
-             <Card className="glass-panel border-white/5 overflow-hidden group">
+             <Card className="glass-panel border-black/5 dark:border-white/5 overflow-hidden group">
                 <CardHeader className="pb-2">
                    <div className="flex justify-between items-center">
                       <CardTitle className="text-sm font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
@@ -217,10 +217,10 @@ export default function DashboardPage() {
                       <div className="relative pl-6 border-l-2 border-orange-500/30 py-1 bg-orange-500/5 rounded-r-lg">
                         <div className="absolute -left-[5px] top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-orange-500" />
                         <p className="text-[10px] font-black text-orange-500 uppercase">LUNCH BREAK</p>
-                        <h3 className="font-black text-white text-lg leading-tight">University Lunch</h3>
+                        <h3 className="font-black text-foreground text-lg leading-tight">University Lunch</h3>
                         <p className="text-xs text-muted-foreground flex items-center gap-2 mt-1">
                            <Clock className="w-3 h-3" /> 01:05 PM - 01:55 PM
-                           <span className="w-1 h-1 rounded-full bg-white/10" />
+                           <span className="w-1 h-1 rounded-full bg-black/10 dark:bg-white/10" />
                            <Utensils className="w-3 h-3" /> MESS
                         </p>
                       </div>
@@ -228,10 +228,10 @@ export default function DashboardPage() {
                      <div className="relative pl-6 border-l-2 border-primary/30 py-1">
                         <div className="absolute -left-[5px] top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-primary" />
                         <p className="text-[10px] font-black text-primary uppercase">RIGHT NOW</p>
-                        <h3 className="font-black text-white text-lg leading-tight group-hover:text-primary transition-colors line-clamp-1">{classStatus.current.subject}</h3>
+                        <h3 className="font-black text-foreground text-lg leading-tight group-hover:text-primary transition-colors line-clamp-1">{classStatus.current.subject}</h3>
                         <p className="text-xs text-muted-foreground flex items-center gap-2 mt-1">
                            <Clock className="w-3 h-3" /> {classStatus.current.time}
-                           <span className="w-1 h-1 rounded-full bg-white/10" />
+                           <span className="w-1 h-1 rounded-full bg-black/10 dark:bg-white/10" />
                            <MapPin className="w-3 h-3" /> BLOCK E
                         </p>
                      </div>
@@ -239,7 +239,7 @@ export default function DashboardPage() {
                      <div className="relative pl-6 border-l-2 border-primary/20 py-4 bg-primary/5 rounded-r-xl">
                         <div className="absolute -left-[5px] top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-primary/50 animate-pulse" />
                         <p className="text-[10px] font-black text-primary/80 uppercase">NOTHING ACTIVE • NEXT UP</p>
-                        <h3 className="font-black text-white text-xl tracking-tight leading-tight mt-1">{classStatus.next.subject}</h3>
+                        <h3 className="font-black text-foreground text-xl tracking-tight leading-tight mt-1">{classStatus.next.subject}</h3>
                         <p className="text-sm text-primary font-bold mt-1.5 flex items-center gap-2">
                            <Clock className="w-4 h-4" /> Starts at {classStatus.next.time.split(' - ')[0]}
                         </p>
@@ -251,8 +251,8 @@ export default function DashboardPage() {
                    )}
 
                    {!classStatus?.isLunchBreak && classStatus?.current && classStatus?.next && (
-                     <div className="relative pl-6 border-l-2 border-black/5 dark:border-white/5 py-1 opacity-50">
-                        <div className="absolute -left-[5px] top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-black/20 dark:bg-white/20" />
+                     <div className="relative pl-6 border-l-2 border-black/5 dark:border-black/5 dark:border-white/5 py-1 opacity-50">
+                        <div className="absolute -left-[5px] top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-black/20 dark:bg-black/20 dark:bg-white/20" />
                         <p className="text-[10px] font-black uppercase text-muted-foreground">UP NEXT</p>
                         <h3 className="font-bold text-foreground text-sm line-clamp-1">{classStatus.next.subject}</h3>
                         <p className="text-[10px] text-muted-foreground">{classStatus.next.time}</p>
@@ -262,7 +262,7 @@ export default function DashboardPage() {
              </Card>
 
              {/* Next Meal Widget */}
-             <Card className="glass-panel border-white/5 overflow-hidden bg-gradient-to-br from-primary/5 to-transparent">
+             <Card className="glass-panel border-black/5 dark:border-white/5 overflow-hidden bg-gradient-to-br from-primary/5 to-transparent">
                 <CardHeader className="pb-2">
                    <div className="flex justify-between items-center">
                       <CardTitle className="text-sm font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
@@ -277,7 +277,7 @@ export default function DashboardPage() {
                    </div>
                    <div>
                       <p className="text-[10px] font-black text-primary uppercase">{nextMeal.type} • {nextMeal.time}</p>
-                      <h3 className="font-black text-white text-base leading-tight mt-0.5">{nextMeal.menu}</h3>
+                      <h3 className="font-black text-foreground text-base leading-tight mt-0.5">{nextMeal.menu}</h3>
                    </div>
                 </CardContent>
              </Card>
@@ -307,7 +307,7 @@ export default function DashboardPage() {
                              onClick={() => router.push('/dashboard/attendance')}
                              className="px-3 py-2 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center gap-3 group transition-all hover:bg-amber-500/20"
                            >
-                              <span className="text-xs font-black text-white">{a.subject_name.split(' ')[0]}</span>
+                              <span className="text-xs font-black text-foreground">{a.subject_name.split(' ')[0]}</span>
                               <span className="text-xs font-black text-amber-500 px-1.5 py-0.5 rounded-lg bg-black/20 group-hover:bg-black/40">{a.percentage}%</span>
                            </button>
                         ))}
@@ -330,12 +330,12 @@ export default function DashboardPage() {
                   key={action.name}
                   whileHover={{ y: -4, scale: 1.02 }}
                   onClick={() => router.push(action.href)}
-                  className="glass-panel p-4 rounded-3xl border-white/5 flex flex-col items-center justify-center gap-3 transition-all hover:border-white/10 group"
+                  className="glass-panel p-4 rounded-3xl border-black/5 dark:border-white/5 flex flex-col items-center justify-center gap-3 transition-all hover:border-black/10 dark:border-white/10 group"
                 >
-                   <div className={`w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center group-hover:bg-white/10 transition-colors`}>
+                   <div className={`w-12 h-12 rounded-2xl bg-black/5 dark:bg-white/5 flex items-center justify-center group-hover:bg-black/10 dark:bg-white/10 transition-colors`}>
                       <action.icon className={`w-5 h-5 ${action.color}`} />
                    </div>
-                   <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground group-hover:text-white transition-colors">{action.name}</span>
+                   <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground group-hover:text-foreground transition-colors">{action.name}</span>
                 </motion.button>
              ))}
           </div>
@@ -343,8 +343,8 @@ export default function DashboardPage() {
 
         {/* 3. NOTIFICATIONS (RIGHT COL) */}
         <div className="lg:col-span-4 space-y-6">
-            <Card className="glass-panel h-full border-black/5 dark:border-white/5 glow-olive-sm overflow-hidden flex flex-col">
-              <CardHeader className="flex flex-row items-center justify-between pb-4 border-b border-black/5 dark:border-white/5 bg-white/2">
+            <Card className="glass-panel h-full border-black/5 dark:border-black/5 dark:border-white/5 glow-olive-sm overflow-hidden flex flex-col">
+              <CardHeader className="flex flex-row items-center justify-between pb-4 border-b border-black/5 dark:border-black/5 dark:border-white/5 bg-black/[0.02] dark:bg-white/2">
                 <div>
                   <CardTitle className="text-lg font-black text-foreground flex items-center gap-2">
                     <Bell className="w-4 h-4 text-primary" /> Notifications
@@ -365,7 +365,7 @@ export default function DashboardPage() {
                           key={notif.id}
                           initial={{ opacity: 0, scale: 0.95 }}
                           animate={{ opacity: 1, scale: 1 }}
-                          className={`p-3 rounded-2xl border border-black/5 dark:border-white/5 relative group transition-all hover:bg-black/5 dark:hover:bg-white/5 ${notif.read ? 'opacity-60' : 'bg-primary/5'}`}
+                          className={`p-3 rounded-2xl border border-black/5 dark:border-black/5 dark:border-white/5 relative group transition-all hover:bg-black/5 dark:hover:bg-black/5 dark:bg-white/5 ${notif.read ? 'opacity-60' : 'bg-primary/5'}`}
                         >
                           <div className="flex justify-between items-start gap-2">
                             <div className="space-y-1">
@@ -373,7 +373,7 @@ export default function DashboardPage() {
                               <p className="text-[11px] text-muted-foreground line-clamp-2 leading-relaxed">{notif.message}</p>
                             </div>
                           </div>
-                          <div className="mt-3 flex items-center justify-between border-t border-white/5 pt-2">
+                          <div className="mt-3 flex items-center justify-between border-t border-black/5 dark:border-white/5 pt-2">
                              <span className="text-[9px] text-muted-foreground/60 uppercase font-black tracking-tight flex items-center gap-1">
                                 <Clock className="w-2.5 h-2.5" /> {new Date(notif.created_at).toLocaleDateString()}
                              </span>
@@ -402,7 +402,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <footer className="pt-8 text-center border-t border-black/5 dark:border-white/5">
+      <footer className="pt-8 text-center border-t border-black/5 dark:border-black/5 dark:border-white/5">
          <p className="text-[10px] text-muted-foreground/50 font-black uppercase tracking-[0.5em]">
             Campus Buddy Elite Engine • AI Augmented Dashboard
          </p>
