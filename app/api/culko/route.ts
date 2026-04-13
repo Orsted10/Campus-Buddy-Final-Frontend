@@ -9,9 +9,9 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
   const endpoint = searchParams.get('endpoint') as PortalDataType
   
-  if (!endpoint || !['attendance', 'marks', 'timetable', 'profile', 'announcements'].includes(endpoint)) {
+  if (!endpoint || !['attendance', 'marks', 'timetable', 'profile', 'announcements', 'hostel'].includes(endpoint)) {
     return NextResponse.json(
-      { error: 'Invalid endpoint. Use: attendance, marks, timetable, profile, or announcements' },
+      { error: 'Invalid endpoint. Use: attendance, marks, timetable, profile, announcements, or hostel' },
       { status: 400 }
     )
   }

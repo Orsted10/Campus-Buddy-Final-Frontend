@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect } from 'react'
 import { usePortalStore } from '@/store/usePortalStore'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Wrench, Utensils, QrCode, WashingMachine, Building, MapPin, CalendarClock, ShieldCheck, Home, AlertCircle, RefreshCw } from 'lucide-react'
@@ -8,6 +9,13 @@ import { motion } from 'framer-motion'
 
 export default function HostelPage() {
   const { hostel, portalStatus, isSyncing, syncAll } = usePortalStore()
+
+  useEffect(() => {
+    // Only auto-sync if we have no data
+    if (!hostel) {
+      syncAll()
+    }
+  }, [])
 
   const features = [
     {
@@ -55,7 +63,7 @@ export default function HostelPage() {
       </div>
 
       {/* PORTAL SYNC STATES */}
-      {portalStatus === 'no_session' || portalStatus === 'error' ? (
+      {portalStatus === 'no_session' || portalStatus === 'error' || portalStatus === null ? (
         <Card className="glass border-primary/20 bg-primary/5">
           <CardHeader className="text-center pb-2">
             <ShieldCheck className="w-12 h-12 text-primary mx-auto mb-2 opacity-80" />
