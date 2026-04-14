@@ -71,21 +71,31 @@ export const usePortalStore = create<PortalState>()(
         set({ isSyncing: true })
         
         try {
-          // Verify status first
-          const connected = await get().checkStatus()
-          if (!connected) {
-            set({ isSyncing: false })
-            return false
+          // KEY FIX: If already marked 'connected' (persisted), skip HTTP status check.
+          // The HTTP check fails on mobile Capacitor webview since cookies aren't 
+          // forwarded the same way. Trust the persisted status instead.
+          const currentStatus = get().portalStatus
+          if (currentStatus !== 'connected') {
+            const connected = await get().checkStatus()
+            if (!connected) {
+              set({ isSyncing: false })
+              return false
+            }
           }
 
-          const [attendRes, ttRes, profileRes, hostelRes, marksRes, syncRes] = await Promise.all([
+          const [attendRes, ttRes, profileRes, hostelRes, marksRes] = await Promise.all([
             fetch(getApiUrl('/api/culko?endpoint=attendance')),
             fetch(getApiUrl('/api/culko?endpoint=timetable')),
             fetch(getApiUrl('/api/culko?endpoint=profile')),
             fetch(getApiUrl('/api/culko?endpoint=hostel')),
             fetch(getApiUrl('/api/culko?endpoint=marks')),
-            fetch(getApiUrl('/api/culko?endpoint=announcements'))
           ])
+
+          // 401 on all data endpoints = session truly died
+          if (attendRes.status === 401 && profileRes.status === 401) {
+            set({ portalStatus: 'no_session', isSyncing: false })
+            return false
+          }
 
           const [attendance, timetable, profile, hostel, marks] = await Promise.all([
             attendRes.json(),
@@ -107,15 +117,12 @@ export const usePortalStore = create<PortalState>()(
           if (hostelRes.ok && hostel.success) updates.hostel = hostel.data
           if (marksRes.ok && marks.success) updates.marks = marks.data || []
 
-          // If live fetch fails, we still consider it "success" if we have data in the store
-          // and we just performed a server-side sync. 
-          const hasSomeData = updates.attendance?.length || updates.marks?.length || updates.profile || updates.hostel
-          
           set(updates)
-          return !!hasSomeData || true
+          return true
         } catch (err) {
           console.error('Portal sync failed:', err)
-          set({ portalStatus: 'error', isSyncing: false })
+          // Don't set 'error' status here — it would clear mobile persistence
+          set({ isSyncing: false })
           return false
         }
       }

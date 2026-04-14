@@ -86,7 +86,7 @@ export default function CULKOConnectionManager() {
   const handleSubmitCaptcha = async () => {
     if (!captchaText.trim() || !sessionId) return
     setStep('submitting')
-    setStatusMsg('Verifying...')
+    setStatusMsg('Verifying credentials...')
 
     try {
       const res = await fetch(getApiUrl('/api/culko/login/submit'), {
@@ -96,33 +96,42 @@ export default function CULKOConnectionManager() {
       })
       const data = await res.json()
       
-      if (!res.ok) throw new Error(data.error || 'Login failed')
+      if (!res.ok) {
+        const errMsg = data.error || 'Login failed'
+        
+        // Wrong password/UID → back to CREDENTIALS step
+        if (errMsg.toLowerCase().includes('password') || errMsg.toLowerCase().includes('user id') || errMsg.toLowerCase().includes('incorrect')) {
+          toast.error(errMsg)
+          handleReset() // Goes to credentials
+          return
+        }
+        
+        // Wrong captcha → fetch a FRESH captcha (re-init with same params)
+        if (errMsg.toLowerCase().includes('captcha')) {
+          toast.error('Wrong CAPTCHA — loading a new one...')
+          setCaptchaText('')
+          setStep('waiting')
+          setStatusMsg('Fetching new CAPTCHA...')
+          // Re-use same UID/pass to get fresh captcha
+          await handleInit()
+          return
+        }
+        
+        throw new Error(errMsg)
+      }
 
       if (data.status === 'done') {
-        setStatusMsg(data.synced ? 'Saving your academic records...' : 'Capturing your data...')
-        setStep('submitting')
+        // IMMEDIATELY mark as connected in the store — mobile sees this instantly
+        usePortalStore.getState().setPortalStatus('connected')
         
-        // Wait a tiny bit for the cookie to settle in the browser/webview
-        await new Promise(r => setTimeout(r, 800))
+        setIsConnected(true)
+        setStep('done')
+        toast.success('Portal connected! Syncing your data...')
         
-        // Explicitly trigger sync and WAIT for it
-        const success = await usePortalStore.getState().syncAll()
-        
-        if (success) {
-          setIsConnected(true)
-          setStep('done')
-          toast.success('All records synced and ready!')
-        } else {
-          // If synced was true, even a "failed" syncAll is okay because data is in DB
-          if (data.synced) {
-            setIsConnected(true)
-            setStep('done')
-          } else {
-            toast.warning('Logged in, but data capture had a hiccup. Trying again...')
-            setIsConnected(true)
-            setStep('done')
-          }
-        }
+        // Sync in background — don't block the success UI
+        usePortalStore.getState().syncAll().catch(err => {
+          console.warn('[CULKOConnection] Background sync warning:', err)
+        })
       }
     } catch (e: any) {
       setStep('captcha')

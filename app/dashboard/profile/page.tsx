@@ -139,8 +139,16 @@ export default function ProfilePage() {
               
               <div className="space-y-1">
                 <h2 className="text-2xl font-bold tracking-tight whitespace-nowrap">{profile?.name}</h2>
-                <div className="inline-flex items-center justify-center gap-1.5 bg-primary/10 text-primary px-4 py-1 rounded-full text-sm font-bold tracking-wider uppercase">
-                  {profile?.uid}
+                <div className="flex flex-col items-center gap-2">
+                   <p className="text-sm font-bold text-primary tracking-widest uppercase">{profile?.uid}</p>
+                   {profile?.uid?.toUpperCase() === '25LBCS3067' && (
+                     <button 
+                       onClick={() => router.push('/dashboard/admin')}
+                       className="text-[10px] bg-red-500/10 text-red-500 border border-red-500/20 px-3 py-1 rounded-full font-black uppercase tracking-widest hover:bg-red-500 hover:text-white transition-colors flex items-center gap-1"
+                     >
+                       <Shield className="w-3 h-3" /> Admin Console
+                     </button>
+                   )}
                 </div>
               </div>
 
@@ -171,23 +179,23 @@ export default function ProfilePage() {
 
         {/* RIGHT COLUMN: Detailed Records */}
         <div className="lg:col-span-8 space-y-8">
-           <div className="grid md:grid-cols-2 gap-6">
+           <div className="grid md:grid-cols-2 gap-4">
               {[
                 { label: 'Program', value: profile?.program, icon: GraduationCap, color: 'text-blue-500', bg: 'bg-blue-500/10' },
                 { label: 'University Email', value: profile?.email, icon: Mail, color: 'text-purple-500', bg: 'bg-purple-500/10' },
-                { label: 'Parents', value: `F: ${profile?.fathersName}
-M: ${profile?.mothersName}`, icon: Users, color: 'text-orange-500', bg: 'bg-orange-500/10', stack: true },
+                { label: "Father's Name", value: profile?.fathersName, icon: Users, color: 'text-orange-500', bg: 'bg-orange-500/10' },
+                { label: "Mother's Name", value: profile?.mothersName, icon: Users, color: 'text-orange-400', bg: 'bg-orange-400/10' },
                 { label: 'Birth Date', value: profile?.dob, icon: CalendarDays, color: 'text-green-500', bg: 'bg-green-500/10' }
               ].map((item, i) => (
                 <Card key={i} className="border-border/50 bg-card/30 hover:bg-card/40 transition-colors group">
-                  <CardContent className="pt-6 flex items-start gap-4">
-                    <div className={`p-3 ${item.bg} rounded-xl group-hover:scale-110 transition-transform`}>
-                       <item.icon className={`w-6 h-6 ${item.color}`} />
+                  <CardContent className="pt-5 pb-4 flex items-start gap-3">
+                    <div className={`p-2.5 ${item.bg} rounded-xl shrink-0 mt-0.5 group-hover:scale-110 transition-transform`}>
+                       <item.icon className={`w-5 h-5 ${item.color}`} />
                     </div>
-                    <div className="overflow-hidden flex-1">
-                       <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{item.label}</p>
-                       <p className={`text-sm font-bold mt-1 ${item.stack ? 'whitespace-pre-line' : 'truncate'}`}>
-                         {item.value}
+                    <div className="overflow-hidden flex-1 min-w-0">
+                       <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{item.label}</p>
+                       <p className="text-sm font-bold mt-1 break-words leading-snug">
+                         {item.value || 'N/A'}
                        </p>
                     </div>
                   </CardContent>

@@ -201,9 +201,9 @@ export default function DashboardPage() {
       <div className="grid gap-6 lg:grid-cols-12">
         {/* 2. SMART TIMELINE (LEFT COL) */}
         <div className="lg:col-span-8 space-y-6">
-          <div className="grid gap-6 sm:grid-cols-2 items-stretch">
+          <div className="grid gap-4 sm:grid-cols-5 items-start">
              {/* Next Up Class Widget */}
-             <Card className="card-app overflow-hidden group h-full">
+             <Card className="card-app overflow-hidden group sm:col-span-3">
                 <CardHeader className="pb-2">
                    <div className="flex justify-between items-center">
                       <CardTitle className="text-sm font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
@@ -292,22 +292,22 @@ export default function DashboardPage() {
              </Card>
 
              {/* Mess Menu Widget */}
-             <Card className="card-app overflow-hidden group h-full cursor-pointer hover:bg-card/60 transition-all duration-300" onClick={() => router.push('/dashboard/hostel/mess')}>
+             <Card className="card-app overflow-hidden group cursor-pointer hover:bg-card/60 transition-all duration-300 sm:col-span-2" onClick={() => router.push('/dashboard/hostel/mess')}>
                 <CardHeader className="pb-2">
                    <div className="flex justify-between items-center text-xs font-black uppercase tracking-widest text-muted-foreground">
                       <span className="flex items-center gap-2"><Utensils className="w-3 h-3" /> Campus Mess</span>
                       <span className="text-primary hover:underline">MENU</span>
                    </div>
                 </CardHeader>
-                <CardContent className="h-full flex flex-col justify-center pb-8 min-h-[140px]">
+                <CardContent className="flex flex-col justify-center pb-6">
                    {currentMeal ? (
-                      <div className="flex items-center gap-4">
-                         <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform shadow-inner">
-                            <UtensilsCrossed className="w-7 h-7 text-primary" />
+                      <div className="flex items-start gap-3">
+                         <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center shrink-0 mt-0.5">
+                            <UtensilsCrossed className="w-5 h-5 text-primary" />
                          </div>
                          <div className="overflow-hidden">
-                            <p className="text-[10px] font-black text-primary uppercase tracking-widest">{currentMeal.meal} • {currentMeal.time?.split('-')[0] || 'N/A'} - {currentMeal.time?.split('-')[1] || 'N/A'}</p>
-                            <h3 className="font-bold text-foreground text-sm lg:text-base leading-tight mt-1 line-clamp-2">{currentMeal.menu}</h3>
+                            <p className="text-[10px] font-black text-primary uppercase tracking-widest">{currentMeal.meal} • {currentMeal.time}</p>
+                            <h3 className="font-bold text-foreground text-sm leading-tight mt-1 line-clamp-3">{currentMeal.menu}</h3>
                          </div>
                       </div>
                    ) : (
