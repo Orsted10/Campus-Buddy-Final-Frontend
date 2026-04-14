@@ -3,18 +3,24 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
-  Utensils, 
+  Loader2, 
+  ChefHat, 
   Clock, 
+  Utensils, 
+  UtensilsCrossed, 
+  Info, 
+  RefreshCw, 
+  AlertCircle,
   ChevronRight, 
   Soup, 
   Zap, 
   Coffee, 
   Pizza,
-  Info,
   CalendarDays
 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { useConfig } from '@/components/providers/ConfigProvider'
+import { usePortalStore } from '@/store/usePortalStore'
 import { getISTDate, isBetweenTimings } from '@/lib/utils-date'
 import { cn } from '@/lib/utils'
 
@@ -22,10 +28,16 @@ const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'
 
 export default function MessMenuPage() {
   const { messMenu: MESS_MENU } = useConfig()
+  const { syncAll, portalStatus } = usePortalStore()
   const [selectedDay, setSelectedDay] = useState('')
   const [currentTime, setCurrentTime] = useState(new Date())
 
   useEffect(() => {
+    // Background sync on mount
+    if (portalStatus === 'connected') {
+      syncAll().catch(err => console.error("Mess auto-sync failed:", err))
+    }
+
     // Set initial day based on IST
     const istNow = getISTDate()
     const dayName = days[istNow.getUTCDay() === 0 ? 6 : istNow.getUTCDay() - 1]

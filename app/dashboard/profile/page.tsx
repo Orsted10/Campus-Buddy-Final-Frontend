@@ -35,13 +35,14 @@ export default function ProfilePage() {
         const pData = await pRes.json()
         const aData = await aRes.json()
 
-        if (pData.success) {
-          setData({
-            profile: pData.data || {},
-            subjects: aData.success ? aData.data : [],
-            isCached: pData.isCached || aData.isCached,
-            lastSync: pData.updatedAt || aData.updatedAt
-          })
+        if (pData.success || aData.success) {
+          setData((prev: any) => ({
+            ...prev,
+            profile: pData.data || prev?.profile || cachedProfile,
+            subjects: aData.data || prev?.subjects || cachedAttendance,
+            isCached: pData.isCached !== undefined ? pData.isCached : (aData.isCached !== undefined ? aData.isCached : true),
+            lastSync: pData.updatedAt || aData.updatedAt || new Date().toISOString()
+          }))
         } else if (!cachedProfile) {
           setError(pData.error || "Portal sync required")
         }
@@ -53,7 +54,7 @@ export default function ProfilePage() {
     }
 
     fetchProfile()
-  }, [cachedProfile])
+  }, [cachedProfile, cachedAttendance])
 
   if (loading && !data) {
     return (

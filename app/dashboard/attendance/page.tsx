@@ -81,11 +81,12 @@ export default function AttendancePage() {
     }
   }, [])
   
+  const isDisconnected = portalStatus === 'no_session' || portalStatus === 'logout'
   if (portalStatus === 'error' && attendance.length === 0) {
     return (
       <div className="p-6 max-w-4xl mx-auto flex flex-col items-center justify-center h-[60vh] text-center space-y-4">
-        <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-          <AlertCircle className="w-8 h-8 text-primary" />
+        <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mb-4">
+          <AlertCircle className="w-8 h-8 text-red-500" />
         </div>
         <h2 className="text-2xl font-bold">Portal Connection Error</h2>
         <p className="text-muted-foreground max-w-md">
@@ -109,7 +110,7 @@ export default function AttendancePage() {
     )
   }
 
-  if (portalStatus === 'no_session' && attendance.length === 0) {
+  if (isDisconnected && attendance.length === 0) {
     return (
       <div className="p-6 max-w-4xl mx-auto flex flex-col items-center justify-center h-[60vh] text-center space-y-4">
         <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">

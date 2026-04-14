@@ -52,7 +52,9 @@ export default function MarksPage() {
     )
   }
 
-  if (subjects.length === 0 && portalStatus !== 'connected') {
+  // Only show Sync Required if we have NO data AND portal is disconnected
+  const isDisconnected = portalStatus === 'no_session' || portalStatus === 'logout'
+  if (subjects.length === 0 && isDisconnected) {
     return (
       <div className="p-6 max-w-4xl mx-auto flex flex-col items-center justify-center h-[60vh] text-center space-y-4">
         <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">

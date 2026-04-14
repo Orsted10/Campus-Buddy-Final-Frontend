@@ -10,7 +10,7 @@ import {
   Calendar as CalendarIcon, Utensils, AlertTriangle, 
   ChevronRight, ArrowRight, Zap, BookOpen, 
   RefreshCw, MapPin, Settings as SettingsIcon,
-  Smile, Sun, Moon, Coffee
+  Smile, Sun, Moon, Coffee, UtensilsCrossed, Sparkles
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -82,17 +82,17 @@ export default function DashboardPage() {
     return { type: 'teaching', name: 'Teaching Day' }
   }, [currentTime])
 
-  // 4. Smart Logic: Next Meal
-  const nextMeal = useMemo(() => {
+  // 4. Smart Logic: Current Meal
+  const currentMeal = useMemo(() => {
     const hour = currentTime.getUTCHours() // IST hour (already offset by getISTDate)
     const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][currentTime.getUTCDay()]
     const dayMenu = MESS_MENU.schedule.find(s => s.day === dayName) || MESS_MENU.schedule[0]
     
     // Check specific meal windows
-    if (hour < 10) return { type: 'Breakfast', menu: dayMenu.breakfast, icon: Coffee, time: MESS_MENU.timings.breakfast }
-    if (hour < 15) return { type: 'Lunch', menu: dayMenu.lunch, icon: Utensils, time: MESS_MENU.timings.lunch }
-    if (hour < 19) return { type: 'Snacks', menu: dayMenu.snacks, icon: Smile, time: MESS_MENU.timings.snacks }
-    return { type: 'Dinner', menu: dayMenu.dinner, icon: Moon, time: MESS_MENU.timings.dinner }
+    if (hour < 10) return { meal: 'Breakfast', menu: dayMenu.breakfast, icon: Coffee, time: MESS_MENU.timings.breakfast }
+    if (hour < 15) return { meal: 'Lunch', menu: dayMenu.lunch, icon: Utensils, time: MESS_MENU.timings.lunch }
+    if (hour < 19) return { meal: 'Snacks', menu: dayMenu.snacks, icon: Smile, time: MESS_MENU.timings.snacks }
+    return { meal: 'Dinner', menu: dayMenu.dinner, icon: Moon, time: MESS_MENU.timings.dinner }
   }, [currentTime])
 
   // 5. Smart Logic: Current/Next Class
@@ -306,7 +306,7 @@ export default function DashboardPage() {
                             <UtensilsCrossed className="w-7 h-7 text-primary" />
                          </div>
                          <div className="overflow-hidden">
-                            <p className="text-[10px] font-black text-primary uppercase tracking-widest">{currentMeal.meal} • {currentMeal.time.split('-')[0]} - {currentMeal.time.split('-')[1]}</p>
+                            <p className="text-[10px] font-black text-primary uppercase tracking-widest">{currentMeal.meal} • {currentMeal.time?.split('-')[0] || 'N/A'} - {currentMeal.time?.split('-')[1] || 'N/A'}</p>
                             <h3 className="font-bold text-foreground text-sm lg:text-base leading-tight mt-1 line-clamp-2">{currentMeal.menu}</h3>
                          </div>
                       </div>
