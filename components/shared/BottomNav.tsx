@@ -14,9 +14,9 @@ import { cn } from '@/lib/utils'
 const navItems = [
   { label: 'Home', icon: LayoutDashboard, href: '/dashboard' },
   { label: 'AI Chat', icon: MessageSquare, href: '/dashboard/chat' },
-  { label: 'Sync', icon: ArrowUpRight, href: '/dashboard/attendance' }, // Attendance/Sync
+  { label: 'Sync', icon: ArrowUpRight, href: '/dashboard/academics' }, // Portal sync page
   { label: 'Hostel', icon: Calendar, href: '/dashboard/hostel' },
-  { label: 'More', icon: User, href: '/dashboard/profile' },
+  { label: 'Profile', icon: User, href: '/dashboard/profile' },
 ]
 
 export default function BottomNav() {

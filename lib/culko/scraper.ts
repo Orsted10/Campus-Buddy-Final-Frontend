@@ -131,32 +131,29 @@ export async function initCULKOLogin(uid: string) {
   }
 }
 
-export async function captureBasePortalData(cookies: Record<string, string>) {
-  console.log('[captureBasePortalData] Starting automated first-sync sequence...')
-  const endpoints: ('profile' | 'attendance' | 'marks' | 'hostel')[] = ['profile', 'attendance', 'marks', 'hostel']
+export async function captureBasePortalData(cookieJar: Record<string, string>) {
+  console.log('[captureBasePortalData] Starting PARALLEL first-sync sequence...')
   
-  const results = {
-    profile: null as any,
-    attendance: [] as any[],
-    marks: [] as any[],
-    hostel: null as any
-  }
+  const endpoints: ('profile' | 'attendance' | 'marks' | 'hostel')[] = ['profile', 'attendance', 'marks', 'hostel']
 
-  for (const endpoint of endpoints) {
-    try {
-      console.log(`[captureBasePortalData] Syncing ${endpoint}...`)
-      const data = await fetchCULKOResource(endpoint, cookies)
-      
-      // Save directly to DB while we have it
+  // Fetch ALL endpoints simultaneously instead of one-by-one (3x faster)
+  const settled = await Promise.allSettled(
+    endpoints.map(async (endpoint) => {
+      console.log(`[captureBasePortalData] Fetching ${endpoint}...`)
+      const data = await fetchCULKOResource(endpoint, cookieJar)
       await savePortalData(endpoint, data)
-      
-      if (endpoint === 'profile') results.profile = data
-      if (endpoint === 'attendance') results.attendance = data
-      if (endpoint === 'marks') results.marks = data
-      if (endpoint === 'hostel') results.hostel = data
-      
-    } catch (err) {
-      console.error(`[captureBasePortalData] Failed to capture ${endpoint}:`, err)
+      return { endpoint, data }
+    })
+  )
+
+  const results: Record<string, any> = { profile: null, attendance: [], marks: [], hostel: null }
+  for (const result of settled) {
+    if (result.status === 'fulfilled') {
+      const { endpoint, data } = result.value
+      results[endpoint] = data
+      console.log(`[captureBasePortalData] ✅ ${endpoint} captured`)
+    } else {
+      console.error(`[captureBasePortalData] ❌ A capture failed:`, result.reason)
     }
   }
 
@@ -211,12 +208,25 @@ export async function completeCULKOLogin(password: string, captcha: string, sess
       finalHtml = await seatRes.text()
     }
 
-    // STRICT VALIDATION: Check the final HTML for login indicators
-    const isDashboard = finalHtml.includes('StudentHome.aspx') || finalHtml.includes('Welcome') || finalHtml.includes('Logout')
-    const isLoginPage = finalHtml.includes('id="txtUserId"') || finalHtml.includes('Login.aspx') || finalHtml.includes('btnLogin')
+    // STEP 1: CHECK FOR ERRORS FIRST (before any success assumption!)
+    const hasInvalidCaptcha = finalHtml.includes('Invalid Captcha') || finalHtml.includes('Captcha is wrong') || finalHtml.includes('InvalidCaptcha')
+    const hasInvalidPassword = finalHtml.includes('User Id or Password In Correct') || finalHtml.includes('Invalid User ID') || finalHtml.includes('Password In Correct') || finalHtml.includes('UserId or Password InCorrect')
 
-    // If we definitely see dashboard markers, save cookies and succeed
-    if (isDashboard) {
+    if (hasInvalidCaptcha) {
+      console.log('[completeCULKOLogin] Detected: Invalid CAPTCHA')
+      return { success: false, error: 'Invalid CAPTCHA. Please try again.' }
+    }
+    if (hasInvalidPassword) {
+      console.log('[completeCULKOLogin] Detected: Wrong credentials')
+      return { success: false, error: 'User ID or Password is incorrect. Please check and try again.' }
+    }
+
+    // STEP 2: NOW check for success
+    const isDashboard = finalHtml.includes('StudentHome.aspx') || finalHtml.includes('Logout') ||
+                        finalHtml.includes('frmStudentCourseWise') || finalHtml.includes('Welcome Student')
+    const isLoginPage = finalHtml.includes('id="txtUserId"') || finalHtml.includes('btnLogin')
+
+    const saveSession = async () => {
       const cookieStore = await cookies()
       cookieStore.set('culko_session', JSON.stringify(finalJar), {
         httpOnly: true,
@@ -225,31 +235,23 @@ export async function completeCULKOLogin(password: string, captcha: string, sess
         path: '/',
         maxAge: 60 * 60 * 24 // 24 hours
       })
-      return { success: true, cookies: finalJar }
-    }
-    
-    // Fallback: if we aren't sure, but we aren't on login page, assume success
-    if (!isLoginPage && finalHtml.length > 500) {
-      const cookieStore = await cookies()
-      cookieStore.set('culko_session', JSON.stringify(finalJar), {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        path: '/',
-        maxAge: 60 * 60 * 24
-      })
-      return { success: true, cookies: finalJar }
-    }
-    
-    // Check specific error messages
-    if (finalHtml.includes('Invalid Captcha') || finalHtml.includes('Captcha is wrong')) {
-      return { success: false, error: 'Invalid CAPTCHA code. Please try again.' }
-    }
-    if (finalHtml.includes('Invalid User ID') || finalHtml.includes('Password') || finalHtml.includes('Incorrect')) {
-      return { success: false, error: 'Invalid Student UID or Password.' }
     }
 
-    return { success: false, error: 'Login failed - please verify your credentials and try again.' }
+    if (isDashboard) {
+      console.log('[completeCULKOLogin] ✅ Dashboard detected — login successful')
+      await saveSession()
+      return { success: true, cookies: finalJar }
+    }
+    
+    // Strict fallback: Page is not an error and not a login page — likely success
+    if (!isLoginPage && !hasInvalidCaptcha && !hasInvalidPassword && finalHtml.length > 1000) {
+      console.log('[completeCULKOLogin] ✅ Fallback: not on login page — assuming success')
+      await saveSession()
+      return { success: true, cookies: finalJar }
+    }
+
+    console.log('[completeCULKOLogin] ❌ Login failed — still on login page')
+    return { success: false, error: 'Login failed. Please verify your credentials and CAPTCHA.' }
   } catch (error) {
     console.error('completeCULKOLogin error:', error)
     return { success: false, error: 'Connection error during authentication' }

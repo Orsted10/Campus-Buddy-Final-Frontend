@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { usePortalStore } from '@/store/usePortalStore'
 import { 
@@ -31,6 +32,7 @@ interface TimeSlot {
 type TimetableData = Record<string, TimeSlot[]>
 
 export default function TimetablePage() {
+  const router = useRouter()
   const [selectedDay, setSelectedDay] = useState('')
   const { 
     timetable: data, 
@@ -163,7 +165,7 @@ export default function TimetablePage() {
               <h3 className="text-xl font-bold text-foreground">Portal Connection Required</h3>
               <p className="text-muted-foreground max-w-sm mx-auto">Connect your university portal to see your live schedule.</p>
               <button 
-                onClick={() => window.location.href = '/dashboard/academics'}
+                onClick={() => router.push('/dashboard/academics')}
                 className="text-primary font-bold underline"
               >
                 Sync CULKO Portal

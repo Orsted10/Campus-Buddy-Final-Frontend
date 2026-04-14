@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
 import {
@@ -14,6 +15,7 @@ import { getApiUrl } from '@/lib/api-config'
 type Step = 'credentials' | 'waiting' | 'captcha' | 'submitting' | 'done'
 
 export default function CULKOConnectionManager() {
+  const router = useRouter()
   const [uid, setUid] = useState('')
   const [password, setPassword] = useState('')
   const [showPwd, setShowPwd] = useState(false)
@@ -26,6 +28,9 @@ export default function CULKOConnectionManager() {
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
+    // Use persisted store status first for instant render
+    const storeStatus = usePortalStore.getState().portalStatus
+    if (storeStatus === 'connected') setIsConnected(true)
     checkConnection()
     return () => { if (pollRef.current) clearInterval(pollRef.current) }
   }, [])
@@ -153,13 +158,13 @@ export default function CULKOConnectionManager() {
         </div>
         <div className="flex justify-center gap-3 flex-wrap">
           <button
-            onClick={() => window.location.href = '/dashboard/attendance'}
+            onClick={() => router.push('/dashboard/attendance')}
             className="glass border border-black/10 dark:border-white/10 text-foreground font-semibold px-5 py-2.5 rounded-xl text-sm flex items-center gap-2 hover:border-primary/30 transition-all"
           >
             <GraduationCap className="w-4 h-4 text-primary" /> Attendance
           </button>
           <button
-            onClick={() => window.location.href = '/dashboard/marks'}
+            onClick={() => router.push('/dashboard/marks')}
             className="glass border border-black/10 dark:border-white/10 text-foreground font-semibold px-5 py-2.5 rounded-xl text-sm flex items-center gap-2 hover:border-primary/30 transition-all"
           >
             <Calendar className="w-4 h-4 text-primary" /> Marks

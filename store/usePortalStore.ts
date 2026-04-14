@@ -18,7 +18,7 @@ interface PortalState {
   clearData: () => void
   
   // High-level sync action
-  syncAll: () => Promise<void>
+  syncAll: () => Promise<boolean>
   checkStatus: () => Promise<boolean>
 }
 
@@ -122,14 +122,15 @@ export const usePortalStore = create<PortalState>()(
     }),
     {
       name: 'portal-storage',
-      // Only persist data, not status/syncing state
+      // Persist data AND status so mobile remembers connection across restarts
       partialize: (state) => ({
         attendance: state.attendance,
         timetable: state.timetable,
         marks: state.marks,
         profile: state.profile,
         hostel: state.hostel,
-        lastSync: state.lastSync
+        lastSync: state.lastSync,
+        portalStatus: state.portalStatus  // <-- persist so app remembers connection
       })
     }
   )

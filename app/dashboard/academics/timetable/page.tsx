@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   Calendar, 
@@ -29,6 +30,7 @@ interface TimeSlot {
 type TimetableData = Record<string, TimeSlot[]>
 
 export default function TimetablePage() {
+  const router = useRouter()
   const [selectedDay, setSelectedDay] = useState('')
   const [data, setData] = useState<TimetableData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -160,7 +162,7 @@ export default function TimetablePage() {
               <h3 className="text-xl font-bold text-foreground">Something went wrong</h3>
               <p className="text-muted-foreground max-w-sm mx-auto">{error}</p>
               <button 
-                onClick={() => window.location.href = '/dashboard/academics'}
+                onClick={() => router.push('/dashboard/academics')}
                 className="text-primary font-bold underline"
               >
                 Sync CULKO Portal

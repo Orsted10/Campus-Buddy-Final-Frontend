@@ -1,18 +1,20 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { AlertCircle, User, Mail, Shield, BookOpen, Fingerprint, CalendarDays, GraduationCap, MapPin, Users, Loader2 } from 'lucide-react'
 import { getApiUrl } from '@/lib/api-config'
 import { usePortalStore } from '@/store/usePortalStore'
 
 export default function ProfilePage() {
-  const { profile: cachedProfile, attendance: cachedAttendance, portalStatus } = usePortalStore()
+  const router = useRouter()
+  const { profile: cachedProfile, attendance: cachedAttendance, portalStatus, lastSync: storeLastSync } = usePortalStore()
   const [data, setData] = useState<any>(cachedProfile ? {
     profile: cachedProfile,
     subjects: cachedAttendance || [],
-    isCached: true,
-    lastSync: new Date().toISOString()
+    isCached: portalStatus !== 'connected',
+    lastSync: storeLastSync || new Date().toISOString()
   } : null)
   const [loading, setLoading] = useState(!cachedProfile)
   const [error, setError] = useState<string | null>(null)
@@ -40,7 +42,8 @@ export default function ProfilePage() {
             ...prev,
             profile: pData.data || prev?.profile || cachedProfile,
             subjects: aData.data || prev?.subjects || cachedAttendance,
-            isCached: pData.isCached !== undefined ? pData.isCached : (aData.isCached !== undefined ? aData.isCached : true),
+            // Only show 'Archived' if the data actually came from cache AND portal is not live
+            isCached: (pData.isCached === true) && portalStatus !== 'connected',
             lastSync: pData.updatedAt || aData.updatedAt || new Date().toISOString()
           }))
         } else if (!cachedProfile) {
@@ -76,7 +79,7 @@ export default function ProfilePage() {
           {error || "You need to sync your CULKO portal to view your academic student ID details."}
         </p>
         <button 
-          onClick={() => window.location.href = '/dashboard/academics'} 
+          onClick={() => router.push('/dashboard/academics')} 
           className="bg-primary text-background px-8 py-3 rounded-2xl font-black uppercase tracking-widest text-sm hover:opacity-90 transition-all shadow-lg shadow-primary/20"
         >
           Connect Now
@@ -172,7 +175,8 @@ export default function ProfilePage() {
               {[
                 { label: 'Program', value: profile?.program, icon: GraduationCap, color: 'text-blue-500', bg: 'bg-blue-500/10' },
                 { label: 'University Email', value: profile?.email, icon: Mail, color: 'text-purple-500', bg: 'bg-purple-500/10' },
-                { label: 'Parents', value: `F: ${profile?.fathersName} \n M: ${profile?.mothersName}`, icon: Users, color: 'text-orange-500', bg: 'bg-orange-500/10', stack: true },
+                { label: 'Parents', value: `F: ${profile?.fathersName}
+M: ${profile?.mothersName}`, icon: Users, color: 'text-orange-500', bg: 'bg-orange-500/10', stack: true },
                 { label: 'Birth Date', value: profile?.dob, icon: CalendarDays, color: 'text-green-500', bg: 'bg-green-500/10' }
               ].map((item, i) => (
                 <Card key={i} className="border-border/50 bg-card/30 hover:bg-card/40 transition-colors group">
