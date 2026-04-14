@@ -60,9 +60,30 @@ const fadeUp = {
 }
 
 import { isNativeApp } from '@/lib/api-config'
+import { createClient } from '@/lib/supabase/client'
+import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
 
 export default function LandingPage() {
   const isApp = isNativeApp()
+  const router = useRouter()
+  const [checkingAuth, setCheckingAuth] = useState(true)
+
+  useEffect(() => {
+    async function checkUser() {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        router.push('/dashboard')
+      } else {
+        setCheckingAuth(false)
+      }
+    }
+    checkUser()
+  }, [router])
+
+  // Don't show anything while checking auth to prevent flicker
+  if (checkingAuth) return null
 
   // NATIVE APP INTRO SCREEN (Discord/YouTube Style)
   if (isApp) {

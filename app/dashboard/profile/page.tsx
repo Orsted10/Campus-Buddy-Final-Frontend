@@ -4,10 +4,17 @@ import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { AlertCircle, User, Mail, Shield, BookOpen, Fingerprint, CalendarDays, GraduationCap, MapPin, Users, Loader2 } from 'lucide-react'
 import { getApiUrl } from '@/lib/api-config'
+import { usePortalStore } from '@/store/usePortalStore'
 
 export default function ProfilePage() {
-  const [data, setData] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
+  const { profile: cachedProfile, attendance: cachedAttendance, portalStatus } = usePortalStore()
+  const [data, setData] = useState<any>(cachedProfile ? {
+    profile: cachedProfile,
+    subjects: cachedAttendance || [],
+    isCached: true,
+    lastSync: new Date().toISOString()
+  } : null)
+  const [loading, setLoading] = useState(!cachedProfile)
   const [error, setError] = useState<string | null>(null)
   const [tapCount, setTapCount] = useState(0)
 
@@ -28,29 +35,27 @@ export default function ProfilePage() {
         const pData = await pRes.json()
         const aData = await aRes.json()
 
-        if (!pData.success) {
+        if (pData.success) {
+          setData({
+            profile: pData.data || {},
+            subjects: aData.success ? aData.data : [],
+            isCached: pData.isCached || aData.isCached,
+            lastSync: pData.updatedAt || aData.updatedAt
+          })
+        } else if (!cachedProfile) {
           setError(pData.error || "Portal sync required")
-          setLoading(false)
-          return
         }
-
-        setData({
-          profile: pData.data || {},
-          subjects: aData.success ? aData.data : [],
-          isCached: pData.isCached || aData.isCached,
-          lastSync: pData.updatedAt || aData.updatedAt
-        })
       } catch (err) {
-        setError("Failed to load profile data")
+        if (!cachedProfile) setError("Failed to load profile data")
       } finally {
         setLoading(false)
       }
     }
 
     fetchProfile()
-  }, [])
+  }, [cachedProfile])
 
-  if (loading) {
+  if (loading && !data) {
     return (
       <div className="flex flex-col items-center justify-center h-[70vh] gap-4">
         <Loader2 className="w-10 h-10 text-primary animate-spin" />
@@ -59,7 +64,7 @@ export default function ProfilePage() {
     )
   }
 
-  if (error || !data) {
+  if ((error || !data) && portalStatus !== 'connected') {
     return (
       <div className="p-6 max-w-4xl mx-auto flex flex-col items-center justify-center h-[60vh] text-center space-y-4">
         <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
@@ -79,10 +84,10 @@ export default function ProfilePage() {
     )
   }
 
-  const { profile, subjects, isCached, lastSync } = data
+  const { profile, subjects, isCached, lastSync } = data || { profile: cachedProfile, subjects: cachedAttendance || [], isCached: true }
 
   return (
-    <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-8 pb-20 pt-safe">
+    <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-8 pb-20 pt-safe font-inter">
       {/* Header Section */}
       <div className="flex items-center gap-3 mb-8 border-b pb-6">
         <div 
@@ -100,7 +105,7 @@ export default function ProfilePage() {
                 Archived {lastSync ? `(${new Date(lastSync).toLocaleDateString()})` : ''}
               </div>
             )}
-            {tapCount >= 5 && profile.email === '25lbcs3067@culkomail.in' && (
+            {tapCount >= 5 && profile?.email === '25lbcs3067@culkomail.in' && (
               <a href="/dashboard/admin" className="ml-2 flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-primary/10 border border-primary/20 text-[10px] font-black uppercase text-primary animate-in fade-in zoom-in duration-300">
                 Admin Console
               </a>
@@ -129,20 +134,20 @@ export default function ProfilePage() {
               </div>
               
               <div className="space-y-1">
-                <h2 className="text-2xl font-bold tracking-tight whitespace-nowrap">{profile.name}</h2>
+                <h2 className="text-2xl font-bold tracking-tight whitespace-nowrap">{profile?.name}</h2>
                 <div className="inline-flex items-center justify-center gap-1.5 bg-primary/10 text-primary px-4 py-1 rounded-full text-sm font-bold tracking-wider uppercase">
-                  {profile.uid}
+                  {profile?.uid}
                 </div>
               </div>
 
               <div className="w-full grid grid-cols-2 gap-4 pt-4 border-t border-border/50">
                 <div className="text-center">
                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Semester</p>
-                   <p className="text-lg font-bold text-primary">{profile.semester}</p>
+                   <p className="text-lg font-bold text-primary">{profile?.semester}</p>
                 </div>
                 <div className="text-center border-l border-border/50">
                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">CGPA</p>
-                   <p className="text-lg font-bold text-cyber-green">✨ {profile.cgpa}</p>
+                   <p className="text-lg font-bold text-cyber-green">✨ {profile?.cgpa}</p>
                 </div>
               </div>
             </div>
@@ -155,7 +160,7 @@ export default function ProfilePage() {
                 </CardTitle>
              </CardHeader>
              <CardContent>
-                <p className="text-sm font-medium leading-relaxed">{profile.address || 'Address not listed'}</p>
+                <p className="text-sm font-medium leading-relaxed">{profile?.address || 'Address not listed'}</p>
              </CardContent>
           </Card>
         </div>
@@ -164,19 +169,21 @@ export default function ProfilePage() {
         <div className="lg:col-span-8 space-y-8">
            <div className="grid md:grid-cols-2 gap-6">
               {[
-                { label: 'Program', value: profile.program, icon: GraduationCap, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-                { label: 'University Email', value: profile.email, icon: Mail, color: 'text-purple-500', bg: 'bg-purple-500/10' },
-                { label: 'Parents', value: `F: ${profile.fathersName} / M: ${profile.mothersName}`, icon: Users, color: 'text-orange-500', bg: 'bg-orange-500/10' },
-                { label: 'Birth Date', value: profile.dob, icon: CalendarDays, color: 'text-green-500', bg: 'bg-green-500/10' }
+                { label: 'Program', value: profile?.program, icon: GraduationCap, color: 'text-blue-500', bg: 'bg-blue-500/10' },
+                { label: 'University Email', value: profile?.email, icon: Mail, color: 'text-purple-500', bg: 'bg-purple-500/10' },
+                { label: 'Parents', value: `F: ${profile?.fathersName} \n M: ${profile?.mothersName}`, icon: Users, color: 'text-orange-500', bg: 'bg-orange-500/10', stack: true },
+                { label: 'Birth Date', value: profile?.dob, icon: CalendarDays, color: 'text-green-500', bg: 'bg-green-500/10' }
               ].map((item, i) => (
                 <Card key={i} className="border-border/50 bg-card/30 hover:bg-card/40 transition-colors group">
                   <CardContent className="pt-6 flex items-start gap-4">
                     <div className={`p-3 ${item.bg} rounded-xl group-hover:scale-110 transition-transform`}>
                        <item.icon className={`w-6 h-6 ${item.color}`} />
                     </div>
-                    <div className="overflow-hidden">
+                    <div className="overflow-hidden flex-1">
                        <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{item.label}</p>
-                       <p className="text-sm font-bold mt-1 truncate">{item.value}</p>
+                       <p className={`text-sm font-bold mt-1 ${item.stack ? 'whitespace-pre-line' : 'truncate'}`}>
+                         {item.value}
+                       </p>
                     </div>
                   </CardContent>
                 </Card>
@@ -188,11 +195,11 @@ export default function ProfilePage() {
                 <BookOpen className="w-5 h-5 text-primary" />
                 Active Registration
               </h3>
-              {subjects.length === 0 ? (
+              {subjects?.length === 0 ? (
                 <p className="text-sm text-muted-foreground italic">No active courses found.</p>
               ) : (
                 <div className="grid sm:grid-cols-2 gap-3">
-                  {subjects.map((sub: any, idx: number) => (
+                  {subjects?.map((sub: any, idx: number) => (
                     <div key={idx} className="p-4 rounded-2xl border border-border/50 bg-muted/20 flex items-center gap-3">
                       <div className="w-2.5 h-2.5 rounded-full bg-primary/40 shrink-0" />
                       <p className="text-sm font-semibold leading-tight">{sub.name}</p>

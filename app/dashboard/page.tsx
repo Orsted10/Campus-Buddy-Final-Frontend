@@ -201,9 +201,9 @@ export default function DashboardPage() {
       <div className="grid gap-6 lg:grid-cols-12">
         {/* 2. SMART TIMELINE (LEFT COL) */}
         <div className="lg:col-span-8 space-y-6">
-          <div className="grid gap-6 sm:grid-cols-2 items-start">
+          <div className="grid gap-6 sm:grid-cols-2 items-stretch">
              {/* Next Up Class Widget */}
-             <Card className="card-app overflow-hidden group">
+             <Card className="card-app overflow-hidden group h-full">
                 <CardHeader className="pb-2">
                    <div className="flex justify-between items-center">
                       <CardTitle className="text-sm font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
@@ -212,32 +212,32 @@ export default function DashboardPage() {
                       <button onClick={() => router.push('/dashboard/timetable')} className="text-[10px] font-black text-primary hover:underline">VIEW FULL</button>
                    </div>
                 </CardHeader>
-                <CardContent className="space-y-4 mobile-comfy">
+                <CardContent className="space-y-4 mobile-comfy pb-6">
                    {todayStatus.type === 'holiday' ? (
-                      <div className="py-6 text-center space-y-4 bg-blue-500/5 rounded-2xl border border-blue-500/10">
-                         <div className="w-16 h-16 bg-blue-500/10 rounded-full flex items-center justify-center mx-auto">
+                      <div className="py-8 text-center space-y-4 bg-blue-500/5 rounded-2xl border border-blue-500/10 h-full flex flex-col justify-center">
+                         <div className="w-16 h-16 bg-blue-500/10 rounded-full flex items-center justify-center mx-auto shadow-inner">
                             <Sun className="w-8 h-8 text-blue-500" />
                          </div>
                          <div>
                             <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest">VACATION MODE</p>
                             <h3 className="text-xl font-black text-foreground">{todayStatus.name}</h3>
-                            <p className="text-xs text-muted-foreground mt-1">Enjoy your well-deserved break! No classes today.</p>
+                            <p className="text-xs text-muted-foreground mt-1 px-4">Enjoy your well-deserved break! No classes today.</p>
                          </div>
                       </div>
                    ) : todayStatus.type === 'exam' ? (
-                      <div className="py-6 text-center space-y-4 bg-primary/5 rounded-2xl border border-primary/10 glow-olive-sm">
+                      <div className="py-8 text-center space-y-4 bg-primary/5 rounded-2xl border border-primary/10 glow-olive-sm h-full flex flex-col justify-center">
                          <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
                             <Sparkles className="w-8 h-8 text-primary" />
                          </div>
                          <div>
                             <p className="text-[10px] font-black text-primary uppercase tracking-widest">EXAM SEASON</p>
                             <h3 className="text-xl font-black text-foreground">{todayStatus.name}</h3>
-                            <p className="text-xs text-muted-foreground mt-1">Focus on your goals. You've got this! Good luck.</p>
+                            <p className="text-xs text-muted-foreground mt-1 px-4">Focus on your goals. You've got this! Good luck.</p>
                          </div>
                          <Button 
                             variant="outline" 
                             size="sm" 
-                            className="bg-primary/10 text-primary border-primary/20 font-black uppercase tracking-widest text-[10px] mx-auto"
+                            className="bg-primary/10 text-primary border-primary/20 font-black uppercase tracking-widest text-[10px] mx-auto mt-2"
                             onClick={() => router.push('/dashboard/marks')}
                          >
                             Check Past Marks
@@ -291,24 +291,33 @@ export default function DashboardPage() {
                 </CardContent>
              </Card>
 
-             {/* Next Meal Widget */}
-             <Card className="card-app overflow-hidden bg-gradient-to-br from-primary/5 to-transparent">
+             {/* Mess Menu Widget */}
+             <Card className="card-app overflow-hidden group h-full cursor-pointer hover:bg-card/60 transition-all duration-300" onClick={() => router.push('/dashboard/hostel/mess')}>
                 <CardHeader className="pb-2">
-                   <div className="flex justify-between items-center">
-                      <CardTitle className="text-sm font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                         <nextMeal.icon className="w-3 h-3" /> Campus Mess
-                      </CardTitle>
-                      <button onClick={() => router.push('/dashboard/hostel/mess')} className="text-[10px] font-black text-primary hover:underline">MENU</button>
+                   <div className="flex justify-between items-center text-xs font-black uppercase tracking-widest text-muted-foreground">
+                      <span className="flex items-center gap-2"><Utensils className="w-3 h-3" /> Campus Mess</span>
+                      <span className="text-primary hover:underline">MENU</span>
                    </div>
                 </CardHeader>
-                <CardContent className="flex items-center gap-4 mobile-comfy">
-                   <div className="w-14 h-14 rounded-2xl bg-primary/20 flex items-center justify-center shrink-0">
-                      <Utensils className="w-6 h-6 text-primary" />
-                   </div>
-                   <div>
-                      <p className="text-[10px] font-black text-primary uppercase">{nextMeal.type} • {nextMeal.time}</p>
-                      <h3 className="font-black text-foreground text-base leading-tight mt-0.5">{nextMeal.menu}</h3>
-                   </div>
+                <CardContent className="h-full flex flex-col justify-center pb-8 min-h-[140px]">
+                   {currentMeal ? (
+                      <div className="flex items-center gap-4">
+                         <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform shadow-inner">
+                            <UtensilsCrossed className="w-7 h-7 text-primary" />
+                         </div>
+                         <div className="overflow-hidden">
+                            <p className="text-[10px] font-black text-primary uppercase tracking-widest">{currentMeal.meal} • {currentMeal.time.split('-')[0]} - {currentMeal.time.split('-')[1]}</p>
+                            <h3 className="font-bold text-foreground text-sm lg:text-base leading-tight mt-1 line-clamp-2">{currentMeal.menu}</h3>
+                         </div>
+                      </div>
+                   ) : (
+                      <div className="text-center py-4 flex flex-col items-center gap-2 opacity-50">
+                         <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center">
+                            <Utensils className="w-6 h-6" />
+                         </div>
+                         <p className="text-xs font-bold uppercase tracking-widest">No Meal Scheduled</p>
+                      </div>
+                   )}
                 </CardContent>
              </Card>
           </div>

@@ -1,17 +1,58 @@
-import { fetchCULKOData } from '@/lib/culko/scraper'
+'use client'
+
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { AlertCircle, Award, LayoutGrid, List } from 'lucide-react'
+import { AlertCircle, Award, LayoutGrid, List, Loader2 } from 'lucide-react'
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion'
+import { usePortalStore } from '@/store/usePortalStore'
+import { getApiUrl } from '@/lib/api-config'
 
-export default async function MarksPage() {
-  const result = await fetchCULKOData('marks')
-  
-  if (!result.success) {
+export default function MarksPage() {
+  const { marks: cachedMarks, portalStatus } = usePortalStore()
+  const [subjects, setSubjects] = useState<any[]>(cachedMarks || [])
+  const [loading, setLoading] = useState(!cachedMarks)
+  const [metadata, setMetadata] = useState({
+    isCached: true,
+    lastSync: new Date().toISOString()
+  })
+
+  useEffect(() => {
+    async function loadMarks() {
+      try {
+        const res = await fetch(getApiUrl('/api/culko?endpoint=marks'))
+        const result = await res.json()
+        
+        if (result.success) {
+          setSubjects(result.data || [])
+          setMetadata({
+            isCached: result.isCached,
+            lastSync: result.updatedAt
+          })
+        }
+      } catch (err) {
+        console.error("Failed to refresh marks:", err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadMarks()
+  }, [])
+
+  if (loading && subjects.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[70vh] gap-4">
+        <Loader2 className="w-10 h-10 text-primary animate-spin" />
+        <p className="text-muted-foreground font-black uppercase tracking-widest text-xs">Loading Grades...</p>
+      </div>
+    )
+  }
+
+  if (subjects.length === 0 && portalStatus !== 'connected') {
     return (
       <div className="p-6 max-w-4xl mx-auto flex flex-col items-center justify-center h-[60vh] text-center space-y-4">
         <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
@@ -19,15 +60,17 @@ export default async function MarksPage() {
         </div>
         <h2 className="text-2xl font-bold">Portal Sync Required</h2>
         <p className="text-muted-foreground max-w-md">
-          {result.error || "You need to sync your CULKO portal to view your structured marks and grades."}
+          You need to sync your CULKO portal to view your structured marks and grades.
         </p>
+        <button 
+          onClick={() => window.location.href = '/dashboard/academics'} 
+          className="bg-primary text-background px-8 py-3 rounded-2xl font-black uppercase tracking-widest text-sm hover:opacity-90 transition-all shadow-lg shadow-primary/20"
+        >
+          Connect Now
+        </button>
       </div>
     )
   }
-
-  const subjects = result.data || []
-  const isCached = result.isCached
-  const lastSync = result.updatedAt
 
   return (
     <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-8 relative">
@@ -44,10 +87,10 @@ export default async function MarksPage() {
           <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mt-2 md:mt-2">
             <p className="text-muted-foreground font-medium">Detailed evaluation breakdowns grouped by subject</p>
             <span className="text-muted-foreground mx-1">•</span>
-            {isCached ? (
+            {metadata.isCached ? (
               <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/20 text-[10px] font-medium text-amber-500">
                 <div className="w-1 h-1 rounded-full bg-amber-500 animate-pulse" />
-                Archived {lastSync ? `(${new Date(lastSync).toLocaleDateString()})` : ''}
+                Archived {metadata.lastSync ? `(${new Date(metadata.lastSync).toLocaleDateString()})` : ''}
               </div>
             ) : (
               <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-medium text-emerald-500">
