@@ -9,6 +9,13 @@ export default function ProfilePage() {
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [tapCount, setTapCount] = useState(0)
+
+  useEffect(() => {
+    // ... reset tap count after 3 seconds of inactivity
+    const timer = setTimeout(() => setTapCount(0), 3000)
+    return () => clearTimeout(timer)
+  }, [tapCount])
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -72,7 +79,10 @@ export default function ProfilePage() {
     <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-8 pb-20 pt-safe">
       {/* Header Section */}
       <div className="flex items-center gap-3 mb-8 border-b pb-6">
-        <div className="p-3 bg-primary/10 rounded-xl">
+        <div 
+          className="p-3 bg-primary/10 rounded-xl cursor-pointer active:scale-95 transition-transform"
+          onClick={() => setTapCount(prev => prev + 1)}
+        >
           <Fingerprint className="w-8 h-8 text-primary" />
         </div>
         <div>
@@ -84,9 +94,11 @@ export default function ProfilePage() {
                 Archived {lastSync ? `(${new Date(lastSync).toLocaleDateString()})` : ''}
               </div>
             )}
-            <a href="/dashboard/admin" className="ml-2 flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-primary/10 border border-primary/20 text-[10px] font-black uppercase text-primary hover:bg-primary/20 transition-all">
-              Admin
-            </a>
+            {tapCount >= 5 && profile.email === '25lbcs3067@culkomail.in' && (
+              <a href="/dashboard/admin" className="ml-2 flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-primary/10 border border-primary/20 text-[10px] font-black uppercase text-primary animate-in fade-in zoom-in duration-300">
+                Admin Console
+              </a>
+            )}
           </div>
         </div>
       </div>

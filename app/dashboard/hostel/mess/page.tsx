@@ -14,7 +14,6 @@ import {
   CalendarDays
 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
-import { Card, CardContent } from '@/components/ui/card'
 import { useConfig } from '@/components/providers/ConfigProvider'
 import { getISTDate, isBetweenTimings } from '@/lib/utils-date'
 import { cn } from '@/lib/utils'
