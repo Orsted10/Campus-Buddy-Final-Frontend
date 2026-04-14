@@ -147,11 +147,23 @@ export function useAuth() {
 
   const signInWithGoogle = async () => {
     try {
+      // For Capacitor apps, we use a custom deep link scheme
+      // For web apps, we use the standard origin
+      const isApp = typeof window !== 'undefined' && 
+                    (window.location.hostname === 'localhost' && !window.location.port)
+      
+      const redirectTo = isApp 
+        ? 'com.campusbuddy.app://callback'
+        : `${window.location.origin}/auth/callback`
+
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          // Using the server-side callback route for reliable session handling
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
         },
       })
 

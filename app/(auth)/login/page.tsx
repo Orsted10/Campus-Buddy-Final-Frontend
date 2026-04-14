@@ -53,10 +53,9 @@ export default function LoginPage() {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-      className="glass-strong rounded-3xl p-8 w-full border border-white/10 shadow-2xl"
+      initial={{ opacity: 0, scale: 0.98 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className="md:glass-strong rounded-3xl p-6 md:p-8 w-full md:border md:border-white/10 md:shadow-2xl h-full md:h-auto flex flex-col justify-center pt-safe pb-safe"
     >
       {/* Header */}
       <div className="text-center mb-8">

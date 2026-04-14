@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { getApiUrl } from '@/lib/api-config'
 
 interface PortalState {
   attendance: any[]
@@ -39,7 +40,7 @@ export const usePortalStore = create<PortalState>()(
       
       checkStatus: async () => {
         try {
-          const res = await fetch('/api/culko/status')
+          const res = await fetch(getApiUrl('/api/culko/status'))
           const data = await res.json()
           if (data.connected) {
             set({ portalStatus: 'connected' })
@@ -73,11 +74,11 @@ export const usePortalStore = create<PortalState>()(
         set({ isSyncing: true })
         try {
           const [attendRes, ttRes, profileRes, hostelRes, syncRes] = await Promise.all([
-            fetch('/api/culko?endpoint=attendance'),
-            fetch('/api/culko?endpoint=timetable'),
-            fetch('/api/culko?endpoint=profile'),
-            fetch('/api/culko?endpoint=hostel'),
-            fetch('/api/culko?endpoint=announcements') // Background sync session check
+            fetch(getApiUrl('/api/culko?endpoint=attendance')),
+            fetch(getApiUrl('/api/culko?endpoint=timetable')),
+            fetch(getApiUrl('/api/culko?endpoint=profile')),
+            fetch(getApiUrl('/api/culko?endpoint=hostel')),
+            fetch(getApiUrl('/api/culko?endpoint=announcements')) // Background sync session check
           ])
 
           const [attendance, timetable, profile, hostel] = await Promise.all([

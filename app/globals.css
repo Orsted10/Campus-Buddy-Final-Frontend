@@ -212,6 +212,36 @@
   background-size: 60px 60px;
 }
 
+/* Native App safe areas */
+@utility pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+@utility pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+
+/* Discord-inspired "Comfy" mobile utilities */
+@utility mobile-comfy {
+  @media (max-width: 768px) {
+    font-size: 1.05rem;
+    line-height: 1.6;
+    letter-spacing: -0.01em;
+  }
+}
+
+@utility card-app {
+  border-radius: 1.5rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(180, 220, 100, 0.08);
+  padding: 1.25rem;
+  @media (max-width: 768px) {
+    border-radius: 1.25rem;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.02);
+  }
+}
+
 /* Animated border glow */
 @utility border-glow-animate {
   border: 1px solid transparent;

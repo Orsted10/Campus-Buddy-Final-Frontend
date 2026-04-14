@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { useAuthStore } from '@/store/useAuthStore'
 import Sidebar from '@/components/shared/Sidebar'
 import Topbar from '@/components/shared/Topbar'
+import BottomNav from '@/components/shared/BottomNav'
 import { AnimatePresence, motion } from 'framer-motion'
 import { PageTransition } from '@/components/shared/PageTransition'
 
@@ -20,7 +21,6 @@ export default function DashboardLayout({
 
   useEffect(() => {
     // Only redirect AFTER zustand has hydrated from localStorage
-    // This prevents the flash-redirect on page refresh
     if (hasHydrated && !user) {
       router.push('/login')
     }
@@ -47,11 +47,14 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="flex h-screen bg-transparent overflow-hidden">
-      <Sidebar />
+    <div className="flex h-screen bg-transparent overflow-hidden flex-col md:flex-row">
+      <div className="hidden md:flex">
+        <Sidebar />
+      </div>
+      
       <div className="flex-1 flex flex-col overflow-hidden relative z-10 w-full">
         <Topbar />
-        <main className="flex-1 overflow-y-auto overflow-x-hidden p-3 md:p-6 lg:p-8">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 lg:p-8 pb-20 md:pb-6">
           <AnimatePresence mode="wait" initial={false}>
             <PageTransition key={pathname}>
               {children}
@@ -59,6 +62,8 @@ export default function DashboardLayout({
           </AnimatePresence>
         </main>
       </div>
+
+      <BottomNav />
     </div>
   )
 }

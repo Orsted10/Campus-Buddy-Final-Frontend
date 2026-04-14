@@ -21,6 +21,8 @@ export const metadata: Metadata = {
   description: "Live attendance, marks, timetable and an AI that actually knows your data. Built for CULKO students.",
 };
 
+import { AppProvider } from "@/components/providers/AppProvider";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -30,8 +32,10 @@ export default function RootLayout({
     <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable} h-full`} suppressHydrationWarning>
       <body className="min-h-full flex flex-col" style={{ fontFamily: 'var(--font-inter), system-ui, sans-serif' }}>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
-          {children}
-          <Toaster richColors position="top-right" />
+          <AppProvider>
+            {children}
+            <Toaster richColors position="top-right" />
+          </AppProvider>
         </ThemeProvider>
       </body>
     </html>
