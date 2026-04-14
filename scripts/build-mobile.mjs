@@ -24,7 +24,7 @@ function moveFolder(src, dest) {
           : `mv "${src}" "${dest}"`;
         execSync(cmd, { stdio: 'inherit' });
       } catch (shellErr) {
-        throw new Error(`Failed to move ${src} even with fallback. Clear file locks and try again.`);
+        throw new Error(`CRITICAL FAIL: Could not move ${src}. File lock detected. Stop 'npm run dev' and try again.`);
       }
     } else {
       throw err;
@@ -51,14 +51,18 @@ async function build() {
       }
     }
 
-    // 3. Run Next.js Build
+    // 3. Run Next.js Build with Capacitor Flag
     console.log('🏗️ Building static export...');
-    execSync('npm run build', { stdio: 'inherit' });
+    execSync('npm run build', { 
+      stdio: 'inherit',
+      env: { ...process.env, IS_CAPACITOR_BUILD: 'true' }
+    });
 
     console.log('✅ Build successful!');
 
   } catch (error) {
     console.error('❌ Build failed:', error.message);
+    process.exit(1); // Exit with error to stop the chain
   } finally {
     // 4. Always restore folders
     console.log('♻️ Restoring project structure...');
