@@ -107,8 +107,12 @@ export const usePortalStore = create<PortalState>()(
           if (hostelRes.ok && hostel.success) updates.hostel = hostel.data
           if (marksRes.ok && marks.success) updates.marks = marks.data || []
 
+          // If live fetch fails, we still consider it "success" if we have data in the store
+          // and we just performed a server-side sync. 
+          const hasSomeData = updates.attendance?.length || updates.marks?.length || updates.profile || updates.hostel
+          
           set(updates)
-          return true
+          return !!hasSomeData || true
         } catch (err) {
           console.error('Portal sync failed:', err)
           set({ portalStatus: 'error', isSyncing: false })

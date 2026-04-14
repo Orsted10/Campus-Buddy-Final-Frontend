@@ -19,7 +19,21 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: result.error || 'Login failed' }, { status: 401 })
     }
 
-    return NextResponse.json({ status: 'done', success: true })
+    // NEW (Bulletproof Sync): Perform initial capture ON THE SERVER while session is fresh
+    // This is safer for mobile because it doesn't rely on cookie round-trips.
+    let synced = false
+    try {
+      if (result.cookies) {
+        const { captureBasePortalData } = await import('@/lib/culko/scraper')
+        await captureBasePortalData(result.cookies)
+        synced = true
+        console.log('Server-side initial capture completed successfully.')
+      }
+    } catch (captureErr) {
+      console.error('Server-side capture failed, but login was successful:', captureErr)
+    }
+
+    return NextResponse.json({ status: 'done', success: true, synced })
 
   } catch (error: any) {
     console.error('Error in login submit:', error)

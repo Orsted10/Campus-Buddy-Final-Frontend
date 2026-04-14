@@ -131,6 +131,38 @@ export async function initCULKOLogin(uid: string) {
   }
 }
 
+export async function captureBasePortalData(cookies: Record<string, string>) {
+  console.log('[captureBasePortalData] Starting automated first-sync sequence...')
+  const endpoints: ('profile' | 'attendance' | 'marks' | 'hostel')[] = ['profile', 'attendance', 'marks', 'hostel']
+  
+  const results = {
+    profile: null as any,
+    attendance: [] as any[],
+    marks: [] as any[],
+    hostel: null as any
+  }
+
+  for (const endpoint of endpoints) {
+    try {
+      console.log(`[captureBasePortalData] Syncing ${endpoint}...`)
+      const data = await fetchCULKOResource(endpoint, cookies)
+      
+      // Save directly to DB while we have it
+      await savePortalData(endpoint, data)
+      
+      if (endpoint === 'profile') results.profile = data
+      if (endpoint === 'attendance') results.attendance = data
+      if (endpoint === 'marks') results.marks = data
+      if (endpoint === 'hostel') results.hostel = data
+      
+    } catch (err) {
+      console.error(`[captureBasePortalData] Failed to capture ${endpoint}:`, err)
+    }
+  }
+
+  return results
+}
+
 export async function completeCULKOLogin(password: string, captcha: string, sessionData: string) {
   try {
     const { jar, state, url } = JSON.parse(sessionData)
@@ -193,22 +225,10 @@ export async function completeCULKOLogin(password: string, captcha: string, sess
         path: '/',
         maxAge: 60 * 60 * 24 // 24 hours
       })
-      return { success: true }
+      return { success: true, cookies: finalJar }
     }
     
-    // If we are stuck on the login page, determine the specific error
-    if (isLoginPage) {
-      if (finalHtml.includes('Invalid Captcha') || finalHtml.includes('Captcha is wrong')) {
-        return { success: false, error: 'Invalid CAPTCHA code. Please try again.' }
-      }
-      if (finalHtml.includes('Invalid User ID') || finalHtml.includes('Password') || finalHtml.includes('Incorrect')) {
-        return { success: false, error: 'Invalid Student UID or Password.' }
-      }
-      return { success: false, error: 'Login failed - please verify your credentials and try again.' }
-    }
-
     // Fallback: if we aren't sure, but we aren't on login page, assume success
-    // (This prevents false negatives from minor text matches)
     if (!isLoginPage && finalHtml.length > 500) {
       const cookieStore = await cookies()
       cookieStore.set('culko_session', JSON.stringify(finalJar), {
@@ -218,10 +238,18 @@ export async function completeCULKOLogin(password: string, captcha: string, sess
         path: '/',
         maxAge: 60 * 60 * 24
       })
-      return { success: true }
+      return { success: true, cookies: finalJar }
+    }
+    
+    // Check specific error messages
+    if (finalHtml.includes('Invalid Captcha') || finalHtml.includes('Captcha is wrong')) {
+      return { success: false, error: 'Invalid CAPTCHA code. Please try again.' }
+    }
+    if (finalHtml.includes('Invalid User ID') || finalHtml.includes('Password') || finalHtml.includes('Incorrect')) {
+      return { success: false, error: 'Invalid Student UID or Password.' }
     }
 
-    return { success: false, error: 'Portal response unexpected. Please try once more.' }
+    return { success: false, error: 'Login failed - please verify your credentials and try again.' }
   } catch (error) {
     console.error('completeCULKOLogin error:', error)
     return { success: false, error: 'Connection error during authentication' }

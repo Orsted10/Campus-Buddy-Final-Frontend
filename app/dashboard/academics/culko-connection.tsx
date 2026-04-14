@@ -94,8 +94,11 @@ export default function CULKOConnectionManager() {
       if (!res.ok) throw new Error(data.error || 'Login failed')
 
       if (data.status === 'done') {
-        setStatusMsg('Capturing your data...')
-        setStep('submitting') // Re-use submitting state for data capture
+        setStatusMsg(data.synced ? 'Saving your academic records...' : 'Capturing your data...')
+        setStep('submitting')
+        
+        // Wait a tiny bit for the cookie to settle in the browser/webview
+        await new Promise(r => setTimeout(r, 800))
         
         // Explicitly trigger sync and WAIT for it
         const success = await usePortalStore.getState().syncAll()
@@ -103,11 +106,17 @@ export default function CULKOConnectionManager() {
         if (success) {
           setIsConnected(true)
           setStep('done')
-          toast.success('Portal connected and data synced!')
+          toast.success('All records synced and ready!')
         } else {
-          toast.warning('Logged in, but data capture had a hiccup. Trying again...')
-          setIsConnected(true)
-          setStep('done')
+          // If synced was true, even a "failed" syncAll is okay because data is in DB
+          if (data.synced) {
+            setIsConnected(true)
+            setStep('done')
+          } else {
+            toast.warning('Logged in, but data capture had a hiccup. Trying again...')
+            setIsConnected(true)
+            setStep('done')
+          }
         }
       }
     } catch (e: any) {
