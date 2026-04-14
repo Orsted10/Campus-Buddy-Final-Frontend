@@ -91,7 +91,20 @@ export default function AttendancePage() {
         <p className="text-muted-foreground max-w-md">
           Failed to connect to CULKO. Check your internet or portal credentials.
         </p>
-        <button onClick={() => syncAll()} className="text-primary font-bold underline">Retry Sync</button>
+        <div className="flex flex-col gap-3 w-full max-w-xs">
+          <button 
+            onClick={() => syncAll()} 
+            className="w-full bg-primary text-background py-3 rounded-2xl font-black uppercase tracking-widest text-sm hover:opacity-90 transition-all shadow-lg shadow-primary/20"
+          >
+            Retry Sync
+          </button>
+          <button 
+            onClick={() => window.location.href = '/dashboard/academics'} 
+            className="w-full bg-background border border-border py-3 rounded-2xl font-black uppercase tracking-widest text-sm hover:bg-muted transition-all"
+          >
+            Manage Credentials
+          </button>
+        </div>
       </div>
     )
   }
@@ -106,7 +119,12 @@ export default function AttendancePage() {
         <p className="text-muted-foreground max-w-md">
           You need to sync your CULKO portal to view advanced attendance analytics and predictions.
         </p>
-        <a href="/dashboard/academics" className="text-primary font-bold underline">Connect now</a>
+        <button 
+          onClick={() => window.location.href = '/dashboard/academics'} 
+          className="bg-primary text-background px-8 py-3 rounded-2xl font-black uppercase tracking-widest text-sm hover:opacity-90 transition-all shadow-lg shadow-primary/20"
+        >
+          Connect Now
+        </button>
       </div>
     )
   }

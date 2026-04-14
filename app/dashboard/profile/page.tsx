@@ -21,8 +21,8 @@ export default function ProfilePage() {
     const fetchProfile = async () => {
       try {
         const [pRes, aRes] = await Promise.all([
-          fetch(getApiUrl('/api/culko/profile')),
-          fetch(getApiUrl('/api/culko/attendance'))
+          fetch(getApiUrl('/api/culko?endpoint=profile')),
+          fetch(getApiUrl('/api/culko?endpoint=attendance'))
         ])
 
         const pData = await pRes.json()
@@ -69,6 +69,12 @@ export default function ProfilePage() {
         <p className="text-muted-foreground max-w-md">
           {error || "You need to sync your CULKO portal to view your academic student ID details."}
         </p>
+        <button 
+          onClick={() => window.location.href = '/dashboard/academics'} 
+          className="bg-primary text-background px-8 py-3 rounded-2xl font-black uppercase tracking-widest text-sm hover:opacity-90 transition-all shadow-lg shadow-primary/20"
+        >
+          Connect Now
+        </button>
       </div>
     )
   }

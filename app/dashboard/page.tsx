@@ -201,7 +201,7 @@ export default function DashboardPage() {
       <div className="grid gap-6 lg:grid-cols-12">
         {/* 2. SMART TIMELINE (LEFT COL) */}
         <div className="lg:col-span-8 space-y-6">
-          <div className="grid gap-6 sm:grid-cols-2">
+          <div className="grid gap-6 sm:grid-cols-2 items-start">
              {/* Next Up Class Widget */}
              <Card className="card-app overflow-hidden group">
                 <CardHeader className="pb-2">
