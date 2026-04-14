@@ -12,6 +12,17 @@ export const getBaseUrl = () => {
   return process.env.NEXT_PUBLIC_SITE_URL || 'https://campus-buddy-phi.vercel.app'
 }
 
+export const isNativeApp = () => {
+  if (typeof window === 'undefined') return false
+  // Capacitor runs on localhost without a port by default, 
+  // or it will have a 'capacitor://' origin
+  return (
+    window.location.hostname === 'localhost' && !window.location.port ||
+    window.location.protocol === 'capacitor:' ||
+    (window as any).Capacitor !== undefined
+  )
+}
+
 export const getApiUrl = (path: string) => {
   const base = getBaseUrl()
   return `${base}${path}`

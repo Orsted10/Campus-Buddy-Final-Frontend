@@ -10,9 +10,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const supabase = createClient()
 
   useEffect(() => {
-    // 1. Handle Deep Linking for Auth (Supabase PKCE)
+    // 1. Initial State Check (Replaces Middleware for App)
+    const checkInitialSession = async () => {
+      const isApp = window.location.hostname === 'localhost' && !window.location.port || 
+                    window.location.protocol === 'capacitor:'
+
+      const { data: { session } } = await supabase.auth.getSession()
+      const pathname = window.location.pathname
+
+      if (isApp) {
+        if (session && (pathname === '/' || pathname === '/login' || pathname === '/signup')) {
+          router.replace('/dashboard')
+        } else if (!session && pathname.startsWith('/dashboard')) {
+          router.replace('/login')
+        }
+      }
+    }
+
+    checkInitialSession()
+
+    // 2. Handle Deep Linking for Auth (Supabase PKCE)
     const handleUrlOpen = async (event: any) => {
-      // url example: com.campusbuddy.app://callback?code=...
       const url = new URL(event.url)
       
       if (url.host === 'callback') {
@@ -21,8 +39,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           try {
             const { error } = await supabase.auth.exchangeCodeForSession(code)
             if (error) throw error
-            
-            // Redirect to dashboard after successful session exchange
             router.push('/dashboard')
           } catch (err) {
             console.error('Deep link exchange failed:', err)
@@ -31,10 +47,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    // 2. Add listener
     App.addListener('appUrlOpen', handleUrlOpen)
 
-    // 3. Clean up
     return () => {
       App.removeAllListeners()
     }

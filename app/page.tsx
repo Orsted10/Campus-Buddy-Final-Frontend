@@ -59,7 +59,85 @@ const fadeUp = {
   }),
 }
 
+import { isNativeApp } from '@/lib/api-config'
+
 export default function LandingPage() {
+  const isApp = isNativeApp()
+
+  // NATIVE APP INTRO SCREEN (Discord/YouTube Style)
+  if (isApp) {
+    return (
+      <div className="h-screen w-full bg-background overflow-hidden relative flex flex-col pt-safe pb-safe mesh-bg">
+        {/* Immersive Background Orbs */}
+        <div className="absolute top-[-10%] left-[-20%] w-[150%] h-[60%] bg-primary/20 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-[-20%] right-[-20%] w-[120%] h-[50%] bg-accent/10 rounded-full blur-[100px] pointer-events-none" />
+
+        <div className="flex-1 flex flex-col items-center justify-center px-8 relative z-10">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+            className="w-24 h-24 rounded-[2rem] bg-primary flex items-center justify-center mb-8 glow-olive shadow-2xl"
+          >
+            <span className="text-background font-black text-3xl">CB</span>
+          </motion.div>
+
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2, duration: 0.5 }}
+            className="text-5xl font-black tracking-tighter text-white mb-4 text-center leading-tight"
+          >
+            Campus<br/><span className="text-gradient">Buddy</span>
+          </motion.h1>
+
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4, duration: 0.8 }}
+            className="text-muted-foreground text-center max-w-[280px] font-medium leading-relaxed"
+          >
+            Your university life, supercharged. Live updates, AI assistance, and more.
+          </motion.p>
+        </div>
+
+        {/* Action Buttons at the Bottom */}
+        <div className="px-6 pb-12 space-y-4 relative z-10 w-full">
+          <Link href="/login" className="block w-full">
+            <motion.button
+              whileTap={{ scale: 0.96 }}
+              className="w-full bg-primary text-background font-black py-5 rounded-[1.5rem] tracking-widest uppercase text-sm glow-olive-sm shadow-xl"
+            >
+              Sign In
+            </motion.button>
+          </Link>
+          
+          <Link href="/signup" className="block w-full">
+            <motion.button
+              whileTap={{ scale: 0.96 }}
+              className="w-full glass border border-white/10 text-white font-black py-5 rounded-[1.5rem] tracking-widest uppercase text-sm"
+            >
+              Create Account
+            </motion.button>
+          </Link>
+
+          <div className="pt-4 flex items-center justify-center gap-6 opacity-30">
+             <div className="flex flex-col items-center">
+                <span className="text-[10px] font-black uppercase tracking-tighter">Active Sync</span>
+                <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse mt-1" />
+             </div>
+             <div className="w-px h-6 bg-white/20" />
+             <div className="flex flex-col items-center">
+                <span className="text-[10px] font-black uppercase tracking-tighter">Secure Link</span>
+                <Shield className="w-2.5 h-2.5 mt-1" />
+             </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // STANDARD WEB MARKETING LANDING
   return (
     <div className="min-h-screen bg-background text-foreground mesh-bg overflow-x-hidden">
       {/* ====================== NAV ====================== */}
