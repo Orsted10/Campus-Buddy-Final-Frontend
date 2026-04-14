@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { usePortalStore } from '@/store/usePortalStore'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { AlertCircle, CheckCircle2, AlertTriangle, GraduationCap, RefreshCw } from 'lucide-react'
@@ -66,6 +67,7 @@ function AttendanceRing({ percentage, attended, total }: { percentage: number, a
 }
 
 export default function AttendancePage() {
+  const router = useRouter()
   const { 
     attendance, 
     portalStatus, 
@@ -100,7 +102,7 @@ export default function AttendancePage() {
             Retry Sync
           </button>
           <button 
-            onClick={() => window.location.href = '/dashboard/academics'} 
+            onClick={() => router.push('/dashboard/academics')} 
             className="w-full bg-background border border-border py-3 rounded-2xl font-black uppercase tracking-widest text-sm hover:bg-muted transition-all"
           >
             Manage Credentials
@@ -121,7 +123,7 @@ export default function AttendancePage() {
           You need to sync your CULKO portal to view advanced attendance analytics and predictions.
         </p>
         <button 
-          onClick={() => window.location.href = '/dashboard/academics'} 
+          onClick={() => router.push('/dashboard/academics')} 
           className="bg-primary text-background px-8 py-3 rounded-2xl font-black uppercase tracking-widest text-sm hover:opacity-90 transition-all shadow-lg shadow-primary/20"
         >
           Connect Now

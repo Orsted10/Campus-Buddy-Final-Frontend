@@ -94,9 +94,21 @@ export default function CULKOConnectionManager() {
       if (!res.ok) throw new Error(data.error || 'Login failed')
 
       if (data.status === 'done') {
-        setIsConnected(true)
-        setStep('done')
-        toast.success('Connected to CULKO portal!')
+        setStatusMsg('Capturing your data...')
+        setStep('submitting') // Re-use submitting state for data capture
+        
+        // Explicitly trigger sync and WAIT for it
+        const success = await usePortalStore.getState().syncAll()
+        
+        if (success) {
+          setIsConnected(true)
+          setStep('done')
+          toast.success('Portal connected and data synced!')
+        } else {
+          toast.warning('Logged in, but data capture had a hiccup. Trying again...')
+          setIsConnected(true)
+          setStep('done')
+        }
       }
     } catch (e: any) {
       setStep('captcha')

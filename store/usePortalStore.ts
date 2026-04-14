@@ -65,53 +65,54 @@ export const usePortalStore = create<PortalState>()(
         lastSync: null
       }),
 
-      syncAll: async () => {
-        if (get().isSyncing) return
+      syncAll: async (): Promise<boolean> => {
+        if (get().isSyncing) return false
         
-        // Phase 1: Reset status to trigger UI change
-        set({ isSyncing: true, portalStatus: null })
-        
-        // Phase 2: Status check
-        await get().checkStatus()
+        set({ isSyncing: true })
         
         try {
-          const [attendRes, ttRes, profileRes, hostelRes, syncRes] = await Promise.all([
+          // Verify status first
+          const connected = await get().checkStatus()
+          if (!connected) {
+            set({ isSyncing: false })
+            return false
+          }
+
+          const [attendRes, ttRes, profileRes, hostelRes, marksRes, syncRes] = await Promise.all([
             fetch(getApiUrl('/api/culko?endpoint=attendance')),
             fetch(getApiUrl('/api/culko?endpoint=timetable')),
             fetch(getApiUrl('/api/culko?endpoint=profile')),
             fetch(getApiUrl('/api/culko?endpoint=hostel')),
-            fetch(getApiUrl('/api/culko?endpoint=announcements')) // Background sync session check
+            fetch(getApiUrl('/api/culko?endpoint=marks')),
+            fetch(getApiUrl('/api/culko?endpoint=announcements'))
           ])
 
-          const [attendance, timetable, profile, hostel] = await Promise.all([
+          const [attendance, timetable, profile, hostel, marks] = await Promise.all([
             attendRes.json(),
             ttRes.json(),
             profileRes.json(),
-            hostelRes.json()
+            hostelRes.json(),
+            marksRes.json()
           ])
 
           const updates: Partial<PortalState> = {
             lastSync: new Date().toISOString(),
-            isSyncing: false
+            isSyncing: false,
+            portalStatus: 'connected'
           }
 
           if (attendRes.ok && attendance.success) updates.attendance = attendance.data || []
           if (ttRes.ok && timetable.success) updates.timetable = timetable.data
           if (profileRes.ok && profile.success) updates.profile = profile.data
           if (hostelRes.ok && hostel.success) updates.hostel = hostel.data
-
-          const anySuccess = attendRes.ok || ttRes.ok || profileRes.ok || hostelRes.ok || syncRes.ok
-          
-          if (anySuccess) {
-            updates.portalStatus = 'connected'
-          } else if (syncRes.status === 401 || attendRes.status === 401) {
-            updates.portalStatus = 'no_session'
-          }
+          if (marksRes.ok && marks.success) updates.marks = marks.data || []
 
           set(updates)
+          return true
         } catch (err) {
           console.error('Portal sync failed:', err)
           set({ portalStatus: 'error', isSyncing: false })
+          return false
         }
       }
     }),

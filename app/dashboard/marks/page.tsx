@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { AlertCircle, Award, LayoutGrid, List, Loader2 } from 'lucide-react'
 import {
@@ -13,12 +14,13 @@ import { usePortalStore } from '@/store/usePortalStore'
 import { getApiUrl } from '@/lib/api-config'
 
 export default function MarksPage() {
-  const { marks: cachedMarks, portalStatus } = usePortalStore()
+  const router = useRouter()
+  const { marks: cachedMarks, portalStatus, lastSync } = usePortalStore()
   const [subjects, setSubjects] = useState<any[]>(cachedMarks || [])
-  const [loading, setLoading] = useState(!cachedMarks)
+  const [loading, setLoading] = useState(cachedMarks ? (cachedMarks.length === 0) : true)
   const [metadata, setMetadata] = useState({
-    isCached: true,
-    lastSync: new Date().toISOString()
+    isCached: !!lastSync && (portalStatus === 'no_session' || portalStatus === 'logout'),
+    lastSync: lastSync || null
   })
 
   useEffect(() => {
@@ -65,7 +67,7 @@ export default function MarksPage() {
           You need to sync your CULKO portal to view your structured marks and grades.
         </p>
         <button 
-          onClick={() => window.location.href = '/dashboard/academics'} 
+          onClick={() => router.push('/dashboard/academics')} 
           className="bg-primary text-background px-8 py-3 rounded-2xl font-black uppercase tracking-widest text-sm hover:opacity-90 transition-all shadow-lg shadow-primary/20"
         >
           Connect Now
