@@ -22,6 +22,7 @@ export const metadata: Metadata = {
 };
 
 import { AppProvider } from "@/components/providers/AppProvider";
+import { ConfigProvider } from "@/components/providers/ConfigProvider";
 
 export default function RootLayout({
   children,
@@ -32,10 +33,12 @@ export default function RootLayout({
     <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable} h-full`} suppressHydrationWarning>
       <body className="min-h-full flex flex-col" style={{ fontFamily: 'var(--font-inter), system-ui, sans-serif' }}>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
-          <AppProvider>
-            {children}
-            <Toaster richColors position="top-right" />
-          </AppProvider>
+          <ConfigProvider>
+            <AppProvider>
+              {children}
+              <Toaster richColors position="top-right" />
+            </AppProvider>
+          </ConfigProvider>
         </ThemeProvider>
       </body>
     </html>

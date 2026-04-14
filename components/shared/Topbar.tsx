@@ -21,7 +21,7 @@ export default function Topbar() {
   }
 
   return (
-    <header className="sticky top-0 z-40 w-full glass-panel border-b border-white/5 px-4 md:px-6 py-2.5 md:py-4 md:mr-4 md:mt-4 lg:rounded-2xl transition-all shadow-sm bg-background/50 backdrop-blur-xl">
+    <header className="sticky top-0 z-40 w-full glass-panel border-b border-black/5 dark:border-white/5 px-4 md:px-6 py-2.5 md:py-4 md:mr-4 md:mt-4 lg:rounded-2xl transition-all shadow-sm bg-background/70 dark:bg-background/50 backdrop-blur-xl">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 md:gap-4">
           <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center glow-olive-sm">
@@ -29,7 +29,7 @@ export default function Topbar() {
           </div>
           
           <div className="flex flex-col">
-            <h2 className="text-sm md:text-xl font-black text-white tracking-widest uppercase">
+            <h2 className="text-sm md:text-xl font-black text-foreground tracking-widest uppercase">
               Campus Buddy
             </h2>
           </div>

@@ -14,13 +14,15 @@ import {
   CalendarDays
 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
-import { MESS_MENU } from '@/lib/constants'
+import { Card, CardContent } from '@/components/ui/card'
+import { useConfig } from '@/components/providers/ConfigProvider'
 import { getISTDate, isBetweenTimings } from '@/lib/utils-date'
 import { cn } from '@/lib/utils'
 
 const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
 export default function MessMenuPage() {
+  const { messMenu: MESS_MENU } = useConfig()
   const [selectedDay, setSelectedDay] = useState('')
   const [currentTime, setCurrentTime] = useState(new Date())
 

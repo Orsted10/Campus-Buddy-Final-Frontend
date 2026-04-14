@@ -68,10 +68,12 @@ export const usePortalStore = create<PortalState>()(
       syncAll: async () => {
         if (get().isSyncing) return
         
-        // Phase 1: Fast Status Update (<100ms)
+        // Phase 1: Reset status to trigger UI change
+        set({ isSyncing: true, portalStatus: null })
+        
+        // Phase 2: Status check
         await get().checkStatus()
         
-        set({ isSyncing: true })
         try {
           const [attendRes, ttRes, profileRes, hostelRes, syncRes] = await Promise.all([
             fetch(getApiUrl('/api/culko?endpoint=attendance')),

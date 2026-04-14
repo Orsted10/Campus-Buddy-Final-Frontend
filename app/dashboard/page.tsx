@@ -16,10 +16,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { getISTDate, isBetweenTimings, parseTimeString } from '@/lib/utils-date'
-import { MESS_MENU, ACADEMIC_CALENDAR_2026 } from '@/lib/constants'
 import { useRouter } from 'next/navigation'
+import { useConfig } from '@/components/providers/ConfigProvider'
 
 export default function DashboardPage() {
+  const { academicCalendar: ACADEMIC_CALENDAR_2026, messMenu: MESS_MENU } = useConfig()
   const user = useAuthStore((state: any) => state.user)
   const { notifications, setNotifications } = useNotificationStore()
   const router = useRouter()
@@ -212,7 +213,37 @@ export default function DashboardPage() {
                    </div>
                 </CardHeader>
                 <CardContent className="space-y-4 mobile-comfy">
-                   {classStatus?.isLunchBreak ? (
+                   {todayStatus.type === 'holiday' ? (
+                      <div className="py-6 text-center space-y-4 bg-blue-500/5 rounded-2xl border border-blue-500/10">
+                         <div className="w-16 h-16 bg-blue-500/10 rounded-full flex items-center justify-center mx-auto">
+                            <Sun className="w-8 h-8 text-blue-500" />
+                         </div>
+                         <div>
+                            <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest">VACATION MODE</p>
+                            <h3 className="text-xl font-black text-foreground">{todayStatus.name}</h3>
+                            <p className="text-xs text-muted-foreground mt-1">Enjoy your well-deserved break! No classes today.</p>
+                         </div>
+                      </div>
+                   ) : todayStatus.type === 'exam' ? (
+                      <div className="py-6 text-center space-y-4 bg-primary/5 rounded-2xl border border-primary/10 glow-olive-sm">
+                         <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
+                            <Sparkles className="w-8 h-8 text-primary" />
+                         </div>
+                         <div>
+                            <p className="text-[10px] font-black text-primary uppercase tracking-widest">EXAM SEASON</p>
+                            <h3 className="text-xl font-black text-foreground">{todayStatus.name}</h3>
+                            <p className="text-xs text-muted-foreground mt-1">Focus on your goals. You've got this! Good luck.</p>
+                         </div>
+                         <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="bg-primary/10 text-primary border-primary/20 font-black uppercase tracking-widest text-[10px] mx-auto"
+                            onClick={() => router.push('/dashboard/marks')}
+                         >
+                            Check Past Marks
+                         </Button>
+                      </div>
+                   ) : classStatus?.isLunchBreak ? (
                       <div className="relative pl-6 border-l-2 border-orange-500/30 py-1 bg-orange-500/5 rounded-r-lg">
                         <div className="absolute -left-[5px] top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-orange-500" />
                         <p className="text-[10px] font-black text-orange-500 uppercase">LUNCH BREAK</p>

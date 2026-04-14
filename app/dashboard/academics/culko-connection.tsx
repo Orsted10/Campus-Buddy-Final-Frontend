@@ -9,6 +9,8 @@ import {
 } from 'lucide-react'
 import { usePortalStore } from '@/store/usePortalStore'
 
+import { getApiUrl } from '@/lib/api-config'
+
 type Step = 'credentials' | 'waiting' | 'captcha' | 'submitting' | 'done'
 
 export default function CULKOConnectionManager() {
@@ -30,7 +32,7 @@ export default function CULKOConnectionManager() {
 
   const checkConnection = async () => {
     try {
-      const res = await fetch('/api/culko/status')
+      const res = await fetch(getApiUrl('/api/culko/status'))
       if (res.ok) {
         const data = await res.json()
         setIsConnected(data.connected)
@@ -45,7 +47,7 @@ export default function CULKOConnectionManager() {
   const handleDisconnect = async () => {
     setIsConnected(false)
     usePortalStore.getState().clearData()
-    await fetch('/api/culko/logout')
+    await fetch(getApiUrl('/api/culko/logout'))
     toast.info('Session disconnected')
   }
 
@@ -55,7 +57,7 @@ export default function CULKOConnectionManager() {
     setStatusMsg('Connecting to portal...')
 
     try {
-      const res = await fetch('/api/culko/login/init', {
+      const res = await fetch(getApiUrl('/api/culko/login/init'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ uid, password }),
@@ -82,7 +84,7 @@ export default function CULKOConnectionManager() {
     setStatusMsg('Verifying...')
 
     try {
-      const res = await fetch('/api/culko/login/submit', {
+      const res = await fetch(getApiUrl('/api/culko/login/submit'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sessionId, captchaText }),
