@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { getApiUrl } from '@/lib/api-config'
+import { getApiUrl, isNativeApp } from '@/lib/api-config'
 
 interface PortalState {
   attendance: any[]
@@ -78,16 +78,27 @@ export const usePortalStore = create<PortalState>()(
       syncAll: async (): Promise<boolean> => {
         if (get().isSyncing) return false
         
+        const isNative = isNativeApp()
+
+        console.log(`[usePortalStore] syncAll triggered. Native=${isNative}, Status=${get().portalStatus}`)
+        
         set({ isSyncing: true })
         
         try {
-          // KEY FIX: If already marked 'connected' (persisted), skip HTTP status check.
-          // The HTTP check fails on mobile Capacitor webview since cookies aren't 
-          // forwarded the same way. Trust the persisted status instead.
+          // SESSION RECOVERY: If status is 'connected' but cookies are missing on native, 
+          // we are in a 'fake success' state from an old version. Clear status to force re-login.
+          if (isNative && get().portalStatus === 'connected' && !get().culkoCookies) {
+            console.warn('[usePortalStore] Native app connected but missing persistent cookies. Forcing re-login.')
+            set({ portalStatus: 'no_session', isSyncing: false })
+            return false
+          }
+
+          // Verify connection if not already explicitly trusted
           const currentStatus = get().portalStatus
           if (currentStatus !== 'connected') {
             const connected = await get().checkStatus()
             if (!connected) {
+              console.log('[usePortalStore] Not connected to portal. Sync aborted.')
               set({ isSyncing: false })
               return false
             }
@@ -95,6 +106,10 @@ export const usePortalStore = create<PortalState>()(
 
           const headers = {
             'x-culko-session': get().culkoCookies ? JSON.stringify(get().culkoCookies) : ''
+          }
+          
+          if (isNative) {
+             console.log('[usePortalStore] Sending request with x-culko-session header. Cookie length:', headers['x-culko-session'].length)
           }
 
           const [attendRes, ttRes, profileRes, hostelRes, marksRes] = await Promise.all([
@@ -107,6 +122,7 @@ export const usePortalStore = create<PortalState>()(
 
           // 401 on all data endpoints = session truly died
           if (attendRes.status === 401 && profileRes.status === 401) {
+            console.error('[usePortalStore] Session expired (401 from server).')
             set({ portalStatus: 'no_session', isSyncing: false })
             return false
           }
@@ -130,6 +146,12 @@ export const usePortalStore = create<PortalState>()(
           if (profileRes.ok && profile.success) updates.profile = profile.data
           if (hostelRes.ok && hostel.success) updates.hostel = hostel.data
           if (marksRes.ok && marks.success) updates.marks = marks.data || []
+
+          console.log('[usePortalStore] Sync completed.', { 
+            attendance: !!attendance.data, 
+            marks: !!marks.data,
+            profile: !!profile.data 
+          })
 
           set(updates)
           return true

@@ -19,6 +19,13 @@ export async function GET(req: Request) {
   // fetchCULKOData handles: live fetch → save to DB → fallback to DB
   // The isCached flag tells us which path was taken
   const customSessionCookie = req.headers.get('x-culko-session') || undefined
+  
+  if (customSessionCookie) {
+    console.log(`[GET /api/culko] Received x-culko-session header for endpoint: ${endpoint}`)
+  } else {
+    console.log(`[GET /api/culko] No x-culko-session header provided for endpoint: ${endpoint}. Falling back to cookie jar.`)
+  }
+
   const result = await fetchCULKOData(endpoint, customSessionCookie)
   
   if (result.success) {
