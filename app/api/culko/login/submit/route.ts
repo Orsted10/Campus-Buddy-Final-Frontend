@@ -33,7 +33,7 @@ export async function POST(req: Request) {
     }
 
     // Respond immediately — client gets this in ~1-2 seconds!
-    return NextResponse.json({ status: 'done', success: true })
+    return NextResponse.json({ status: 'done', success: true, cookies: result.cookies })
 
   } catch (error: any) {
     console.error('Error in login submit:', error)
