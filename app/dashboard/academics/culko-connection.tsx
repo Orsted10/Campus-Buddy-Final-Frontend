@@ -37,7 +37,12 @@ export default function CULKOConnectionManager() {
 
   const checkConnection = async () => {
     try {
-      const res = await fetch(getApiUrl('/api/culko/status'))
+      const { culkoCookies } = usePortalStore.getState()
+      const res = await fetch(getApiUrl('/api/culko/status'), {
+        headers: {
+          'x-culko-session': culkoCookies ? JSON.stringify(culkoCookies) : ''
+        }
+      })
       if (res.ok) {
         const data = await res.json()
         setIsConnected(data.connected)
@@ -50,9 +55,14 @@ export default function CULKOConnectionManager() {
   }
 
   const handleDisconnect = async () => {
+    const { culkoCookies, clearData } = usePortalStore.getState()
     setIsConnected(false)
-    usePortalStore.getState().clearData()
-    await fetch(getApiUrl('/api/culko/logout'))
+    await fetch(getApiUrl('/api/culko/logout'), {
+      headers: {
+        'x-culko-session': culkoCookies ? JSON.stringify(culkoCookies) : ''
+      }
+    })
+    clearData()
     toast.info('Session disconnected')
   }
 

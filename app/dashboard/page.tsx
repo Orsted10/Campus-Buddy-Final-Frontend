@@ -258,7 +258,7 @@ export default function DashboardPage() {
                      <div className="relative pl-6 border-l-2 border-primary/30 py-1">
                         <div className="absolute -left-[5px] top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-primary" />
                         <p className="text-[10px] font-black text-primary uppercase">RIGHT NOW</p>
-                        <h3 className="font-black text-foreground text-lg leading-tight group-hover:text-primary transition-colors line-clamp-1">{classStatus.current.subject}</h3>
+                        <h3 className="font-black text-foreground text-lg leading-tight group-hover:text-primary transition-colors">{classStatus.current.subject}</h3>
                         <p className="text-xs text-muted-foreground flex items-center gap-2 mt-1">
                            <Clock className="w-3 h-3" /> {classStatus.current.time}
                            <span className="w-1 h-1 rounded-full bg-black/10 dark:bg-white/10" />
