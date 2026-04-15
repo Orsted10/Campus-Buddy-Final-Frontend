@@ -121,6 +121,9 @@ export default function CULKOConnectionManager() {
       }
 
       if (data.status === 'done') {
+        if (data.cookies) {
+          usePortalStore.getState().setPortalCookies(data.cookies)
+        }
         // IMMEDIATELY mark as connected in the store — mobile sees this instantly
         usePortalStore.getState().setPortalStatus('connected')
         

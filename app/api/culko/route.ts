@@ -18,7 +18,8 @@ export async function GET(req: Request) {
   
   // fetchCULKOData handles: live fetch → save to DB → fallback to DB
   // The isCached flag tells us which path was taken
-  const result = await fetchCULKOData(endpoint)
+  const customSessionCookie = req.headers.get('x-culko-session') || undefined
+  const result = await fetchCULKOData(endpoint, customSessionCookie)
   
   if (result.success) {
     // If it's announcements, we also save them as notifications

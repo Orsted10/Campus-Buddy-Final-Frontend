@@ -286,10 +286,10 @@ export interface AnnouncementRecord {
   link?: string
 }
 
-export async function fetchCULKOData(endpoint: 'attendance' | 'marks' | 'timetable' | 'profile' | 'announcements' | 'hostel') {
+export async function fetchCULKOData(endpoint: 'attendance' | 'marks' | 'timetable' | 'profile' | 'announcements' | 'hostel', customCookie?: string) {
   try {
     const cookieStore = await cookies()
-    const culkoCookies = cookieStore.get('culko_session')
+    const culkoCookies = customCookie || cookieStore.get('culko_session')?.value
     
     if (!culkoCookies) {
       console.warn(`[fetchCULKOData] No session for ${endpoint}. Trying DB fallback...`)
@@ -309,7 +309,7 @@ export async function fetchCULKOData(endpoint: 'attendance' | 'marks' | 'timetab
     }
     
     // Parse cookies
-    const sessionCookies = JSON.parse(culkoCookies.value)
+    const sessionCookies = JSON.parse(culkoCookies)
     
     // SECURITY: Identity Binding Check
     // If we have a profile in the store, we should check if the cookie UID matches

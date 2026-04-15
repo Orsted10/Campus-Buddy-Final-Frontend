@@ -11,10 +11,12 @@ interface PortalState {
   portalStatus: 'connected' | 'no_session' | 'error' | null
   lastSync: string | null
   isSyncing: boolean
+  culkoCookies: Record<string, string> | null
   
   // Actions
   setPortalData: (data: Partial<PortalState>) => void
   setPortalStatus: (status: 'connected' | 'no_session' | 'error') => void
+  setPortalCookies: (cookies: Record<string, string> | null) => void
   clearData: () => void
   
   // High-level sync action
@@ -33,14 +35,20 @@ export const usePortalStore = create<PortalState>()(
       portalStatus: null,
       lastSync: null,
       isSyncing: false,
+      culkoCookies: null,
 
       setPortalData: (data) => set((state) => ({ ...state, ...data })),
       
       setPortalStatus: (status) => set({ portalStatus: status }),
+      setPortalCookies: (cookies) => set({ culkoCookies: cookies }),
       
       checkStatus: async () => {
         try {
-          const res = await fetch(getApiUrl('/api/culko/status'))
+          const res = await fetch(getApiUrl('/api/culko/status'), {
+            headers: {
+              'x-culko-session': get().culkoCookies ? JSON.stringify(get().culkoCookies) : ''
+            }
+          })
           const data = await res.json()
           if (data.connected) {
             set({ portalStatus: 'connected' })
@@ -62,7 +70,9 @@ export const usePortalStore = create<PortalState>()(
         profile: null,
         hostel: null,
         portalStatus: null,
-        lastSync: null
+        lastSync: null,
+        isSyncing: false,
+        culkoCookies: null
       }),
 
       syncAll: async (): Promise<boolean> => {
@@ -83,12 +93,16 @@ export const usePortalStore = create<PortalState>()(
             }
           }
 
+          const headers = {
+            'x-culko-session': get().culkoCookies ? JSON.stringify(get().culkoCookies) : ''
+          }
+
           const [attendRes, ttRes, profileRes, hostelRes, marksRes] = await Promise.all([
-            fetch(getApiUrl('/api/culko?endpoint=attendance')),
-            fetch(getApiUrl('/api/culko?endpoint=timetable')),
-            fetch(getApiUrl('/api/culko?endpoint=profile')),
-            fetch(getApiUrl('/api/culko?endpoint=hostel')),
-            fetch(getApiUrl('/api/culko?endpoint=marks')),
+            fetch(getApiUrl('/api/culko?endpoint=attendance'), { headers }),
+            fetch(getApiUrl('/api/culko?endpoint=timetable'), { headers }),
+            fetch(getApiUrl('/api/culko?endpoint=profile'), { headers }),
+            fetch(getApiUrl('/api/culko?endpoint=hostel'), { headers }),
+            fetch(getApiUrl('/api/culko?endpoint=marks'), { headers }),
           ])
 
           // 401 on all data endpoints = session truly died
@@ -137,7 +151,8 @@ export const usePortalStore = create<PortalState>()(
         profile: state.profile,
         hostel: state.hostel,
         lastSync: state.lastSync,
-        portalStatus: state.portalStatus  // <-- persist so app remembers connection
+        portalStatus: state.portalStatus,
+        culkoCookies: state.culkoCookies
       })
     }
   )
