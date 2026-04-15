@@ -36,9 +36,11 @@ export default function OnboardingPage() {
   useEffect(() => {
     if (!loading && user) {
       if (!needsOnboarding) {
-        // If they don't need onboarding, go to dashboard
         router.replace('/dashboard')
       }
+    } else if (!loading && !user) {
+      // If we finished loading and there's NO user, go back to login
+      router.replace('/login')
     }
   }, [loading, needsOnboarding, user, router])
 
@@ -51,15 +53,12 @@ export default function OnboardingPage() {
 
     setIsSubmitting(true)
     try {
-      // 1. Double-check session directly from source if state is missing
-      let userId = user?.id
-      if (!userId) {
-        const { data: { session } } = await supabase.auth.getSession()
-        userId = session?.user?.id
-      }
+      // 1. Get UID directly from session to be 100% sure we don't hit null
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      const userId = session?.user?.id
 
-      if (!userId) {
-        throw new Error('Could not verify your student identity. Please refresh the page and try once more.')
+      if (sessionError || !userId) {
+        throw new Error('Your session has expired. Please log in again.')
       }
 
       // 2. Use upsert instead of update to handle cases where the SQL trigger 

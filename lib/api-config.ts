@@ -1,17 +1,16 @@
 export const isNativeApp = () => {
   if (typeof window === 'undefined') return false
   
-  const hostname = window.location.hostname
-  const protocol = window.location.protocol
-  const isCap = (window as any).Capacitor !== undefined || (window as any)._cap !== undefined
+  // STRICT CAPACITOR DETECTION
+  // We only return true if we are running inside the native wrapper
+  const isCapacitor = (window as any).Capacitor?.isNative || 
+                      (window as any).Capacitor?.platform !== undefined ||
+                      (window as any)._cap !== undefined
+                      
+  const isCapacitorProtocol = window.location.protocol === 'capacitor:'
+  const isAndroidEmulator = window.location.hostname === '10.0.2.2'
   
-  return (
-    isCap ||
-    protocol === 'capacitor:' ||
-    protocol === 'http:' && hostname === 'localhost' && !window.location.port ||
-    hostname === 'localhost' && !window.location.port ||
-    hostname.includes('10.0.2.2') // Android Emulator
-  )
+  return isCapacitor || isCapacitorProtocol || isAndroidEmulator
 }
 
 export const getBaseUrl = () => {
