@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
+import { isNativeApp } from '@/lib/api-config'
 import { useAuthStore } from '@/store/useAuthStore'
 import type { Profile } from '@/types/database'
 
@@ -147,13 +148,11 @@ export function useAuth() {
 
   const signInWithGoogle = async () => {
     try {
-      // For Capacitor apps, we use a custom deep link scheme
-      // For web apps, we use the standard origin
-      const isApp = typeof window !== 'undefined' && 
-                    (window.location.hostname === 'localhost' && !window.location.port)
+      // For Capacitor apps, we use the server-side bridge to solve PKCE verifier mismatch
+      const isApp = isNativeApp()
       
       const redirectTo = isApp 
-        ? 'com.campusbuddy.app://callback'
+        ? 'https://campus-buddy-phi.vercel.app/auth/callback?source=app'
         : `${window.location.origin}/auth/callback`
 
       const { data, error } = await supabase.auth.signInWithOAuth({

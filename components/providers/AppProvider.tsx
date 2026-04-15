@@ -29,19 +29,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     checkInitialSession()
 
-    // 2. Handle Deep Linking for Auth (Supabase PKCE)
+    // 2. Handle Deep Linking for Auth (Session Injection)
     const handleUrlOpen = async (event: any) => {
       const url = new URL(event.url)
       
       if (url.host === 'callback') {
-        const code = url.searchParams.get('code')
-        if (code) {
+        const accessToken = url.searchParams.get('access_token')
+        const refreshToken = url.searchParams.get('refresh_token')
+
+        if (accessToken && refreshToken) {
           try {
-            const { error } = await supabase.auth.exchangeCodeForSession(code)
+            const { error } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken
+            })
             if (error) throw error
             router.push('/dashboard')
           } catch (err) {
-            console.error('Deep link exchange failed:', err)
+            console.error('Deep link session injection failed:', err)
           }
         }
       }

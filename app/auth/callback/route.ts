@@ -9,12 +9,24 @@ export async function GET(request: Request) {
 
   if (code) {
     const supabase = await createClient()
-    const { error } = await supabase.auth.exchangeCodeForSession(code)
-    if (!error) {
-      const forwardedHost = request.headers.get('x-forwarded-host') // normalized proxy host
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+    
+    if (!error && data.session) {
+      const source = searchParams.get('source')
+      const accessToken = data.session.access_token
+      const refreshToken = data.session.refresh_token
+
+      // 1. Handle Mobile App Redirection (Deep Linking)
+      if (source === 'app') {
+        const appCallbackUrl = `com.campusbuddy.app://callback?access_token=${accessToken}&refresh_token=${refreshToken}`
+        return NextResponse.redirect(appCallbackUrl)
+      }
+
+      // 2. Handle Web Redirection
+      const forwardedHost = request.headers.get('x-forwarded-host')
       const isLocalEnv = process.env.NODE_ENV === 'development'
+      
       if (isLocalEnv) {
-        // we can be sure that origin is localhost
         return NextResponse.redirect(`${origin}${next}`)
       } else if (forwardedHost) {
         return NextResponse.redirect(`https://${forwardedHost}${next}`)
