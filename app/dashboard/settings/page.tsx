@@ -13,6 +13,8 @@ import {
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { createClient } from '@/lib/supabase/client'
 import { 
   Dialog, DialogContent, DialogDescription, 
   DialogFooter, DialogHeader, DialogTitle, 
@@ -56,6 +58,30 @@ export default function SettingsPage() {
   const [isDeleting, setIsDeleting] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState('')
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  
+  // Password Update State
+  const [newPassword, setNewPassword] = useState('')
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false)
+  const supabase = createClient()
+
+  const handleUpdatePassword = async () => {
+    if (newPassword.length < 6) {
+      toast.error('Password must be at least 6 characters')
+      return
+    }
+
+    setIsUpdatingPassword(true)
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword })
+      if (error) throw error
+      toast.success('Password updated successfully!')
+      setNewPassword('')
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update password')
+    } finally {
+      setIsUpdatingPassword(false)
+    }
+  }
 
   const handleDeleteAccount = async () => {
     if (deleteConfirm !== 'DELETE') {
@@ -202,6 +228,41 @@ export default function SettingsPage() {
                     <ThemeToggle theme="System" icon={Shield} active={activeTheme === 'System'} onClick={() => setActiveTheme('System')} />
                 </CardContent>
             </Card>
+
+            {/* SECURITY & PASSWORD */}
+            <Card className="glass-panel border-black/5 dark:border-white/5 overflow-hidden animate-in fade-in slide-in-from-bottom-4" style={{ animationDelay: `0.3s` }}>
+                <CardHeader className="border-b border-black/5 dark:border-white/5 bg-black/[0.02] dark:bg-white/2 pb-4">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center">
+                            <Shield className="w-5 h-5 text-orange-500" />
+                        </div>
+                        <CardTitle className="text-xl font-black">Security</CardTitle>
+                    </div>
+                </CardHeader>
+                <CardContent className="p-5 space-y-4">
+                    <div className="space-y-2">
+                        <label className="text-xs font-black text-muted-foreground uppercase tracking-widest">Update Password</label>
+                        <div className="flex gap-3">
+                            <Input 
+                                type="password" 
+                                placeholder="New ultra-secure password" 
+                                value={newPassword}
+                                onChange={(e) => setNewPassword(e.target.value)}
+                                className="bg-black/5 dark:bg-white/5 border-white/10 rounded-xl"
+                            />
+                            <Button 
+                                onClick={handleUpdatePassword} 
+                                disabled={isUpdatingPassword || !newPassword}
+                                className="rounded-xl font-black px-6"
+                            >
+                                {isUpdatingPassword ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Update'}
+                            </Button>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground font-medium">Changing this will update your Campus Buddy login, not your university portal password.</p>
+                    </div>
+                </CardContent>
+            </Card>
+
 
             {/* DANGER ZONE */}
             <Card className="border-destructive/20 bg-destructive/5 overflow-hidden">

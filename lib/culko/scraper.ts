@@ -260,9 +260,18 @@ export async function completeCULKOLogin(password: string, captcha: string, sess
 
 interface AttendanceRecord {
   name: string
+  code: string
   attended: string
   total: string
-  percentage?: string
+  percentage: string
+  idl: string
+  adl: string
+  vdl: string
+  medicalLeave: string
+  eligibleDelivered: string
+  eligibleAttended: string
+  eligiblePercentage: string
+  detailsUrl?: string
 }
 
 interface MarkEvaluation {
@@ -286,7 +295,19 @@ export interface AnnouncementRecord {
   link?: string
 }
 
-export async function fetchCULKOData(endpoint: 'attendance' | 'marks' | 'timetable' | 'profile' | 'announcements' | 'hostel', customCookie?: string) {
+export interface AttendanceHistoryRecord {
+  date: string
+  type: string
+  time: string
+  status: string
+  markedBy: string
+}
+
+export async function fetchCULKOData(
+  endpoint: 'attendance' | 'marks' | 'timetable' | 'profile' | 'announcements' | 'hostel' | 'attendance-details', 
+  customCookie?: string,
+  extraParams?: { courseCode?: string }
+) {
   try {
     const cookieStore = await cookies()
     const culkoCookies = customCookie || cookieStore.get('culko_session')?.value
@@ -311,22 +332,13 @@ export async function fetchCULKOData(endpoint: 'attendance' | 'marks' | 'timetab
     // Parse cookies
     const sessionCookies = JSON.parse(culkoCookies)
     
-    // SECURITY: Identity Binding Check
-    // If we have a profile in the store, we should check if the cookie UID matches
-    // But since this is server-side, we check against the database profile.
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    
-    if (user) {
-      const { data: profile } = await supabase.from('profiles').select('student_id').eq('id', user.id).maybeSingle()
-      
-      // If we can't verify the owner, we proceed but with caution. 
-      // A more robust check would be to scrape the portal profile once and cache it.
-      // For now, if the user explicitly has a student_id, we should eventually bind it.
-    }
-    
     // Make request to CULKO
-    const response = await fetchCULKOResource(endpoint, sessionCookies)
+    let response: any
+    if (endpoint === 'attendance-details' && extraParams?.courseCode) {
+      response = await fetchAttendanceDetails(sessionCookies, extraParams.courseCode)
+    } else {
+      response = await fetchCULKOResource(endpoint, sessionCookies)
+    }
     
     // MUST await - fire-and-forget is killed by serverless before it resolves
     try {
@@ -445,10 +457,68 @@ async function fetchCULKOResource(endpoint: string, cookies: Record<string, stri
       return fetchAnnouncementsViaAjax(url, cookies)
     case 'hostel':
       return parseHostelDetails(html)
+    case 'attendance-details':
+      return parseAttendanceHistory(html)
     default:
       throw new Error(`Unknown endpoint: ${endpoint}`)
   }
 }
+
+async function fetchAttendanceDetails(cookies: Record<string, string>, courseCode: string) {
+  // Step 1: Get the required params (ReportID and Session)
+  const summaryUrl = BASE_URL + '/frmStudentCourseWiseAttendanceSummary.aspx?type=etgkYfqBdH1fSfc255iYGw=='
+  const summaryRes = await fetch(summaryUrl, {
+    headers: {
+      'Cookie': Object.entries(cookies).map(([k, v]) => `${k}=${v}`).join('; '),
+      'User-Agent': USER_AGENT
+    }
+  })
+  const html = await summaryRes.text()
+  
+  const reportIdMatch = html.match(/getReport\(['"]([^'"]+)['"]\s*,\s*['"]?(\d+)['"]?\)/)
+  if (!reportIdMatch) throw new Error('Could not find report ID for details')
+  
+  const reportId = reportIdMatch[1]
+  const session = reportIdMatch[2]
+  
+  const detailsUrl = `${BASE_URL}/frmStudentAttendanceDetails.aspx?ID=${reportId}&CourseCode=${courseCode}&Session=${session}`
+  console.log('[fetchAttendanceDetails] Fetching:', detailsUrl)
+  
+  const response = await fetch(detailsUrl, {
+    headers: {
+      'Cookie': Object.entries(cookies).map(([k, v]) => `${k}=${v}`).join('; '),
+      'User-Agent': USER_AGENT
+    }
+  })
+  
+  const detailsHtml = await response.text()
+  return parseAttendanceHistory(detailsHtml)
+}
+
+function parseAttendanceHistory(html: string): AttendanceHistoryRecord[] {
+  const $ = cheerio.load(html)
+  const history: AttendanceHistoryRecord[] = []
+  
+  const table = $('table#dgAttendanceDetail, table#grvAttendance, .table')
+  
+  table.find('tr').each((i, row) => {
+    if (i === 0) return // Skip header
+    
+    const cells = $(row).find('td')
+    if (cells.length >= 5) {
+      history.push({
+        date: $(cells[1]).text().trim(),
+        type: $(cells[2]).text().trim(),
+        time: $(cells[3]).text().trim(),
+        status: $(cells[4]).text().trim(),
+        markedBy: $(cells[7]).text().trim() || $(cells[cells.length-1]).text().trim()
+      })
+    }
+  })
+  
+  return history
+}
+
 
 async function fetchAnnouncementsViaAjax(url: string, cookies: Record<string, string>): Promise<AnnouncementRecord[]> {
   const ajaxUrl = url.split('?')[0] + '/GetAnnouncements'
@@ -723,18 +793,26 @@ function parseAttendanceHTML(html: string): AttendanceRecord[] {
       console.log('Cheerio found attendance table!')
       
       // Map columns dynamically based on headers
-      let titleIdx = 1, delvIdx = 2, attdIdx = 3, percIdx = 10
+      let codeIdx = 0, titleIdx = 1, delvIdx = 2, attdIdx = 3, idlIdx = 4, adlIdx = 5, vdlIdx = 6, mlIdx = 7, elimDelvIdx = 8, elimAttdIdx = 9, percIdx = 10
       const headers = table.find('th')
       
       headers.each((i, th) => {
         const text = $(th).text().toLowerCase().trim()
+        if (text.includes('code')) codeIdx = i
         if (text.includes('title') || text.includes('subject') || text.includes('course')) titleIdx = i
-        if (text.includes('delv') || text.includes('delivered')) delvIdx = i
-        if (text.includes('attd') || text.includes('attended')) attdIdx = i
-        if (text.includes('percentage') || text === '%') percIdx = i
+        if (text.includes('total delv') || (text.includes('total') && text.includes('delv'))) delvIdx = i
+        if (text.includes('total attd') || (text.includes('total') && text.includes('attd'))) attdIdx = i
+        if (text === 'idl') idlIdx = i
+        if (text === 'adl') adlIdx = i
+        if (text === 'vdl') vdlIdx = i
+        if (text.includes('medical')) mlIdx = i
+        if (text.includes('eligible delivered')) elimDelvIdx = i
+        if (text.includes('eligible attended')) elimAttdIdx = i
+        if (text.includes('eligible percentage')) percIdx = i
+        else if (percIdx === 10 && (text.includes('percentage') || text === '%')) percIdx = i
       })
       
-      console.log(`Mapped Attendance Columns: Title=${titleIdx}, Delv=${delvIdx}, Attd=${attdIdx}, Perc=${percIdx}`)
+      console.log(`Mapped Attendance Columns: Title=${titleIdx}, EligDelv=${elimDelvIdx}, EligAttd=${elimAttdIdx}`)
       
       const rows = table.find('tr')
       
@@ -743,36 +821,37 @@ function parseAttendanceHTML(html: string): AttendanceRecord[] {
         if ($(row).find('th').length > 0) return 
         
         const cells = $(row).find('td')
-        if (cells.length > Math.max(titleIdx, delvIdx, attdIdx) || cells.length >= 4) {
+        if (cells.length >= 10) {
+          const code = $(cells[codeIdx]).text().trim()
+          const title = $(cells[titleIdx]).text().trim()
+          const totalDelv = $(cells[delvIdx]).text().trim()
+          const totalAttd = $(cells[attdIdx]).text().trim()
+          const idl = $(cells[idlIdx]).text().trim()
+          const adl = $(cells[adlIdx]).text().trim()
+          const vdl = $(cells[vdlIdx]).text().trim()
+          const ml = $(cells[mlIdx]).text().trim()
+          const eligDelv = $(cells[elimDelvIdx]).text().trim()
+          const eligAttd = $(cells[elimAttdIdx]).text().trim()
+          const eligPerc = $(cells[percIdx]).text().trim()
           
-          let title = cells.length > titleIdx ? $(cells[titleIdx]).text().trim() : ''
-          let delivered = cells.length > delvIdx ? $(cells[delvIdx]).text().trim() : ''
-          let attended = cells.length > attdIdx ? $(cells[attdIdx]).text().trim() : ''
-          let percentage = percIdx < cells.length ? $(cells[percIdx]).text().trim() : undefined
-          
-          // Fallback parsing if Title is still empty or indices failed spectacularly
-          if (!title || (!attended && !delivered)) {
-            const allText: string[] = []
-            cells.each((_, c) => { allText.push($(c).text().trim()) })
-            title = allText.find(t => t.length > 3 && /[a-zA-Z]/.test(t)) || 'Unknown'
-            const nums = allText.filter(t => /^\d+$/.test(t) || /^[\d.]+$/.test(t)) // match ints or floats
-            
-            if (nums.length >= 2) {
-               // usually the first numbers are attended/delivered
-               attended = nums[0] || '0'
-               delivered = nums[1] || '0'
-               if (nums.length > 2) {
-                 percentage = `${nums[2]}%`
-               }
-            }
-          }
+          // Extract details link params
+          const viewBtn = $(cells[cells.length - 1]).find('input[type="submit"], input[type="button"], a')
+          const onclick = viewBtn.attr('onclick') || ''
           
           if (title && title !== 'Unknown') {
             records.push({
               name: title,
-              attended: attended || '0',
-              total: delivered || '0',
-              percentage: percentage
+              code: code,
+              attended: totalAttd,
+              total: totalDelv,
+              percentage: eligPerc, // Prioritize eligible percentage
+              idl,
+              adl,
+              vdl,
+              medicalLeave: ml,
+              eligibleDelivered: eligDelv,
+              eligibleAttended: eligAttd,
+              eligiblePercentage: eligPerc
             })
           }
         }

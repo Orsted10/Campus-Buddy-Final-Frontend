@@ -7,11 +7,12 @@ import { savePortalData, getPortalData, PortalDataType, saveAnnouncementsAsNotif
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
-  const endpoint = searchParams.get('endpoint') as PortalDataType
+  const endpoint = searchParams.get('endpoint') as any
+  const courseCode = searchParams.get('courseCode')
   
-  if (!endpoint || !['attendance', 'marks', 'timetable', 'profile', 'announcements', 'hostel'].includes(endpoint)) {
+  if (!endpoint || !['attendance', 'marks', 'timetable', 'profile', 'announcements', 'hostel', 'attendance-details'].includes(endpoint)) {
     return NextResponse.json(
-      { error: 'Invalid endpoint. Use: attendance, marks, timetable, profile, announcements, or hostel' },
+      { error: 'Invalid endpoint.' },
       { status: 400 }
     )
   }
@@ -26,7 +27,8 @@ export async function GET(req: Request) {
     console.log(`[GET /api/culko] No x-culko-session header provided for endpoint: ${endpoint}. Falling back to cookie jar.`)
   }
 
-  const result = await fetchCULKOData(endpoint, customSessionCookie)
+  const extraParams = courseCode ? { courseCode } : undefined
+  const result = await fetchCULKOData(endpoint, customSessionCookie, extraParams)
   
   if (result.success) {
     // If it's announcements, we also save them as notifications

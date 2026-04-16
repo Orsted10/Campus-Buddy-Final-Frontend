@@ -67,7 +67,8 @@ export default function OnboardingPage() {
         .from('profiles')
         .upsert({ 
           id: userId,
-          email: session.user.email, // Added to fix NOT NULL constraint error
+          email: session.user.email,
+          role: session.user.user_metadata?.role || 'student', // Fixed: Added role to satisfy NOT NULL constraint
           student_id: studentId.toUpperCase(),
           full_name: fullName,
           updated_at: new Date().toISOString()

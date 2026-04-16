@@ -3,12 +3,32 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { usePortalStore } from '@/store/usePortalStore'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { AlertCircle, CheckCircle2, AlertTriangle, GraduationCap, RefreshCw } from 'lucide-react'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { AlertCircle, CheckCircle2, AlertTriangle, GraduationCap, RefreshCw, Calendar, Clock, User, ChevronRight, X } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { getApiUrl } from '@/lib/api-config'
+import { Badge } from '@/components/ui/badge'
 
 // Render prediction ring logic
-function AttendanceRing({ percentage, attended, total }: { percentage: number, attended: number, total: number }) {
+function AttendanceRing({ 
+  percentage, 
+  attended, 
+  total,
+  idl = "0",
+  adl = "0",
+  vdl = "0",
+  ml = "0",
+  onViewDetails
+}: { 
+  percentage: number, 
+  attended: number, 
+  total: number,
+  idl?: string,
+  adl?: string,
+  vdl?: string,
+  ml?: string,
+  onViewDetails?: () => void
+}) {
   const isSafe = percentage >= 75
   const isBorderline = percentage >= 70 && percentage < 75
   
@@ -51,17 +71,144 @@ function AttendanceRing({ percentage, attended, total }: { percentage: number, a
         </div>
       </div>
       
-      <div className="w-full space-y-2 text-center sm:text-left">
-        <div className="flex justify-between text-sm mb-1 px-1">
-          <span className="text-muted-foreground">Attended: <strong className="text-foreground">{attended}</strong></span>
-          <span className="text-muted-foreground">Total Delivered: <strong className="text-foreground">{total}</strong></span>
+      <div className="w-full space-y-3 text-center sm:text-left">
+        <div className="flex justify-between items-end">
+          <div className="space-y-1">
+             <div className="flex items-center gap-2">
+                <span className="text-xs font-black uppercase text-muted-foreground tracking-widest">Attendance Status</span>
+             </div>
+             <div className="flex items-center gap-3">
+                <div className="flex flex-col">
+                  <span className="text-[10px] text-muted-foreground uppercase font-bold">Eligible Attd</span>
+                  <span className="text-lg font-black text-foreground">{attended}</span>
+                </div>
+                <div className="w-px h-6 bg-border/50" />
+                <div className="flex flex-col">
+                  <span className="text-[10px] text-muted-foreground uppercase font-bold">Eligible Delv</span>
+                  <span className="text-lg font-black text-foreground">{total}</span>
+                </div>
+             </div>
+          </div>
+          
+          <button 
+            onClick={onViewDetails}
+            className="flex items-center gap-1 text-[10px] font-black uppercase text-primary hover:text-primary/80 transition-colors tracking-widest group"
+          >
+            Details <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+          </button>
         </div>
         
-        <div className={`text-sm p-3 rounded-lg flex items-start gap-2 ${isSafe ? 'bg-green-500/10 text-green-600 dark:text-green-400' : 'bg-red-500/10 text-red-600 dark:text-red-400'}`}>
-          {isSafe ? <CheckCircle2 className="w-5 h-5 flex-shrink-0" /> : <AlertTriangle className="w-5 h-5 flex-shrink-0" />}
-          <p className="leading-tight">{message}</p>
+        <div className={`text-xs p-3 rounded-xl flex items-start gap-2 ${isSafe ? 'bg-green-500/10 text-green-600 dark:text-green-400' : 'bg-red-500/10 text-red-600 dark:text-red-400'}`}>
+          {isSafe ? <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0" /> : <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />}
+          <p className="font-bold leading-tight uppercase tracking-tight">{message}</p>
         </div>
+
+        {/* Duty Leave Pills */}
+        {(parseInt(vdl) > 0 || parseInt(ml) > 0) && (
+          <div className="flex flex-wrap gap-2 pt-1 border-t border-border/20">
+             {parseInt(vdl) > 0 && <Badge variant="outline" className="bg-orange-500/10 text-orange-500 border-orange-500/20 text-[9px] px-2 py-0">VDL: {vdl}</Badge>}
+             {parseInt(ml) > 0 && <Badge variant="outline" className="bg-blue-500/10 text-blue-500 border-blue-500/20 text-[9px] px-2 py-0">ML: {ml}</Badge>}
+             {parseInt(idl) > 0 && <Badge variant="outline" className="bg-purple-500/10 text-purple-500 border-purple-500/20 text-[9px] px-2 py-0">IDL: {idl}</Badge>}
+          </div>
+        )}
       </div>
+    </div>
+  )
+}
+
+function HistoryModal({ 
+  isOpen, 
+  onClose, 
+  subjectName, 
+  history, 
+  isLoading 
+}: { 
+  isOpen: boolean, 
+  onClose: () => void, 
+  subjectName: string, 
+  history: any[], 
+  isLoading: boolean 
+}) {
+  if (!isOpen) return null
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
+      <motion.div 
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        className="w-full max-w-2xl max-h-[85vh] overflow-hidden rounded-3xl glass-panel border border-white/10 flex flex-col shadow-2xl"
+      >
+        <div className="p-6 border-b border-white/5 flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur-md z-10">
+          <div>
+            <h2 className="text-xl font-black tracking-tight">{subjectName}</h2>
+            <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest mt-1">Class Attendance Record</p>
+          </div>
+          <button onClick={onClose} className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
+          {isLoading ? (
+            <div className="py-20 flex flex-col items-center justify-center gap-4">
+              <RefreshCw className="w-8 h-8 text-primary animate-spin" />
+              <p className="text-sm font-black text-muted-foreground uppercase tracking-widest animate-pulse">Fetching records...</p>
+            </div>
+          ) : history.length === 0 ? (
+            <div className="py-20 text-center text-muted-foreground font-bold italic uppercase tracking-widest">
+              No detailed records found.
+            </div>
+          ) : (
+            history.map((record, i) => {
+              const isPresent = record.status.toLowerCase().includes('present')
+              const isAbsent = record.status.toLowerCase().includes('absent')
+              const isDL = record.status.toLowerCase().includes('dl') || record.type.toLowerCase().includes('vdl')
+              
+              let statusColor = 'bg-muted text-muted-foreground border-muted-foreground/20'
+              if (isPresent) statusColor = 'bg-green-500/10 text-green-500 border-green-500/20'
+              else if (isAbsent && isDL) statusColor = 'bg-orange-500/10 text-orange-500 border-orange-500/20'
+              else if (isAbsent) statusColor = 'bg-red-500/10 text-red-500 border-red-500/20'
+
+              return (
+                <div key={i} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl glass-strong border border-white/5 group hover:border-white/10 transition-all">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-primary/5 flex flex-col items-center justify-center border border-primary/10">
+                      <span className="text-[8px] font-black uppercase text-primary/60">{record.date.split('/')[1] || '---'}</span>
+                      <span className="text-sm font-black text-primary">{record.date.split('/')[0] || '--'}</span>
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                         <span className="text-sm font-black">{record.date}</span>
+                         <Badge variant="outline" className={`text-[8px] uppercase font-black px-2 py-0 ${statusColor}`}>
+                            {record.status}
+                         </Badge>
+                      </div>
+                      <div className="flex items-center gap-3 mt-1">
+                        <div className="flex items-center gap-1 text-[10px] font-bold text-muted-foreground uppercase tracking-tighter">
+                          <Clock className="w-3 h-3" /> {record.time}
+                        </div>
+                        <div className="flex items-center gap-1 text-[10px] font-bold text-muted-foreground uppercase tracking-tighter">
+                          <User className="w-3 h-3" /> {record.markedBy}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/5 border border-white/5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                    {record.type}
+                  </div>
+                </div>
+              )
+            })
+          )}
+        </div>
+        
+        <div className="p-4 border-t border-white/5 bg-black/20">
+           <p className="text-[9px] font-bold text-muted-foreground/60 uppercase text-center tracking-widest italic">
+             Data synchronized from university portal records.
+           </p>
+        </div>
+      </motion.div>
     </div>
   )
 }
@@ -83,6 +230,32 @@ export default function AttendancePage() {
     }
   }, [])
   
+  const [selectedSubject, setSelectedSubject] = useState<any | null>(null)
+  const [history, setHistory] = useState<any[]>([])
+  const [isHistoryLoading, setIsHistoryLoading] = useState(false)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+
+  const fetchDetails = async (subject: any) => {
+    setSelectedSubject(subject)
+    setIsModalOpen(true)
+    setIsHistoryLoading(true)
+    setHistory([])
+
+    try {
+      const res = await fetch(getApiUrl(`/api/culko?endpoint=attendance-details&courseCode=${subject.code}`))
+      const data = await res.json()
+      if (data.success) {
+        setHistory(data.data)
+      } else {
+        toast.error('Failed to load class history')
+      }
+    } catch (err) {
+      toast.error('Connection error')
+    } finally {
+      setIsHistoryLoading(false)
+    }
+  }
+
   const isDisconnected = portalStatus === 'no_session' || portalStatus === 'logout'
   if (portalStatus === 'error' && attendance.length === 0) {
     return (
@@ -192,8 +365,13 @@ export default function AttendancePage() {
                     <CardContent className="p-4 md:pt-6">
                       <AttendanceRing 
                         percentage={percentageRaw} 
-                        attended={attended} 
-                        total={total} 
+                        attended={parseInt(subject.eligibleAttended) || attended} 
+                        total={parseInt(subject.eligibleDelivered) || total} 
+                        idl={subject.idl}
+                        adl={subject.adl}
+                        vdl={subject.vdl}
+                        ml={subject.medicalLeave}
+                        onViewDetails={() => fetchDetails(subject)}
                       />
                     </CardContent>
                   </Card>
@@ -203,6 +381,14 @@ export default function AttendancePage() {
           </AnimatePresence>
         </div>
       )}
+
+      <HistoryModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        subjectName={selectedSubject?.name || ''} 
+        history={history} 
+        isLoading={isHistoryLoading} 
+      />
     </div>
   )
 }
