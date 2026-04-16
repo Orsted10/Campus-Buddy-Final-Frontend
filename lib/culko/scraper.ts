@@ -475,13 +475,30 @@ async function fetchAttendanceDetails(cookies: Record<string, string>, courseCod
   })
   const html = await summaryRes.text()
   
-  const reportIdMatch = html.match(/getReport\(['"]([^'"]+)['"]\s*,\s*['"]?(\d+)['"]?\)/)
-  if (!reportIdMatch) throw new Error('Could not find report ID for details')
+  // More robust regex to find getReport('UID', 'Session')
+  const reportParamsMatch = html.match(/getReport\(['"]([^'"]+)['"]\s*,\s*['"]?(\d+)['"]?\)/) || 
+                            html.match(/ShowDetails\(['"]([^'"]+)['"]\s*,\s*['"]?(\d+)['"]?\)/)
   
-  const reportId = reportIdMatch[1]
-  const session = reportIdMatch[2]
+  let reportId, sessionId
   
-  const detailsUrl = `${BASE_URL}/frmStudentAttendanceDetails.aspx?ID=${reportId}&CourseCode=${courseCode}&Session=${session}`
+  if (reportParamsMatch) {
+    reportId = reportParamsMatch[1]
+    sessionId = reportParamsMatch[2]
+  } else {
+    // Fallback: search for variables or the GetReport AJAX parameters directly
+    const uidMatch = html.match(/var\s+UID\s*=\s*['"]([^'"]+)['"]/) || html.match(/UID:\s*['"]([^'"]+)['"]/)
+    const sessionMatch = html.match(/CurrentSession\s*\((\d+)\)/) || html.match(/Session:\s*['"]?(\d+)['"]?/)
+    
+    reportId = uidMatch ? uidMatch[1] : null
+    sessionId = sessionMatch ? sessionMatch[1] : null
+  }
+  
+  if (!reportId || !sessionId) {
+    console.error('[fetchAttendanceDetails] Could not extract params:', { reportId, sessionId })
+    throw new Error('Attendance session parameters not found. Sync portal again.')
+  }
+  
+  const detailsUrl = `${BASE_URL}/frmStudentAttendanceDetails.aspx?ID=${reportId}&CourseCode=${courseCode}&Session=${sessionId}`
   console.log('[fetchAttendanceDetails] Fetching:', detailsUrl)
   
   const response = await fetch(detailsUrl, {
@@ -499,20 +516,32 @@ function parseAttendanceHistory(html: string): AttendanceHistoryRecord[] {
   const $ = cheerio.load(html)
   const history: AttendanceHistoryRecord[] = []
   
-  const table = $('table#dgAttendanceDetail, table#grvAttendance, .table')
+  // Try multiple table patterns
+  const table = $('table#dgAttendanceDetail, table#grvAttendance, table#SortTable, .table-responsive table, table[id*="Attendance"]')
   
   table.find('tr').each((i, row) => {
-    if (i === 0) return // Skip header
+    // Skip headers (th) or the first row if it looks like a header
+    if (i === 0 || $(row).find('th').length > 0) return 
     
     const cells = $(row).find('td')
     if (cells.length >= 5) {
-      history.push({
-        date: $(cells[1]).text().trim(),
-        type: $(cells[2]).text().trim(),
-        time: $(cells[3]).text().trim(),
-        status: $(cells[4]).text().trim(),
-        markedBy: $(cells[7]).text().trim() || $(cells[cells.length-1]).text().trim()
-      })
+      const date = $(cells[1]).text().trim()
+      const type = $(cells[2]).text().trim()
+      const time = $(cells[3]).text().trim()
+      const status = $(cells[4]).text().trim()
+      
+      // Marked by is usually further right (cell 7 or last)
+      const markedBy = $(cells[7]).text().trim() || $(cells[cells.length-1]).text().trim()
+      
+      if (date && status) {
+        history.push({
+          date,
+          type,
+          time,
+          status,
+          markedBy
+        })
+      }
     }
   })
   
@@ -749,15 +778,35 @@ async function fetchAttendanceViaAjax(url: string, cookies: Record<string, strin
       }
       
       let title = getVal(['title', 'coursename', 'subject', 'name', 'course']) || 'Unknown'
-      let attended = getVal(['totalattd', 'attended', 'totalattended', 'attd', 'present']) || '0'
-      let total = getVal(['totaldelv', 'delivered', 'totaldelivered', 'delv', 'total']) || '0'
+      let attended = getVal(['totalattd', 'totalattended', 'attended', 'attd', 'present']) || '0'
+      let total = getVal(['totaldelv', 'totaldelivered', 'delivered', 'delv', 'total', 'deliver']) || '0'
       let percentage = getVal(['totalpercentage', 'percentage', 'perc', 'percent']) || '0%'
+      let code = getVal(['coursecode', 'code', 'subjectcode', 'courseno']) || ''
+
+      // ELIGIBLE METRICS (Mandatory for 75% check)
+      let eligDelv = getVal(['eligibledelivered', 'elimdelv', 'serveddelivered', 'eligible_delivered']) || total
+      let eligAttd = getVal(['eligibleattended', 'elimattd', 'servedattended', 'eligible_attended']) || attended
+      let eligPerc = getVal(['eligiblepercentage', 'elimperc', 'eligible_percentage']) || percentage
+
+      // Leave Stats
+      let idl = getVal(['idl', 'internal_dl']) || '0'
+      let adl = getVal(['adl', 'academic_dl']) || '0'
+      let vdl = getVal(['vdl', 'verified_dl']) || '0'
+      let ml = getVal(['medicalleave', 'ml', 'medical_leave']) || '0'
 
       return {
         name: title,
+        code: code,
         attended,
         total,
-        percentage
+        percentage: eligPerc, // Prioritize the one used for criteria
+        idl,
+        adl,
+        vdl,
+        medicalLeave: ml,
+        eligibleDelivered: eligDelv,
+        eligibleAttended: eligAttd,
+        eligiblePercentage: eligPerc
       }
     })
   } catch (error) {

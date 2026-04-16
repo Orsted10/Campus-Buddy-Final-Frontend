@@ -32,20 +32,22 @@ function AttendanceRing({
   const isSafe = percentage >= 75
   const isBorderline = percentage >= 70 && percentage < 75
   
-  // Predict safe skips or needed classes
+  // Predict safe skips or needed classes based on ELIGIBLE metrics
   let message = ''
   let statusColor = isSafe ? 'text-green-500' : 'text-red-500'
   let ringColor = isSafe ? 'stroke-green-500' : (isBorderline ? 'stroke-yellow-500' : 'stroke-red-500')
   
   if (isSafe) {
     let skips = 0
+    // Skip calculation: If I stay home, Served delivered increases, but Attended stays same
     while (((attended) / (total + skips + 1)) >= 0.75) skips++
-    if (skips > 0) message = `Safe Zone: You can safely skip the next ${skips} class${skips > 1 ? 'es' : ''}.`
-    else message = `Safe Zone: But skipping the next class drops you below 75%.`
+    if (skips > 0) message = `Safe Zone: You can skip next ${skips} classes (Portal Criteria).`
+    else message = `Safe Zone: Don't skip! One absence drops you below 75%.`
   } else {
     let needed = 0
+    // Needed calculation: If I attend, both Served and Attended increase
     while (((attended + needed) / (total + needed)) < 0.75) needed++
-    message = `Critical: You need to attend the next ${needed} class${needed > 1 ? 'es' : ''} to reach 75%.`
+    message = `Critical: Attend next ${needed} classes to reach 75%.`
   }
 
   const radius = 35
