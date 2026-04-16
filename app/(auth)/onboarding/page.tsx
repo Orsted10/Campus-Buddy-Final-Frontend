@@ -79,8 +79,17 @@ export default function OnboardingPage() {
       }
 
       toast.success('Profile completed! Welcome aboard.')
-      // Hard refresh with safety parameter to break potential middleware loops
+      
+      // Safety: Clear loading state immediately in case redirect is slow
+      setIsSubmitting(false)
+
+      // Primary: Hard refresh to ensure all middleware/state is clean
       window.location.href = '/dashboard?onboarding_success=true'
+      
+      // Secondary: Fallback router push after a short delay
+      setTimeout(() => {
+        router.push('/dashboard')
+      }, 1000)
     } catch (err: any) {
       toast.error(err.message || 'Failed to complete profile')
     } finally {

@@ -10,11 +10,18 @@ export const isNativeApp = () => {
 
   // 3. Check for native-only protocols
   const isCapacitorProtocol = window.location.protocol === 'capacitor:' || 
-                               window.location.protocol === 'http:' && window.location.hostname === 'localhost' && !window.location.port
+                               (window.location.protocol === 'http:' && window.location.hostname === 'localhost' && !window.location.port)
   
   const isAndroidEmulator = window.location.hostname === '10.0.2.2'
   
-  return isCapacitorObject || isCapacitorUA || isCapacitorProtocol || isAndroidEmulator
+  // 4. Distinguish APK from Desktop Web
+  const isVercel = window.location.hostname.includes('vercel.app') || window.location.hostname.includes('campusbuddy.com')
+  const isDevLocalhost = window.location.hostname === 'localhost' && (window.location.port === '3000' || window.location.port === '5173')
+  
+  // APK is usually localhost/capacitor protocol and NOT on a Vercel domain or Dev port
+  const isProbablyAPK = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'capacitor:') && !isDevLocalhost && !isVercel
+
+  return isCapacitorObject || isCapacitorUA || isCapacitorProtocol || isAndroidEmulator || isProbablyAPK
 }
 
 export const getBaseUrl = () => {
