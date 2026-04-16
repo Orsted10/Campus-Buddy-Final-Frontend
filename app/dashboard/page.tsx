@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button'
 import { getISTDate, isBetweenTimings, parseTimeString } from '@/lib/utils-date'
 import { useRouter } from 'next/navigation'
 import { useConfig } from '@/components/providers/ConfigProvider'
+import { getApiUrl } from '@/lib/api-config'
 
 export default function DashboardPage() {
   const { academicCalendar: ACADEMIC_CALENDAR_2026, messMenu: MESS_MENU } = useConfig()
@@ -53,7 +54,7 @@ export default function DashboardPage() {
     if (!user) return
     try {
       // Sync notifications locally
-      const notifRes = await fetch('/api/notifications')
+      const notifRes = await fetch(getApiUrl('/api/notifications'))
       if (notifRes.ok) {
         const notifs = await notifRes.json()
         setNotifications(notifs)

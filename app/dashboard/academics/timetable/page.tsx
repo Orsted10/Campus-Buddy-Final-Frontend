@@ -14,6 +14,7 @@ import {
   User,
   LayoutGrid
 } from 'lucide-react'
+import { getApiUrl } from '@/lib/api-config'
 import { Card, CardContent } from '@/components/ui/card'
 import { getISTDate } from '@/lib/utils-date'
 import { cn } from '@/lib/utils'
@@ -40,7 +41,7 @@ export default function TimetablePage() {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch('/api/culko?endpoint=timetable')
+      const res = await fetch(getApiUrl('/api/culko?endpoint=timetable'))
       const result = await res.json()
       
       if (result.success) {

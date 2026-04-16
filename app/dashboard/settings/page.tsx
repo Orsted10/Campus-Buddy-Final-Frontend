@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuthStore } from '@/store/useAuthStore'
+import { getApiUrl } from '@/lib/api-config'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { 
@@ -64,7 +65,7 @@ export default function SettingsPage() {
 
     setIsDeleting(true)
     try {
-      const res = await fetch('/api/user/delete', { method: 'DELETE' })
+      const res = await fetch(getApiUrl('/api/user/delete'), { method: 'DELETE' })
       if (!res.ok) throw new Error('Deletion failed')
       
       toast.success('Account deleted successfully. Goodbye!')

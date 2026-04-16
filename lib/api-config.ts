@@ -1,16 +1,20 @@
 export const isNativeApp = () => {
   if (typeof window === 'undefined') return false
   
-  // STRICT CAPACITOR DETECTION
-  // We only return true if we are running inside the native wrapper
-  const isCapacitor = (window as any).Capacitor?.isNative || 
-                      (window as any).Capacitor?.platform !== undefined ||
-                      (window as any)._cap !== undefined
-                      
-  const isCapacitorProtocol = window.location.protocol === 'capacitor:'
+  // 1. Check for Capacitor object/bridge
+  const isCapacitorObject = (window as any).Capacitor?.isNative || 
+                             (window as any)._cap !== undefined
+
+  // 2. Check User Agent (Most reliable for early detection in Android)
+  const isCapacitorUA = navigator.userAgent.includes('Capacitor')
+
+  // 3. Check for native-only protocols
+  const isCapacitorProtocol = window.location.protocol === 'capacitor:' || 
+                               window.location.protocol === 'http:' && window.location.hostname === 'localhost' && !window.location.port
+  
   const isAndroidEmulator = window.location.hostname === '10.0.2.2'
   
-  return isCapacitor || isCapacitorProtocol || isAndroidEmulator
+  return isCapacitorObject || isCapacitorUA || isCapacitorProtocol || isAndroidEmulator
 }
 
 export const getBaseUrl = () => {

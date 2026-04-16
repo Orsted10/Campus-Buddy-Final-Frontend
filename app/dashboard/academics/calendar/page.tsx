@@ -15,6 +15,7 @@ import {
   MapPin,
   User as UserIcon
 } from 'lucide-react'
+import { getApiUrl } from '@/lib/api-config'
 import { Card, CardContent } from '@/components/ui/card'
 import { ACADEMIC_CALENDAR_2026, CalendarEvent } from '@/lib/constants'
 import { getISTDate } from '@/lib/utils-date'
@@ -43,7 +44,7 @@ export default function AcademicCalendarPage() {
 
   const fetchTimetable = async () => {
     try {
-      const res = await fetch('/api/culko?endpoint=timetable')
+      const res = await fetch(getApiUrl('/api/culko?endpoint=timetable'))
       const result = await res.json()
       if (result.success) setTimetable(result.data)
     } catch (err) {
