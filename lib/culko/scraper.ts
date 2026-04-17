@@ -528,30 +528,46 @@ function parseAttendanceHistory(html: string): AttendanceHistoryRecord[] {
   const $ = cheerio.load(html)
   const history: AttendanceHistoryRecord[] = []
   
-  // Very robust table finding
-  const table = $('table').filter((_, el) => {
-    const text = $(el).text().toLowerCase()
-    return text.includes('date') && (text.includes('attendance') || text.includes('present'))
-  }).first()
-  
-  table.find('tr').each((i, row) => {
-    const cells = $(row).find('td')
-    if (cells.length >= 5) {
-      // Check if this looks like a date (e.g. DD/MM/YYYY)
-      const potentialDate = $(cells[1]).text().trim()
-      if (!/^\d/.test(potentialDate)) return
-      
-      const status = $(cells[4]).text().trim()
-      if (!status) return
-
-      history.push({
-        date: potentialDate,
-        type: $(cells[2]).text().trim(),
-        time: $(cells[3]).text().trim(),
-        status: status,
-        markedBy: $(cells[7]).text().trim() || $(cells[cells.length-1]).text().trim()
-      })
-    }
+  // SCAN ALL TABLES - The university portal sometimes wraps history in nested tables
+  $('table').each((_, table) => {
+    $(table).find('tr').each((i, row) => {
+      const cells = $(row).find('td')
+      if (cells.length >= 4) {
+        // Search for a date pattern DD/MM/YYYY in the first few cells
+        let date = ''
+        let dateIdx = -1
+        
+        for (let j = 0; j < Math.min(cells.length, 3); j++) {
+          const txt = $(cells[j]).text().trim()
+          if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(txt)) {
+            date = txt
+            dateIdx = j
+            break
+          }
+        }
+        
+        if (date) {
+          // Once a date is found, mapping is usually consistent:
+          // Date (Idx), Type (Idx+1), Time (Idx+2), Status (Idx+3)
+          const type = $(cells[dateIdx + 1]).text().trim()
+          const time = $(cells[dateIdx + 2]).text().trim()
+          const status = $(cells[dateIdx + 3]).text().trim()
+          
+          // Only add if we have a valid status (Present/Absent/DL/ML/etc)
+          if (status && status.length > 2) {
+            history.push({
+              date,
+              type: type || 'Class',
+              time: time || '--:--',
+              status: status,
+              markedBy: $(cells[dateIdx + 6]).text().trim() || $(cells[cells.length - 1]).text().trim() || 'System'
+            })
+          }
+        }
+      }
+    })
+    
+    if (history.length > 0) return false // break out of table loop if records found
   })
   
   return history
