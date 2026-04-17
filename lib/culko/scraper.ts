@@ -419,12 +419,24 @@ async function fetchCULKOResource(endpoint: string, cookies: Record<string, stri
   // Parse HTML based on endpoint - DIRECT HTML SCRAPING
   switch (endpoint) {
     case 'attendance':
-      // CULKO often loads attendance via AJAX; try that first!
+      // TRY HTML FIRST: Image 2 confirms HTML table has the right 74/75 metrics.
+      // AJAX sometimes returns simplified data.
+      const htmlData = parseAttendanceHTML(html)
+      if (htmlData && htmlData.length > 0) {
+        // Double check if HTML data actually has the eligible fields
+        const hasEligible = htmlData.some(r => r.eligibleDelivered !== r.total)
+        if (hasEligible) {
+           console.log('[fetchCULKOResource] Using High-Accuracy HTML Attendance Data')
+           return htmlData
+        }
+      }
+      
+      console.log('[fetchCULKOResource] HTML low accuracy, trying AJAX fallback...')
       const ajaxData = await fetchAttendanceViaAjax(url, cookies)
       if (ajaxData && ajaxData.length > 0) {
         return ajaxData
       }
-      return parseAttendanceHTML(html)
+      return htmlData // Return whatever we found in HTML if AJAX failed
     case 'marks':
       return parseMarksHTML(html)
     case 'timetable':
@@ -845,15 +857,16 @@ function parseAttendanceHTML(html: string): AttendanceRecord[] {
     const $ = cheerio.load(html)
     
     // Find attendance table
-    let table = $('table#SortTable')
+    let table = $('table#SortTable, table#dgAttendance, table#grvAttendance')
     
     if (table.length === 0) {
-      // Find any table with 'attendance' related text
+      // Find any table with at least 10 columns and 'delivered' text
       $('table').each((_, el) => {
-        const text = $(el).text().toLowerCase()
-        if (text.includes('attendance') || text.includes('present') || text.includes('course')) {
-          table = $(el)
-          return false // break
+        const $el = $(el)
+        const headers = $el.find('th, td.header')
+        if (headers.length >= 10 || $el.text().toLowerCase().includes('eligible delivered')) {
+          table = $el
+          return false 
         }
       })
     }
@@ -891,33 +904,29 @@ function parseAttendanceHTML(html: string): AttendanceRecord[] {
         
         const cells = $(row).find('td')
         if (cells.length >= 10) {
-          const code = $(cells[codeIdx]).text().trim()
+          const code = $(cells[codeIdx]).text().trim().replace(/\s+/g, '')
           const title = $(cells[titleIdx]).text().trim()
           const totalDelv = $(cells[delvIdx]).text().trim()
           const totalAttd = $(cells[attdIdx]).text().trim()
-          const idl = $(cells[idlIdx]).text().trim()
-          const adl = $(cells[adlIdx]).text().trim()
-          const vdl = $(cells[vdlIdx]).text().trim()
-          const ml = $(cells[mlIdx]).text().trim()
-          const eligDelv = $(cells[elimDelvIdx]).text().trim()
-          const eligAttd = $(cells[elimAttdIdx]).text().trim()
-          const eligPerc = $(cells[percIdx]).text().trim()
+          const idl = $(cells[idlIdx]).text().trim() || '0'
+          const adl = $(cells[adlIdx]).text().trim() || '0'
+          const vdl = $(cells[vdlIdx]).text().trim() || '0'
+          const ml = $(cells[mlIdx]).text().trim() || '0'
+          const eligDelv = $(cells[elimDelvIdx]).text().trim() || totalDelv
+          const eligAttd = $(cells[elimAttdIdx]).text().trim() || totalAttd
+          const eligPerc = $(cells[percIdx]).text().trim() || '0%'
           
-          // Extract details link params
-          const viewBtn = $(cells[cells.length - 1]).find('input[type="submit"], input[type="button"], a')
-          const onclick = viewBtn.attr('onclick') || ''
-          
-          if (title && title !== 'Unknown') {
+          if (title && title !== 'Unknown' && title !== 'Title') {
             records.push({
               name: title,
               code: code,
               attended: totalAttd,
               total: totalDelv,
-              percentage: eligPerc, // Prioritize eligible percentage
-              idl,
-              adl,
-              vdl,
-              medicalLeave: ml,
+              percentage: eligPerc,
+              idl: idl !== '0' ? idl : '0',
+              adl: adl !== '0' ? adl : '0',
+              vdl: vdl !== '0' ? vdl : '0',
+              medicalLeave: ml !== '0' ? ml : '0',
               eligibleDelivered: eligDelv,
               eligibleAttended: eligAttd,
               eligiblePercentage: eligPerc
