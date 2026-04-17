@@ -477,50 +477,84 @@ async function fetchCULKOResource(endpoint: string, cookies: Record<string, stri
 }
 
 async function fetchAttendanceDetails(cookies: Record<string, string>, courseCode: string) {
-  // Step 1: Get the required params (ReportID and Session)
-  const summaryUrl = BASE_URL + '/frmStudentCourseWiseAttendanceSummary.aspx?type=etgkYfqBdH1fSfc255iYGw=='
-  const summaryRes = await fetch(summaryUrl, {
-    headers: {
-      'Cookie': Object.entries(cookies).map(([k, v]) => `${k}=${v}`).join('; '),
-      'User-Agent': USER_AGENT
-    }
-  })
+  const cookieStr = Object.entries(cookies).map(([k, v]) => `${k}=${v}`).join('; ')
+  const headers = { 'Cookie': cookieStr, 'User-Agent': USER_AGENT }
+
+  // Step 1: Load the attendance summary page to extract parameters
+  const summaryUrl = `${BASE_URL}/frmStudentCourseWiseAttendanceSummary.aspx?type=etgkYfqBdH1fSfc255iYGw==`
+  console.log('[fetchDetails] Fetching summary to find params...')
+  const summaryRes = await fetch(summaryUrl, { headers })
   const html = await summaryRes.text()
-  
-  // More robust regex to find getReport('UID', 'Session')
-  const reportParamsMatch = html.match(/getReport\(['"]([^'"]+)['"]\s*,\s*['"]?(\d+)['"]?\)/) || 
-                            html.match(/ShowDetails\(['"]([^'"]+)['"]\s*,\s*['"]?(\d+)['"]?\)/)
-  
-  let reportId, sessionId
-  
-  if (reportParamsMatch) {
-    reportId = reportParamsMatch[1]
-    sessionId = reportParamsMatch[2]
-  } else {
-    // Fallback: search for variables or the GetReport AJAX parameters directly
-    const uidMatch = html.match(/var\s+UID\s*=\s*['"]([^'"]+)['"]/) || html.match(/UID:\s*['"]([^'"]+)['"]/)
-    const sessionMatch = html.match(/CurrentSession\s*\((\d+)\)/) || html.match(/Session:\s*['"]?(\d+)['"]?/)
-    
-    reportId = uidMatch ? uidMatch[1] : null
-    sessionId = sessionMatch ? sessionMatch[1] : null
-  }
-  
-  if (!reportId || !sessionId) {
-    console.error('[fetchAttendanceDetails] Could not extract params:', { reportId, sessionId })
-    throw new Error('Attendance session parameters not found. Sync portal again.')
-  }
-  
-  const detailsUrl = `${BASE_URL}/frmStudentAttendanceDetails.aspx?ID=${reportId}&CourseCode=${courseCode}&Session=${sessionId}`
-  console.log('[fetchAttendanceDetails] Fetching:', detailsUrl)
-  
-  const response = await fetch(detailsUrl, {
-    headers: {
-      'Cookie': Object.entries(cookies).map(([k, v]) => `${k}=${v}`).join('; '),
-      'User-Agent': USER_AGENT
+
+  // Log a small snippet so we can see the page structure
+  const snippet = html.substring(0, 2000)
+  console.log('[fetchDetails] Summary HTML snippet (first 2000 chars):', snippet)
+
+  // Try multiple patterns to find ID and Session in the page source
+  let reportId: string | null = null
+  let sessionId: string | null = null
+
+  // Pattern 1: JavaScript function calls like GetReport('XYZ', 123)
+  const patterns = [
+    /GetReport\s*\(\s*['"]([^'"]+)['"]\s*,\s*['"]?(\d+)['"]?\s*\)/i,
+    /getReport\s*\(\s*['"]([^'"]+)['"]\s*,\s*['"]?(\d+)['"]?\s*\)/i,
+    /ShowDetails\s*\(\s*['"]([^'"]+)['"]\s*,\s*['"]?(\d+)['"]?\s*\)/i,
+    /ViewAttendance\s*\(\s*['"]([^'"]+)['"]\s*,\s*['"]?(\d+)['"]?\s*\)/i,
+    /onclick="[^"]*\('([^']+)'\s*,\s*'?(\d+)'?/i,
+  ]
+
+  for (const pattern of patterns) {
+    const match = html.match(pattern)
+    if (match) {
+      reportId = match[1]
+      sessionId = match[2]
+      console.log(`[fetchDetails] Found params via pattern ${pattern.source.substring(0, 30)}: ID=${reportId}, Session=${sessionId}`)
+      break
     }
-  })
-  
-  const detailsHtml = await response.text()
+  }
+
+  // Pattern 2: Look in hidden inputs or data attributes
+  if (!reportId) {
+    const $ = cheerio.load(html)
+    // Look for hidden fields
+    $('input[type="hidden"]').each((_, el) => {
+      const name = $(el).attr('name') || ''
+      const val = $(el).val() as string || ''
+      if (name.toLowerCase().includes('uid') || name.toLowerCase().includes('report')) {
+        reportId = val
+        console.log(`[fetchDetails] Found reportId in hidden input "${name}": ${val}`)
+      }
+      if (name.toLowerCase().includes('session')) {
+        sessionId = val
+        console.log(`[fetchDetails] Found sessionId in hidden input "${name}": ${val}`)
+      }
+    })
+
+    // Look for session in select dropdown
+    if (!sessionId) {
+      const sessionSelect = $('select[id*="Session"], select[name*="Session"]').first()
+      sessionId = sessionSelect.val() as string || null
+      if (sessionId) console.log('[fetchDetails] Found sessionId in select:', sessionId)
+    }
+  }
+
+  if (!reportId || !sessionId) {
+    console.error('[fetchDetails] Could NOT extract params. reportId:', reportId, 'sessionId:', sessionId)
+    console.error('[fetchDetails] Full HTML length:', html.length)
+    // Return empty — callers should handle gracefully
+    return []
+  }
+
+  // Step 2: Fetch the actual details page
+  const detailsUrl = `${BASE_URL}/frmStudentAttendanceDetails.aspx?ID=${reportId}&CourseCode=${courseCode}&Session=${sessionId}`
+  console.log('[fetchDetails] Fetching details:', detailsUrl)
+
+  const detailsRes = await fetch(detailsUrl, { headers })
+  const detailsHtml = await detailsRes.text()
+
+  console.log('[fetchDetails] Details HTML length:', detailsHtml.length)
+  console.log('[fetchDetails] Details HTML snippet:', detailsHtml.substring(0, 1000))
+
   return parseAttendanceHistory(detailsHtml)
 }
 
@@ -830,23 +864,12 @@ async function fetchAttendanceViaAjax(url: string, cookies: Record<string, strin
 
       // PATTERN DISCOVERY FOR CODE
       if (!code || code === '') {
-        const foundCode = keys.find(k => /[A-Z0-9]+-[A-Z0-9]+/.test(String(record[k])))
+        const foundCode = keys.find(k => /^[A-Z0-9]+-[A-Z0-9]+$/.test(String(record[k])))
         if (foundCode) code = String(record[foundCode]).replace(/\s+/g, '')
       }
 
-      // VALUE DISCOVERY FOR ELIGIBLE DELIVERED (The 74 vs 75 fix)
-      if (eligDelv === total) {
-        // Look for keys that have a value slightly less than total (ML/DL usually small)
-        const totalNum = parseInt(total)
-        if (!isNaN(totalNum)) {
-           const likelyElig = keys.find(k => {
-             const val = parseInt(record[k])
-             // Must be exactly what we are looking for (less than total but close)
-             return !isNaN(val) && val < totalNum && val >= (totalNum - 10)
-           })
-           if (likelyElig) eligDelv = String(record[likelyElig])
-        }
-      }
+      // NOTE: NO heuristic value discovery — incorrect records come from that.
+      // Simply trust the explicit key mapping above.
 
       return {
         name: title,
@@ -894,90 +917,82 @@ function parseAttendanceHTML(html: string): AttendanceRecord[] {
     }
     
     if (table.length > 0) {
-      console.log('Cheerio found attendance table!')
+      console.log('[parseAttendanceHTML] Found attendance table!')
       
-      // Map columns dynamically based on headers
-      console.log(`[parseAttendanceHTML] Headers found:`, headers.map((_, h) => $(h).text().trim()).get())
+      // HARDCODED defaults matching portal table structure (verified from screenshot):
+      // Col 0: Code | 1: Title | 2: TotalDelv | 3: TotalAttd | 4: IDL | 5: ADL | 6: VDL
+      // Col 7: MedicalLeave | 8: EligibileDelivered | 9: EligibleAttended | 10: EligiblePercentage | 11: ViewBtn
+      let codeIdx = 0, titleIdx = 1, delvIdx = 2, attdIdx = 3
+      let idlIdx = 4, adlIdx = 5, vdlIdx = 6, mlIdx = 7
+      let elimDelvIdx = 8, elimAttdIdx = 9, percIdx = 10
       
-      headers.each((i, th) => {
-        const text = $(th).text().toLowerCase().replace(/\s+/g, ' ').trim()
-        if (text.includes('code')) codeIdx = i
-        if (text.includes('title') || text.includes('subject') || text.includes('course')) titleIdx = i
-        if (text.includes('total delv') || (text.includes('total') && text.includes('delv'))) delvIdx = i
-        if (text.includes('total attd') || (text.includes('total') && text.includes('attd'))) attdIdx = i
-        if (text === 'idl') idlIdx = i
-        if (text === 'adl') adlIdx = i
-        if (text === 'vdl') vdlIdx = i
-        if (text.includes('medical')) mlIdx = i
-        if (text.includes('eligible delivered')) elimDelvIdx = i
-        if (text.includes('eligible attended')) elimAttdIdx = i
-        if (text.includes('eligible percentage')) percIdx = i
-        else if (percIdx === 10 && (text.includes('percentage') || text === '%')) percIdx = i
-      })
-      
-      console.log(`[parseAttendanceHTML] Mapped: Code=${codeIdx}, Title=${titleIdx}, EligDelv=${elimDelvIdx}, EligAttd=${elimAttdIdx}`)
+      // Dynamic header mapping (override defaults if headers are found)
+      const headers = table.find('th')
+      if (headers.length > 0) {
+        console.log('[parseAttendanceHTML] Headers:', headers.map((_, h) => $(h).text().trim()).get())
+        headers.each((i, th) => {
+          const text = $(th).text().toLowerCase().replace(/\s+/g, ' ').trim()
+          if (text.includes('code')) codeIdx = i
+          else if (text.includes('title') || (text.includes('course') && !text.includes('code'))) titleIdx = i
+          else if (text.includes('total delv')) delvIdx = i
+          else if (text.includes('total attd')) attdIdx = i
+          else if (text.trim() === 'idl') idlIdx = i
+          else if (text.trim() === 'adl') adlIdx = i
+          else if (text.trim() === 'vdl') vdlIdx = i
+          else if (text.includes('medical')) mlIdx = i
+          else if (text.includes('eligible delivered')) elimDelvIdx = i
+          else if (text.includes('eligible attended')) elimAttdIdx = i
+          else if (text.includes('eligible percentage')) percIdx = i
+        })
+        console.log(`[parseAttendanceHTML] Mapped: Code=${codeIdx}, Title=${titleIdx}, TotalDelv=${delvIdx}, EligDelv=${elimDelvIdx}, EligAttd=${elimAttdIdx}, Perc=${percIdx}`)
+      }
       
       const rows = table.find('tr')
-      
       rows.each((i, row) => {
-        // Skip header
-        if ($(row).find('th').length > 0) return 
+        if ($(row).find('th').length > 0) return // Skip header rows
         
         const cells = $(row).find('td')
-        if (cells.length >= 8) { // Even if it's a smaller table
+        if (cells.length >= 8) {
           let code = $(cells[codeIdx]).text().trim().replace(/\s+/g, '')
-          let title = $(cells[titleIdx]).text().trim()
-          let totalDelv = $(cells[delvIdx]).text().trim()
-          let totalAttd = $(cells[attdIdx]).text().trim()
-          let idl = $(cells[idlIdx]).text().trim() || '0'
-          let adl = $(cells[adlIdx]).text().trim() || '0'
-          let vdl = $(cells[vdlIdx]).text().trim() || '0'
-          let ml = $(cells[mlIdx]).text().trim() || '0'
-          let eligDelv = $(cells[elimDelvIdx]).text().trim() || totalDelv
-          let eligAttd = $(cells[elimAttdIdx]).text().trim() || totalAttd
-          let eligPerc = $(cells[percIdx]).text().trim() || '0%'
+          const title = $(cells[titleIdx]).text().trim()
+          const totalDelv = $(cells[delvIdx]).text().trim()
+          const totalAttd = $(cells[attdIdx]).text().trim()
+          const idl = $(cells[idlIdx]).text().trim() || '0'
+          const adl = $(cells[adlIdx]).text().trim() || '0'
+          const vdl = $(cells[vdlIdx]).text().trim() || '0'
+          const ml = $(cells[mlIdx]).text().trim() || '0'
+          // Directly read the eligible columns — NO heuristic fallback that could pick wrong values
+          const eligDelv = $(cells[elimDelvIdx]).text().trim() || totalDelv
+          const eligAttd = $(cells[elimAttdIdx]).text().trim() || totalAttd
+          const eligPerc = $(cells[percIdx]).text().trim() || '0%'
 
-          // PATTERN MATCHING FOR CODE (If column 0 failed)
-          if (!code || code.length < 3 || !code.includes('-')) {
-             cells.each((_, cell) => {
-               const txt = $(cell).text().trim().replace(/\s+/g, '')
-               if (/[A-Z0-9]+-[A-Z0-9]+/.test(txt)) {
-                 code = txt
-                 return false // break
-               }
-             })
-          }
-
-          // VALUE DISCOVERY FOR ELIGIBLE DELIVERED (The 74 vs 75 fix)
-          if (eligDelv === totalDelv) {
-             const tNum = parseInt(totalDelv)
-             if (!isNaN(tNum)) {
-                cells.each((_, cell) => {
-                  const val = parseInt($(cell).text().trim())
-                  if (!isNaN(val) && val < tNum && val >= (tNum - 10)) {
-                    eligDelv = String(val)
-                    return false
-                  }
-                })
-             }
+          // Pattern match for code if column 0 somehow gave wrong value
+          if (!code || code.length < 3 || !code.match(/[A-Z0-9]+-[A-Z0-9]+/)) {
+            cells.each((_, cell) => {
+              const txt = $(cell).text().trim().replace(/\s+/g, '')
+              if (/^[A-Z0-9]+-[A-Z0-9]+$/.test(txt)) {
+                code = txt
+                return false
+              }
+            })
           }
           
-          if (title && title !== 'Unknown' && title !== 'Title' && title.length > 2) {
+          if (title && title.length > 2 && title.toLowerCase() !== 'title') {
             const record = {
               name: title,
-              code: code,
+              code,
               attended: totalAttd,
               total: totalDelv,
               percentage: eligPerc,
-              idl: idl !== '0' ? idl : '0',
-              adl: adl !== '0' ? adl : '0',
-              vdl: vdl !== '0' ? vdl : '0',
-              medicalLeave: ml !== '0' ? ml : '0',
+              idl,
+              adl,
+              vdl,
+              medicalLeave: ml,
               eligibleDelivered: eligDelv,
               eligibleAttended: eligAttd,
               eligiblePercentage: eligPerc
             }
-            if (i < 2) console.log(`[parseAttendanceHTML] Sample Record [${i}]:`, record)
+            if (records.length < 2) console.log(`[parseAttendanceHTML] Record sample:`, record)
             records.push(record)
           }
         }
