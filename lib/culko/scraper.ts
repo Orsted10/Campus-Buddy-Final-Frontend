@@ -481,7 +481,7 @@ async function fetchAttendanceDetails(cookies: Record<string, string>, courseCod
   const reqHeaders: Record<string, string> = {
     'Cookie': cookieStr,
     'User-Agent': USER_AGENT,
-    'Referer': `${BASE_URL}/frmStudentCourseWiseAttendanceSummary.aspx?type=etgkYfqBdH1fSfc255iYGw==`
+    'Referrer': `${BASE_URL}/frmStudentCourseWiseAttendanceSummary.aspx?type=etgkYfqBdH1fSfc255iYGw==`
   }
 
   // 1. Get summary page to extract fresh parameters
@@ -493,11 +493,11 @@ async function fetchAttendanceDetails(cookies: Record<string, string>, courseCod
   // 2. Extract specific parameters for this course
   let obj = courseCode
   if (!chk) {
-    // Exact or partial match on course code in any input
-    const btn = $(`input[obj*="${courseCode}"], input[chk][onclick*="${courseCode}"], [obj="${courseCode}"]`).first()
+    // Look for any button that has obj containing our code (e.g. 25CSH-102)
+    const btn = $(`input[obj*="${courseCode}"], [obj="${courseCode}"], input[chk][onclick*="${courseCode}"]`).first()
     chk = btn.attr('chk') || ''
     obj = btn.attr('obj') || courseCode
-    console.log(`[fetchDetails] Auto-extracted for ${courseCode}: chk=${chk.substring(0, 10)}... obj=${obj}`)
+    console.log(`[fetchDetails] Extracted for ${courseCode}: chk=${chk.substring(0, 10)}... obj=${obj}`)
   }
 
   // 3. Find AJAX URL from script tags
@@ -510,7 +510,7 @@ async function fetchAttendanceDetails(cookies: Record<string, string>, courseCod
     }
   })
 
-  // 4. Try posting to the identified or fallback URL
+  // 4. Try posting to the identified or fallback URL using BOTH JSON and Form-Encoded
   const urls = [
     ajaxUrl,
     '/frmStudentCourseWiseAttendanceSummary.aspx/GetData',
@@ -519,9 +519,11 @@ async function fetchAttendanceDetails(cookies: Record<string, string>, courseCod
   ].filter(Boolean) as string[]
 
   for (const url of urls) {
+    const fullUrl = url.startsWith('http') ? url : `${BASE_URL}/${url.replace(/^\//, '')}`
+    
+    // Try JSON POST (most common for ASP.NET AJAX)
     try {
-      const fullUrl = url.startsWith('http') ? url : `${BASE_URL}/${url.replace(/^\//, '')}`
-      const res = await fetch(fullUrl, {
+      const resJSON = await fetch(fullUrl, {
         method: 'POST',
         headers: {
           ...reqHeaders,
@@ -530,8 +532,8 @@ async function fetchAttendanceDetails(cookies: Record<string, string>, courseCod
         },
         body: JSON.stringify({ chk, obj })
       })
-      if (res.ok) {
-        const text = await res.text()
+      if (resJSON.ok) {
+        const text = await resJSON.text()
         try {
           const parsed = JSON.parse(text)
           const data = parsed.d ? JSON.parse(parsed.d) : parsed
@@ -548,9 +550,28 @@ async function fetchAttendanceDetails(cookies: Record<string, string>, courseCod
         const history = parseAttendanceHistory(text)
         if (history.length > 0) return history
       }
-    } catch (e) {
-      console.log(`[fetchDetails] Failed URL ${url}`)
-    }
+    } catch (e) { /* silent fail */ }
+
+    // Try Form POST (alternative for some portals)
+    try {
+      const formData = new URLSearchParams()
+      formData.append('chk', chk || '')
+      formData.append('obj', obj || '')
+      
+      const resForm = await fetch(fullUrl, {
+        method: 'POST',
+        headers: {
+          ...reqHeaders,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: formData
+      })
+      if (resForm.ok) {
+        const text = await resForm.text()
+        const history = parseAttendanceHistory(text)
+        if (history.length > 0) return history
+      }
+    } catch (e) { /* silent fail */ }
   }
 
   return []
@@ -899,122 +920,127 @@ function parseAttendanceHTML(html: string): AttendanceRecord[] {
   try {
     const $ = cheerio.load(html)
     
-    // 1. Identify the attendance table
-    let table = $('table#SortTable, table#dgAttendance, table#grvAttendance')
-    if (table.length === 0) {
-      $('table').each((_, el) => {
+    // 1. Identify valid attendance tables
+    let tables = $('table#SortTable, table#dgAttendance, table#grvAttendance')
+    if (tables.length === 0) {
+      tables = $('table').filter((_, el) => {
         const txt = $(el).text().toLowerCase()
-        if (txt.includes('eligible delivered') || txt.includes('eligible attended')) {
-          table = $(el)
-          return false
-        }
+        return txt.includes('eligible delivered') || txt.includes('attendance summary')
       })
     }
     
-    if (table.length === 0) {
-      console.log('[parseAttendanceHTML] No attendance table found')
-      return records
-    }
-
-    // 2. Map headers to column indices
-    const colMap: Record<string, number> = {
-      code: 0, title: 1, totalDelv: 2, totalAttd: 3, 
-      idl: 4, adl: 5, vdl: 6, ml: 7, 
-      eligDelv: 8, eligAttd: 9, perc: 10
-    }
-
-    // Attempt to find a real header row to override defaults
-    table.find('tr').each((_, tr) => {
-      const cells = $(tr).find('th, td.header, td[style*="bold"]')
-      if (cells.length >= 8) {
-        cells.each((i, cell) => {
-          const txt = $(cell).text().toLowerCase().replace(/[^a-z ]/g, '').trim()
-          if (txt.includes('code')) colMap.code = i
-          else if (txt.includes('title') || (txt.includes('course') && !txt.includes('code'))) colMap.title = i
-          else if (txt.includes('total delv')) colMap.totalDelv = i
-          else if (txt.includes('total attd')) colMap.totalAttd = i
-          else if (txt.includes('idl')) colMap.idl = i
-          else if (txt.includes('adl')) colMap.adl = i
-          else if (txt.includes('vdl')) colMap.vdl = i
-          else if (txt.includes('medical')) colMap.ml = i
-          else if (txt.includes('eligible delivered')) colMap.eligDelv = i
-          else if (txt.includes('eligible attended')) colMap.eligAttd = i
-          else if (txt.includes('eligible percentage') || txt.includes('perc')) colMap.perc = i
-        })
-        return false // use the first header row found
-      }
-    })
-
-    console.log('[parseAttendanceHTML] Column Map:', colMap)
-
-    // 3. Parse rows using the mapped indices
-    table.find('tr').each((_, row) => {
-      const $row = $(row)
-      if ($row.find('th').length > 0) return // skip header rows
+    tables.each((_, tableEl) => {
+      const $table = $(tableEl)
       
-      const cells = $row.find('td')
-      if (cells.length < 5) return
-
-      const title = cells.eq(colMap.title).text().trim()
-      if (!title || title.length < 3 || title.toLowerCase() === 'title') return
-
-      const code = cells.eq(colMap.code).text().trim()
-      const totalDelv = cells.eq(colMap.totalDelv).text().trim() || '0'
-      const totalAttd = cells.eq(colMap.totalAttd).text().trim() || '0'
-      const idl = cells.eq(colMap.idl).text().trim() || '0'
-      const adl = cells.eq(colMap.adl).text().trim() || '0'
-      const vdl = cells.eq(colMap.vdl).text().trim() || '0'
-      const ml = cells.eq(colMap.ml).text().trim() || '0'
-      const eligDelv = cells.eq(colMap.eligDelv).text().trim() || totalDelv
-      const eligAttd = cells.eq(colMap.eligAttd).text().trim() || totalAttd
-      const eligPerc = cells.eq(colMap.perc).text().trim() || '0'
-
-      // Extract chk for details
-      const viewBtn = $row.find('input[chk], button[chk], [onclick*="getdata"]')
-      const chk = viewBtn.attr('chk') || ''
-      const obj = viewBtn.attr('obj') || code
-
-      const record: any = {
-        name: title,
-        code: code,
-        chk: chk,
-        obj: obj,
-        attended: totalAttd,
-        total: totalDelv,
-        percentage: eligPerc,
-        idl, adl, vdl,
-        medicalLeave: ml,
-        eligibleDelivered: eligDelv,
-        eligibleAttended: eligAttd,
-        eligiblePercentage: eligPerc
+      // 2. Dynamic Column Mapping (Specific-First)
+      const colMap: Record<string, number> = {
+        code: 0, title: 1, totalDelv: 2, totalAttd: 3, 
+        idl: 4, adl: 5, vdl: 6, ml: 7, 
+        eligDelv: 8, eligAttd: 9, perc: 10
       }
-      
-      if (records.length < 2) console.log('[parseAttendanceHTML] Sample Record:', record.name, record.eligibleDelivered)
-      records.push(record)
-    })
 
-    // 4. Emergency pass: if records are empty, try the data-label approach anywhere in page
-    if (records.length === 0) {
-      console.log('[parseAttendanceHTML] Primary pass failed, trying data-label scan...')
-      $('td[data-label*="Eligible Delivered"]').each((_, cell) => {
-        const $row = $(cell).closest('tr')
-        const getCell = (lbl: string) => $row.find(`td[data-label*="${lbl}"]`).text().trim()
+      $table.find('tr').each((_, tr) => {
+        const headers = $(tr).find('th, td.header, td[style*="bold"]')
+        if (headers.length >= 8) {
+          headers.each((i, h) => {
+            const txt = $(h).text().toLowerCase().replace(/[^a-z ]/g, '').trim()
+            if (txt.includes('eligible delivered')) colMap.eligDelv = i
+            else if (txt.includes('eligible attended')) colMap.eligAttd = i
+            else if (txt.includes('eligible percentage')) colMap.perc = i
+            else if (txt.includes('duty leave idl') || (txt.includes('idl') && !txt.includes('adl'))) colMap.idl = i
+            else if (txt.includes('duty leave adl') || txt.includes('adl')) colMap.adl = i
+            else if (txt.includes('duty leave others') || txt.includes('vdl')) colMap.vdl = i
+            else if (txt.includes('medical') || txt.includes('ml')) colMap.ml = i
+            else if (txt.includes('total delv') || (txt.includes('total') && txt.includes('delv'))) colMap.totalDelv = i
+            else if (txt.includes('total attd') || (txt.includes('total') && txt.includes('attd'))) colMap.totalAttd = i
+            else if (txt.includes('code')) colMap.code = i
+            else if (txt.includes('title') || (txt.includes('subject') && !txt.includes('code'))) colMap.title = i
+          })
+          return false // Stop after first header row identified
+        }
+      })
+
+      console.log('[parseAttendanceHTML] Using Map:', colMap)
+
+      // 3. Row Parsing with Anchor Check
+      $table.find('tr').each((_, row) => {
+        const $row = $(row)
+        const cells = $row.find('td')
+        if (cells.length < 8) return
+
+        const code = cells.eq(colMap.code).text().trim()
+        const title = cells.eq(colMap.title).text().trim()
+        
+        // Subject Anchor: Row must have a code like "25CSH-102"
+        if (!/^[A-Z0-9]{2,}-[A-Z0-9]+$/.test(code) && !/^[A-Z0-9]{3,}$/.test(code)) return
+        if (!title || title.length < 3) return
+
+        const getVal = (idx: number) => cells.eq(idx).text().trim() || '0'
+        
+        const totalDelv = getVal(colMap.totalDelv)
+        const totalAttd = getVal(colMap.totalAttd)
+        const eligDelv = getVal(colMap.eligDelv)
+        const eligAttd = getVal(colMap.eligAttd)
+        const percText = getVal(colMap.perc)
+
+        // Force manual fallback if mapping failed (collision or missing)
+        // If eligDelv is identical to totalDelv but the visual table suggests otherwise, we check offsets
+        let finalEligDelv = eligDelv
+        if (finalEligDelv === totalDelv && cells.length >= 11) {
+           // Standard GridView often groups Total (2,3) and Eligible (8,9)
+           // If they matched, maybe the header was misaligned. Try the "8" index surgically.
+           const surgical = cells.eq(8).text().trim()
+           if (surgical && surgical !== title && surgical !== code) finalEligDelv = surgical
+        }
+
+        const viewBtn = $row.find('input[chk], button[chk], [onclick*="getdata"]')
+        
         records.push({
-          name: getCell('Title') || getCell('Subject'),
-          code: getCell('Code'),
-          attended: getCell('Total_Attd') || '0',
-          total: getCell('Total_Delv') || '0',
-          percentage: getCell('Percentage') || '0',
-          eligibleDelivered: $(cell).text().trim(),
-          eligibleAttended: getCell('Eligible Attended'),
-          eligiblePercentage: getCell('Percentage')
+          name: title,
+          code: code,
+          chk: viewBtn.attr('chk') || '',
+          obj: viewBtn.attr('obj') || code,
+          attended: totalAttd,
+          total: totalDelv,
+          percentage: percText,
+          idl: getVal(colMap.idl),
+          adl: getVal(colMap.adl),
+          vdl: getVal(colMap.vdl),
+          medicalLeave: getVal(colMap.ml),
+          eligibleDelivered: finalEligDelv,
+          eligibleAttended: eligAttd || totalAttd,
+          eligiblePercentage: percText
         } as any)
+      })
+      if (records.length > 0) return false // Found the primary table
+    })
+
+    // Absolute fallback: manual cell scan if primary table mapping was zero
+    if (records.length === 0) {
+      console.log('[parseAttendanceHTML] Map yielded zero, attempting brute-force search...')
+      $('tr').each((_, row) => {
+        const cells = $(row).find('td')
+        if (cells.length >= 11) {
+          const code = $(cells[0]).text().trim()
+          if (/^[A-Z0-9]+-[A-Z0-9]+$/.test(code)) {
+            records.push({
+              name: $(cells[1]).text().trim(),
+              code: code,
+              total: $(cells[2]).text().trim(),
+              attended: $(cells[3]).text().trim(),
+              eligibleDelivered: $(cells[8]).text().trim(),
+              eligibleAttended: $(cells[9]).text().trim(),
+              percentage: $(cells[10]).text().trim()
+            } as any)
+          }
+        }
       })
     }
   } catch (error) {
-    console.error('[parseAttendanceHTML] Critical Error:', error)
+    console.error('[parseAttendanceHTML] Error:', error)
   }
   
+  console.log(`[parseAttendanceHTML] Parsed ${records.length} subjects`)
   return records
 }
 
