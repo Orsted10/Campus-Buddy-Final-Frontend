@@ -516,32 +516,29 @@ function parseAttendanceHistory(html: string): AttendanceHistoryRecord[] {
   const $ = cheerio.load(html)
   const history: AttendanceHistoryRecord[] = []
   
-  // Try multiple table patterns
-  const table = $('table#dgAttendanceDetail, table#grvAttendance, table#SortTable, .table-responsive table, table[id*="Attendance"]')
+  // Very robust table finding
+  const table = $('table').filter((_, el) => {
+    const text = $(el).text().toLowerCase()
+    return text.includes('date') && (text.includes('attendance') || text.includes('present'))
+  }).first()
   
   table.find('tr').each((i, row) => {
-    // Skip headers (th) or the first row if it looks like a header
-    if (i === 0 || $(row).find('th').length > 0) return 
-    
     const cells = $(row).find('td')
     if (cells.length >= 5) {
-      const date = $(cells[1]).text().trim()
-      const type = $(cells[2]).text().trim()
-      const time = $(cells[3]).text().trim()
+      // Check if this looks like a date (e.g. DD/MM/YYYY)
+      const potentialDate = $(cells[1]).text().trim()
+      if (!/^\d/.test(potentialDate)) return
+      
       const status = $(cells[4]).text().trim()
-      
-      // Marked by is usually further right (cell 7 or last)
-      const markedBy = $(cells[7]).text().trim() || $(cells[cells.length-1]).text().trim()
-      
-      if (date && status) {
-        history.push({
-          date,
-          type,
-          time,
-          status,
-          markedBy
-        })
-      }
+      if (!status) return
+
+      history.push({
+        date: potentialDate,
+        type: $(cells[2]).text().trim(),
+        time: $(cells[3]).text().trim(),
+        status: status,
+        markedBy: $(cells[7]).text().trim() || $(cells[cells.length-1]).text().trim()
+      })
     }
   })
   
@@ -777,22 +774,45 @@ async function fetchAttendanceViaAjax(url: string, cookies: Record<string, strin
         return null
       }
       
-      let title = getVal(['title', 'coursename', 'subject', 'name', 'course']) || 'Unknown'
-      let attended = getVal(['totalattd', 'totalattended', 'attended', 'attd', 'present']) || '0'
-      let total = getVal(['totaldelv', 'totaldelivered', 'delivered', 'delv', 'total', 'deliver']) || '0'
-      let percentage = getVal(['totalpercentage', 'percentage', 'perc', 'percent']) || '0%'
-      let code = getVal(['coursecode', 'code', 'subjectcode', 'courseno']) || ''
+      // AGGRESSIVE KEY MAPPING
+      const keys = Object.keys(record)
+      const findKey = (patterns: string[]) => {
+        return keys.find(k => {
+          const lowerK = k.toLowerCase().replace(/[^a-z0-9]/g, '')
+          return patterns.some(p => lowerK.includes(p.replace(/[^a-z0-9]/g, '')))
+        })
+      }
 
-      // ELIGIBLE METRICS (Mandatory for 75% check)
-      let eligDelv = getVal(['eligibledelivered', 'elimdelv', 'serveddelivered', 'eligible_delivered']) || total
-      let eligAttd = getVal(['eligibleattended', 'elimattd', 'servedattended', 'eligible_attended']) || attended
-      let eligPerc = getVal(['eligiblepercentage', 'elimperc', 'eligible_percentage']) || percentage
+      let title = record[findKey(['coursename', 'title', 'subject'])] || 'Unknown'
+      let attended = record[findKey(['totalattd', 'totalattended', 'attended'])] || '0'
+      let total = record[findKey(['totaldelv', 'totaldelivered', 'delivered'])] || '0'
+      let percentage = record[findKey(['totalpercentage', 'percentage'])] || '0%'
+      let code = record[findKey(['coursecode', 'code'])] || ''
+
+      // ELIGIBLE METRICS (Must find that 74 vs 75 difference)
+      let eligDelv = record[findKey(['eligibledelivered', 'elimdelv', 'serveddelivered'])] || total
+      let eligAttd = record[findKey(['eligibleattended', 'elimattd', 'servedattended'])] || attended
+      let eligPerc = record[findKey(['eligiblepercentage', 'elimperc', 'eligiblepercentage'])] || percentage
 
       // Leave Stats
-      let idl = getVal(['idl', 'internal_dl']) || '0'
-      let adl = getVal(['adl', 'academic_dl']) || '0'
-      let vdl = getVal(['vdl', 'verified_dl']) || '0'
-      let ml = getVal(['medicalleave', 'ml', 'medical_leave']) || '0'
+      let idl = record[findKey(['idl'])] || '0'
+      let adl = record[findKey(['adl'])] || '0'
+      let vdl = record[findKey(['vdl'])] || '0'
+      let ml = record[findKey(['medicalleave', 'ml'])] || '0'
+
+      // Final fallback: If eligDelv is still same as total, but we see a key with a different value
+      // we might have missed it. For example, if total is 75 and there is a key with 74.
+      if (eligDelv === total) {
+        // Look for keys that have a value slightly less than total (ML/DL usually small)
+        const totalNum = parseInt(total)
+        if (!isNaN(totalNum)) {
+           const likelyElig = keys.find(k => {
+             const val = parseInt(record[k])
+             return !isNaN(val) && val < totalNum && val >= (totalNum - 10) && k.toLowerCase().includes('deliv')
+           })
+           if (likelyElig) eligDelv = String(record[likelyElig])
+        }
+      }
 
       return {
         name: title,
