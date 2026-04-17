@@ -112,6 +112,15 @@ export const usePortalStore = create<PortalState>()(
              console.log('[usePortalStore] Sending request with x-culko-session header. Cookie length:', headers['x-culko-session'].length)
           }
 
+          // Delete stale Supabase cache so the scraper always fetches fresh portal data
+          // (without this, old wrong data persists even after code fixes)
+          try {
+            await fetch(getApiUrl('/api/culko?endpoint=delete-cache'), { headers })
+            console.log('[usePortalStore] Cleared stale attendance cache')
+          } catch (e) {
+            console.log('[usePortalStore] Cache clear failed (non-fatal):', e)
+          }
+
           const [attendRes, ttRes, profileRes, hostelRes, marksRes] = await Promise.all([
             fetch(getApiUrl('/api/culko?endpoint=attendance'), { headers }),
             fetch(getApiUrl('/api/culko?endpoint=timetable'), { headers }),

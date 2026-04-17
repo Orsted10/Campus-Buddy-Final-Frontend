@@ -11,11 +11,25 @@ export async function GET(req: Request) {
   const courseCode = searchParams.get('courseCode')
   const chk = searchParams.get('chk')
   
-  if (!endpoint || !['attendance', 'marks', 'timetable', 'profile', 'announcements', 'hostel', 'attendance-details'].includes(endpoint)) {
+  if (!endpoint || !['attendance', 'marks', 'timetable', 'profile', 'announcements', 'hostel', 'attendance-details', 'delete-cache'].includes(endpoint)) {
     return NextResponse.json(
       { error: 'Invalid endpoint.' },
       { status: 400 }
     )
+  }
+
+  // Handle cache deletion
+  if (endpoint === 'delete-cache') {
+    try {
+      const { createClient } = await import('@/lib/supabase/server')
+      const supabase = await createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+      await supabase.from('portal_records').delete().eq('user_id', user.id).eq('type', 'attendance')
+      return NextResponse.json({ success: true, message: 'Attendance cache cleared' })
+    } catch (e) {
+      return NextResponse.json({ error: 'Failed to clear cache' }, { status: 500 })
+    }
   }
   
   // fetchCULKOData handles: live fetch → save to DB → fallback to DB
