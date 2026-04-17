@@ -348,9 +348,9 @@ export default function AttendancePage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
           <AnimatePresence>
             {attendance.map((subject: any, idx: number) => {
-              const attended = parseInt(subject.attended) || 0
-              const total = parseInt(subject.total) || 0
-              const percentageRaw = parseFloat(subject.percentage?.replace('%', '')) || 
+              const attended = parseInt(subject.eligibleAttended) || parseInt(subject.attended) || 0
+              const total = parseInt(subject.eligibleDelivered) || parseInt(subject.total) || 0
+              const percentageRaw = parseFloat(String(subject.eligiblePercentage || subject.percentage || '0').replace('%', '')) || 
                                    (total > 0 ? (attended / total) * 100 : 0)
               
               return (
@@ -366,23 +366,15 @@ export default function AttendancePage() {
                     </CardHeader>
                     <CardContent className="p-4 md:pt-6">
                       <AttendanceRing 
-                        percentage={percentageRaw} 
-                        attended={parseInt(subject.eligibleAttended) || attended} 
-                        total={parseInt(subject.eligibleDelivered) || total} 
+                        percentage={typeof percentageRaw === 'string' ? parseFloat(percentageRaw) : percentageRaw} 
+                        attended={attended} 
+                        total={total} 
                         idl={subject.idl}
                         adl={subject.adl}
                         vdl={subject.vdl}
                         ml={subject.medicalLeave}
                         onViewDetails={() => fetchDetails(subject)}
                       />
-                      <div className="mt-4 pt-4 border-t border-white/5 flex flex-col gap-1 items-center sm:items-start">
-                        <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">
-                          Debug: Core Value={total} | Eligible Value={subject.eligibleDelivered}
-                        </span>
-                        <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">
-                          ID: {subject.code || 'NO_CODE'}
-                        </span>
-                      </div>
                     </CardContent>
                   </Card>
                 </motion.div>
