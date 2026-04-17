@@ -335,7 +335,7 @@ export async function fetchCULKOData(
     // Make request to CULKO
     let response: any
     if (endpoint === 'attendance-details' && extraParams?.courseCode) {
-      response = await fetchAttendanceDetails(sessionCookies, extraParams.courseCode)
+      response = await fetchAttendanceDetails(sessionCookies, extraParams.courseCode, extraParams.chk)
     } else {
       response = await fetchCULKOResource(endpoint, sessionCookies)
     }
@@ -476,86 +476,114 @@ async function fetchCULKOResource(endpoint: string, cookies: Record<string, stri
   }
 }
 
-async function fetchAttendanceDetails(cookies: Record<string, string>, courseCode: string) {
+async function fetchAttendanceDetails(cookies: Record<string, string>, courseCode: string, chk?: string) {
   const cookieStr = Object.entries(cookies).map(([k, v]) => `${k}=${v}`).join('; ')
-  const headers = { 'Cookie': cookieStr, 'User-Agent': USER_AGENT }
+  const reqHeaders: Record<string, string> = {
+    'Cookie': cookieStr,
+    'User-Agent': USER_AGENT,
+    'Referer': `${BASE_URL}/frmStudentCourseWiseAttendanceSummary.aspx?type=etgkYfqBdH1fSfc255iYGw==`
+  }
 
-  // Step 1: Load the attendance summary page to extract parameters
+  // If we have the chk (from the VIEW button), use it directly to call getdata()
+  // The portal's getdata() makes a POST to GetAttendanceDetails or similar endpoint
+  if (chk) {
+    console.log('[fetchDetails] Using chk approach for course:', courseCode)
+    
+    // Try the AJAX endpoint that getdata() likely calls
+    const ajaxEndpoints = [
+      '/frmStudentCourseWiseAttendanceSummary.aspx/GetAttendanceDetails',
+      '/frmStudentCourseWiseAttendanceSummary.aspx/getdata',
+      '/GetAttendanceDetails',
+    ]
+    
+    for (const endpoint of ajaxEndpoints) {
+      try {
+        const res = await fetch(`${BASE_URL}${endpoint}`, {
+          method: 'POST',
+          headers: {
+            ...reqHeaders,
+            'Content-Type': 'application/json; charset=UTF-8',
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          body: JSON.stringify({ chk, obj: courseCode })
+        })
+        if (res.ok) {
+          const text = await res.text()
+          console.log('[fetchDetails] chk POST response:', text.substring(0, 500))
+          try {
+            const parsed = JSON.parse(text)
+            // Try to find history records in parsed response
+            const data = parsed.d ? JSON.parse(parsed.d) : parsed
+            if (Array.isArray(data) && data.length > 0) {
+              return data.map((r: any) => ({
+                date: r.Date || r.date || r.AttDate || '',
+                type: r.Type || r.type || r.ClassType || '',
+                time: r.Time || r.time || '',
+                status: r.Status || r.status || r.AttStatus || '',
+                markedBy: r.MarkedBy || r.markedBy || r.Faculty || ''
+              }))
+            }
+          } catch {}
+          // If JSON failed, try HTML parsing
+          const history = parseAttendanceHistory(text)
+          if (history.length > 0) return history
+        }
+      } catch (e) {
+        console.log('[fetchDetails] AJAX endpoint failed:', endpoint, e)
+      }
+    }
+  }
+
+  // Fallback: Try direct URL approach
+  // Load the summary page to find any form parameters
   const summaryUrl = `${BASE_URL}/frmStudentCourseWiseAttendanceSummary.aspx?type=etgkYfqBdH1fSfc255iYGw==`
-  console.log('[fetchDetails] Fetching summary to find params...')
-  const summaryRes = await fetch(summaryUrl, { headers })
+  console.log('[fetchDetails] Trying summary page for params...')
+  const summaryRes = await fetch(summaryUrl, { headers: reqHeaders })
   const html = await summaryRes.text()
 
-  // Log a small snippet so we can see the page structure
-  const snippet = html.substring(0, 2000)
-  console.log('[fetchDetails] Summary HTML snippet (first 2000 chars):', snippet)
+  // Extract chk from the VIEW button for this specific course if not provided
+  if (!chk) {
+    const $ = cheerio.load(html)
+    const viewBtn = $(`input[obj="${courseCode}"][onclick="getdata(this)"], input[type="button"][obj="${courseCode}"]`)
+    const foundChk = viewBtn.attr('chk')
+    if (foundChk) {
+      console.log('[fetchDetails] Found chk from summary page for', courseCode, ':', foundChk.substring(0, 20))
+      chk = foundChk
+      // Retry with found chk
+      return fetchAttendanceDetails(cookies, courseCode, chk)
+    }
+  }
 
-  // Try multiple patterns to find ID and Session in the page source
-  let reportId: string | null = null
-  let sessionId: string | null = null
-
-  // Pattern 1: JavaScript function calls like GetReport('XYZ', 123)
+  // Last resort: try the frmStudentAttendanceDetails.aspx directly
   const patterns = [
     /GetReport\s*\(\s*['"]([^'"]+)['"]\s*,\s*['"]?(\d+)['"]?\s*\)/i,
-    /getReport\s*\(\s*['"]([^'"]+)['"]\s*,\s*['"]?(\d+)['"]?\s*\)/i,
     /ShowDetails\s*\(\s*['"]([^'"]+)['"]\s*,\s*['"]?(\d+)['"]?\s*\)/i,
-    /ViewAttendance\s*\(\s*['"]([^'"]+)['"]\s*,\s*['"]?(\d+)['"]?\s*\)/i,
-    /onclick="[^"]*\('([^']+)'\s*,\s*'?(\d+)'?/i,
+    /getReport\s*\(\s*['"]([^'"]+)['"]\s*,\s*['"]?(\d+)['"]?\s*\)/i,
   ]
+
+  let reportId: string | null = null
+  let sessionId: string | null = null
 
   for (const pattern of patterns) {
     const match = html.match(pattern)
     if (match) {
       reportId = match[1]
       sessionId = match[2]
-      console.log(`[fetchDetails] Found params via pattern ${pattern.source.substring(0, 30)}: ID=${reportId}, Session=${sessionId}`)
       break
     }
   }
 
-  // Pattern 2: Look in hidden inputs or data attributes
-  if (!reportId) {
-    const $ = cheerio.load(html)
-    // Look for hidden fields
-    $('input[type="hidden"]').each((_, el) => {
-      const name = $(el).attr('name') || ''
-      const val = $(el).val() as string || ''
-      if (name.toLowerCase().includes('uid') || name.toLowerCase().includes('report')) {
-        reportId = val
-        console.log(`[fetchDetails] Found reportId in hidden input "${name}": ${val}`)
-      }
-      if (name.toLowerCase().includes('session')) {
-        sessionId = val
-        console.log(`[fetchDetails] Found sessionId in hidden input "${name}": ${val}`)
-      }
-    })
-
-    // Look for session in select dropdown
-    if (!sessionId) {
-      const sessionSelect = $('select[id*="Session"], select[name*="Session"]').first()
-      sessionId = sessionSelect.val() as string || null
-      if (sessionId) console.log('[fetchDetails] Found sessionId in select:', sessionId)
-    }
+  if (reportId && sessionId) {
+    const detailsUrl = `${BASE_URL}/frmStudentAttendanceDetails.aspx?ID=${reportId}&CourseCode=${courseCode}&Session=${sessionId}`
+    console.log('[fetchDetails] Trying legacy URL:', detailsUrl)
+    const detailsRes = await fetch(detailsUrl, { headers: reqHeaders })
+    const detailsHtml = await detailsRes.text()
+    console.log('[fetchDetails] Legacy response length:', detailsHtml.length)
+    return parseAttendanceHistory(detailsHtml)
   }
 
-  if (!reportId || !sessionId) {
-    console.error('[fetchDetails] Could NOT extract params. reportId:', reportId, 'sessionId:', sessionId)
-    console.error('[fetchDetails] Full HTML length:', html.length)
-    // Return empty — callers should handle gracefully
-    return []
-  }
-
-  // Step 2: Fetch the actual details page
-  const detailsUrl = `${BASE_URL}/frmStudentAttendanceDetails.aspx?ID=${reportId}&CourseCode=${courseCode}&Session=${sessionId}`
-  console.log('[fetchDetails] Fetching details:', detailsUrl)
-
-  const detailsRes = await fetch(detailsUrl, { headers })
-  const detailsHtml = await detailsRes.text()
-
-  console.log('[fetchDetails] Details HTML length:', detailsHtml.length)
-  console.log('[fetchDetails] Details HTML snippet:', detailsHtml.substring(0, 1000))
-
-  return parseAttendanceHistory(detailsHtml)
+  console.error('[fetchDetails] All approaches failed for course:', courseCode)
+  return []
 }
 
 function parseAttendanceHistory(html: string): AttendanceHistoryRecord[] {
@@ -901,109 +929,118 @@ function parseAttendanceHTML(html: string): AttendanceRecord[] {
   try {
     const $ = cheerio.load(html)
     
-    // Find attendance table
+    // The portal uses data-label attributes on <td> elements (verified from inspect element)
+    // Each row has: data-label="Course Code:", "Title:", "Total_Delv:", "Total_Attd:",
+    // "Duty Leave N P:", "Duty Leave ADL:", "Duty Leave Others:", "Medical Leave:",
+    // "Eligible Delivered:", "Eligible Attended:", "Eligible Percentage:"
+    // Plus a final <td> with the VIEW button containing chk and obj attributes
+    
+    // Find the table
     let table = $('table#SortTable, table#dgAttendance, table#grvAttendance')
+    if (table.length === 0) {
+      $('table').each((_, el) => {
+        const txt = $(el).text().toLowerCase()
+        if (txt.includes('eligible delivered') || txt.includes('eligible attended')) {
+          table = $(el)
+          return false
+        }
+      })
+    }
     
     if (table.length === 0) {
-      // Find any table with at least 10 columns and 'delivered' text
-      $('table').each((_, el) => {
-        const $el = $(el)
-        const headers = $el.find('th, td.header')
-        if (headers.length >= 10 || $el.text().toLowerCase().includes('eligible delivered')) {
-          table = $el
-          return false 
+      console.log('[parseAttendanceHTML] No attendance table found')
+      return records
+    }
+    
+    console.log('[parseAttendanceHTML] Found attendance table, parsing by data-label...')
+    
+    table.find('tbody tr, tr').each((_, row) => {
+      const $row = $(row)
+      if ($row.find('th').length > 0) return // skip header rows
+      
+      // Helper: get cell text by data-label attribute
+      const getByLabel = (labels: string[]): string => {
+        for (const label of labels) {
+          const cell = $row.find(`td[data-label="${label}"]`)
+          if (cell.length > 0) {
+            return cell.text().trim()
+          }
+        }
+        return ''
+      }
+      
+      // Read all fields by data-label
+      const code = getByLabel(['Course Code:', 'Course Code', 'CourseCode'])
+      const title = getByLabel(['Title:', 'Title', 'Subject', 'Subject Name'])
+      const totalDelv = getByLabel(['Total_Delv:', 'Total Delv:', 'Total Delv', 'TotalDeliv'])
+      const totalAttd = getByLabel(['Total_Attd:', 'Total Attd:', 'Total Attd', 'TotalAttd'])
+      const idl = getByLabel(['Duty Leave N P:', 'IDL:', 'IDL']) || '0'
+      const adl = getByLabel(['Duty Leave ADL:', 'ADL:', 'ADL']) || '0'
+      const vdl = getByLabel(['Duty Leave Others:', 'VDL:', 'VDL']) || '0'
+      const ml = getByLabel(['Medical Leave:', 'Medical Leave', 'ML']) || '0'
+      const eligDelv = getByLabel(['Eligible Delivered:', 'Eligible Delivered']) || totalDelv
+      const eligAttd = getByLabel(['Eligible Attended:', 'Eligible Attended']) || totalAttd
+      const eligPerc = getByLabel(['Eligible Percentage:', 'Eligible Percentage']) || '0'
+      
+      // Extract the chk value from the VIEW button for later history fetching
+      const viewBtn = $row.find('input[type="button"][onclick="getdata(this)"], input[value="View"]')
+      const chk = viewBtn.attr('chk') || ''
+      const btnObj = viewBtn.attr('obj') || code
+      
+      if (title && title.length > 2) {
+        const record: any = {
+          name: title,
+          code: code || btnObj,
+          chk, // Store for history fetching
+          attended: totalAttd,
+          total: totalDelv,
+          percentage: eligPerc,
+          idl,
+          adl,
+          vdl,
+          medicalLeave: ml,
+          eligibleDelivered: eligDelv,
+          eligibleAttended: eligAttd,
+          eligiblePercentage: eligPerc
+        }
+        if (records.length < 2) console.log('[parseAttendanceHTML] Sample record:', record)
+        records.push(record)
+      }
+    })
+    
+    // Fallback: if data-label approach gave 0 results, try column-index approach
+    if (records.length === 0) {
+      console.log('[parseAttendanceHTML] data-label approach yielded 0, falling back to column-index...')
+      table.find('tbody tr, tr').each((_, row) => {
+        const $row = $(row)
+        if ($row.find('th').length > 0) return
+        const cells = $row.find('td')
+        if (cells.length >= 11) {
+          const code = $(cells[0]).text().trim()
+          const title = $(cells[1]).text().trim()
+          if (!title || title.toLowerCase() === 'title') return
+          records.push({
+            name: title, code,
+            attended: $(cells[3]).text().trim(),
+            total: $(cells[2]).text().trim(),
+            percentage: $(cells[10]).text().trim(),
+            idl: $(cells[4]).text().trim() || '0',
+            adl: $(cells[5]).text().trim() || '0',
+            vdl: $(cells[6]).text().trim() || '0',
+            medicalLeave: $(cells[7]).text().trim() || '0',
+            eligibleDelivered: $(cells[8]).text().trim(),
+            eligibleAttended: $(cells[9]).text().trim(),
+            eligiblePercentage: $(cells[10]).text().trim()
+          } as any)
         }
       })
     }
     
-    if (table.length > 0) {
-      console.log('[parseAttendanceHTML] Found attendance table!')
-      
-      // HARDCODED defaults matching portal table structure (verified from screenshot):
-      // Col 0: Code | 1: Title | 2: TotalDelv | 3: TotalAttd | 4: IDL | 5: ADL | 6: VDL
-      // Col 7: MedicalLeave | 8: EligibileDelivered | 9: EligibleAttended | 10: EligiblePercentage | 11: ViewBtn
-      let codeIdx = 0, titleIdx = 1, delvIdx = 2, attdIdx = 3
-      let idlIdx = 4, adlIdx = 5, vdlIdx = 6, mlIdx = 7
-      let elimDelvIdx = 8, elimAttdIdx = 9, percIdx = 10
-      
-      // Dynamic header mapping (override defaults if headers are found)
-      const headers = table.find('th')
-      if (headers.length > 0) {
-        console.log('[parseAttendanceHTML] Headers:', headers.map((_, h) => $(h).text().trim()).get())
-        headers.each((i, th) => {
-          const text = $(th).text().toLowerCase().replace(/\s+/g, ' ').trim()
-          if (text.includes('code')) codeIdx = i
-          else if (text.includes('title') || (text.includes('course') && !text.includes('code'))) titleIdx = i
-          else if (text.includes('total delv')) delvIdx = i
-          else if (text.includes('total attd')) attdIdx = i
-          else if (text.trim() === 'idl') idlIdx = i
-          else if (text.trim() === 'adl') adlIdx = i
-          else if (text.trim() === 'vdl') vdlIdx = i
-          else if (text.includes('medical')) mlIdx = i
-          else if (text.includes('eligible delivered')) elimDelvIdx = i
-          else if (text.includes('eligible attended')) elimAttdIdx = i
-          else if (text.includes('eligible percentage')) percIdx = i
-        })
-        console.log(`[parseAttendanceHTML] Mapped: Code=${codeIdx}, Title=${titleIdx}, TotalDelv=${delvIdx}, EligDelv=${elimDelvIdx}, EligAttd=${elimAttdIdx}, Perc=${percIdx}`)
-      }
-      
-      const rows = table.find('tr')
-      rows.each((i, row) => {
-        if ($(row).find('th').length > 0) return // Skip header rows
-        
-        const cells = $(row).find('td')
-        if (cells.length >= 8) {
-          let code = $(cells[codeIdx]).text().trim().replace(/\s+/g, '')
-          const title = $(cells[titleIdx]).text().trim()
-          const totalDelv = $(cells[delvIdx]).text().trim()
-          const totalAttd = $(cells[attdIdx]).text().trim()
-          const idl = $(cells[idlIdx]).text().trim() || '0'
-          const adl = $(cells[adlIdx]).text().trim() || '0'
-          const vdl = $(cells[vdlIdx]).text().trim() || '0'
-          const ml = $(cells[mlIdx]).text().trim() || '0'
-          // Directly read the eligible columns — NO heuristic fallback that could pick wrong values
-          const eligDelv = $(cells[elimDelvIdx]).text().trim() || totalDelv
-          const eligAttd = $(cells[elimAttdIdx]).text().trim() || totalAttd
-          const eligPerc = $(cells[percIdx]).text().trim() || '0%'
-
-          // Pattern match for code if column 0 somehow gave wrong value
-          if (!code || code.length < 3 || !code.match(/[A-Z0-9]+-[A-Z0-9]+/)) {
-            cells.each((_, cell) => {
-              const txt = $(cell).text().trim().replace(/\s+/g, '')
-              if (/^[A-Z0-9]+-[A-Z0-9]+$/.test(txt)) {
-                code = txt
-                return false
-              }
-            })
-          }
-          
-          if (title && title.length > 2 && title.toLowerCase() !== 'title') {
-            const record = {
-              name: title,
-              code,
-              attended: totalAttd,
-              total: totalDelv,
-              percentage: eligPerc,
-              idl,
-              adl,
-              vdl,
-              medicalLeave: ml,
-              eligibleDelivered: eligDelv,
-              eligibleAttended: eligAttd,
-              eligiblePercentage: eligPerc
-            }
-            if (records.length < 2) console.log(`[parseAttendanceHTML] Record sample:`, record)
-            records.push(record)
-          }
-        }
-      })
-    } else {
-      console.log('No attendance table found by cheerio')
-    }
   } catch (error) {
-    console.error('Error parsing attendance with cheerio:', error)
+    console.error('[parseAttendanceHTML] Error:', error)
   }
   
+  console.log(`[parseAttendanceHTML] Returning ${records.length} records`)
   return records
 }
 

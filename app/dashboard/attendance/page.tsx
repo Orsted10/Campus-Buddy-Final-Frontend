@@ -244,15 +244,17 @@ export default function AttendancePage() {
     setHistory([])
 
     try {
-      const res = await fetch(getApiUrl(`/api/culko?endpoint=attendance-details&courseCode=${subject.code}`))
+      // Pass both courseCode and chk (the encrypted key from the VIEW button)
+      const chkParam = subject.chk ? `&chk=${encodeURIComponent(subject.chk)}` : ''
+      const res = await fetch(getApiUrl(`/api/culko?endpoint=attendance-details&courseCode=${subject.code}${chkParam}`))
       const data = await res.json()
       if (data.success) {
         setHistory(data.data)
       } else {
-        toast.error('Failed to load class history')
+        console.error('Failed to load class history', data)
       }
     } catch (err) {
-      toast.error('Connection error')
+      console.error('Connection error loading history', err)
     } finally {
       setIsHistoryLoading(false)
     }
