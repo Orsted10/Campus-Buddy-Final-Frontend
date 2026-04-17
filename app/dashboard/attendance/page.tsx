@@ -375,6 +375,14 @@ export default function AttendancePage() {
                         ml={subject.medicalLeave}
                         onViewDetails={() => fetchDetails(subject)}
                       />
+                      <div className="mt-4 pt-4 border-t border-white/5 flex flex-col gap-1 items-center sm:items-start">
+                        <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">
+                          Debug: Core Value={total} | Eligible Value={subject.eligibleDelivered}
+                        </span>
+                        <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">
+                          ID: {subject.code || 'NO_CODE'}
+                        </span>
+                      </div>
                     </CardContent>
                   </Card>
                 </motion.div>

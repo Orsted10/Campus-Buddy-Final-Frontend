@@ -812,15 +812,21 @@ async function fetchAttendanceViaAjax(url: string, cookies: Record<string, strin
       let vdl = record[findKey(['vdl'])] || '0'
       let ml = record[findKey(['medicalleave', 'ml'])] || '0'
 
-      // Final fallback: If eligDelv is still same as total, but we see a key with a different value
-      // we might have missed it. For example, if total is 75 and there is a key with 74.
+      // PATTERN DISCOVERY FOR CODE
+      if (!code || code === '') {
+        const foundCode = keys.find(k => /[A-Z0-9]+-[A-Z0-9]+/.test(String(record[k])))
+        if (foundCode) code = String(record[foundCode]).replace(/\s+/g, '')
+      }
+
+      // VALUE DISCOVERY FOR ELIGIBLE DELIVERED (The 74 vs 75 fix)
       if (eligDelv === total) {
         // Look for keys that have a value slightly less than total (ML/DL usually small)
         const totalNum = parseInt(total)
         if (!isNaN(totalNum)) {
            const likelyElig = keys.find(k => {
              const val = parseInt(record[k])
-             return !isNaN(val) && val < totalNum && val >= (totalNum - 10) && k.toLowerCase().includes('deliv')
+             // Must be exactly what we are looking for (less than total but close)
+             return !isNaN(val) && val < totalNum && val >= (totalNum - 10)
            })
            if (likelyElig) eligDelv = String(record[likelyElig])
         }
@@ -875,11 +881,10 @@ function parseAttendanceHTML(html: string): AttendanceRecord[] {
       console.log('Cheerio found attendance table!')
       
       // Map columns dynamically based on headers
-      let codeIdx = 0, titleIdx = 1, delvIdx = 2, attdIdx = 3, idlIdx = 4, adlIdx = 5, vdlIdx = 6, mlIdx = 7, elimDelvIdx = 8, elimAttdIdx = 9, percIdx = 10
-      const headers = table.find('th')
+      console.log(`[parseAttendanceHTML] Headers found:`, headers.map((_, h) => $(h).text().trim()).get())
       
       headers.each((i, th) => {
-        const text = $(th).text().toLowerCase().trim()
+        const text = $(th).text().toLowerCase().replace(/\s+/g, ' ').trim()
         if (text.includes('code')) codeIdx = i
         if (text.includes('title') || text.includes('subject') || text.includes('course')) titleIdx = i
         if (text.includes('total delv') || (text.includes('total') && text.includes('delv'))) delvIdx = i
@@ -894,7 +899,7 @@ function parseAttendanceHTML(html: string): AttendanceRecord[] {
         else if (percIdx === 10 && (text.includes('percentage') || text === '%')) percIdx = i
       })
       
-      console.log(`Mapped Attendance Columns: Title=${titleIdx}, EligDelv=${elimDelvIdx}, EligAttd=${elimAttdIdx}`)
+      console.log(`[parseAttendanceHTML] Mapped: Code=${codeIdx}, Title=${titleIdx}, EligDelv=${elimDelvIdx}, EligAttd=${elimAttdIdx}`)
       
       const rows = table.find('tr')
       
@@ -903,21 +908,46 @@ function parseAttendanceHTML(html: string): AttendanceRecord[] {
         if ($(row).find('th').length > 0) return 
         
         const cells = $(row).find('td')
-        if (cells.length >= 10) {
-          const code = $(cells[codeIdx]).text().trim().replace(/\s+/g, '')
-          const title = $(cells[titleIdx]).text().trim()
-          const totalDelv = $(cells[delvIdx]).text().trim()
-          const totalAttd = $(cells[attdIdx]).text().trim()
-          const idl = $(cells[idlIdx]).text().trim() || '0'
-          const adl = $(cells[adlIdx]).text().trim() || '0'
-          const vdl = $(cells[vdlIdx]).text().trim() || '0'
-          const ml = $(cells[mlIdx]).text().trim() || '0'
-          const eligDelv = $(cells[elimDelvIdx]).text().trim() || totalDelv
-          const eligAttd = $(cells[elimAttdIdx]).text().trim() || totalAttd
-          const eligPerc = $(cells[percIdx]).text().trim() || '0%'
+        if (cells.length >= 8) { // Even if it's a smaller table
+          let code = $(cells[codeIdx]).text().trim().replace(/\s+/g, '')
+          let title = $(cells[titleIdx]).text().trim()
+          let totalDelv = $(cells[delvIdx]).text().trim()
+          let totalAttd = $(cells[attdIdx]).text().trim()
+          let idl = $(cells[idlIdx]).text().trim() || '0'
+          let adl = $(cells[adlIdx]).text().trim() || '0'
+          let vdl = $(cells[vdlIdx]).text().trim() || '0'
+          let ml = $(cells[mlIdx]).text().trim() || '0'
+          let eligDelv = $(cells[elimDelvIdx]).text().trim() || totalDelv
+          let eligAttd = $(cells[elimAttdIdx]).text().trim() || totalAttd
+          let eligPerc = $(cells[percIdx]).text().trim() || '0%'
+
+          // PATTERN MATCHING FOR CODE (If column 0 failed)
+          if (!code || code.length < 3 || !code.includes('-')) {
+             cells.each((_, cell) => {
+               const txt = $(cell).text().trim().replace(/\s+/g, '')
+               if (/[A-Z0-9]+-[A-Z0-9]+/.test(txt)) {
+                 code = txt
+                 return false // break
+               }
+             })
+          }
+
+          // VALUE DISCOVERY FOR ELIGIBLE DELIVERED (The 74 vs 75 fix)
+          if (eligDelv === totalDelv) {
+             const tNum = parseInt(totalDelv)
+             if (!isNaN(tNum)) {
+                cells.each((_, cell) => {
+                  const val = parseInt($(cell).text().trim())
+                  if (!isNaN(val) && val < tNum && val >= (tNum - 10)) {
+                    eligDelv = String(val)
+                    return false
+                  }
+                })
+             }
+          }
           
-          if (title && title !== 'Unknown' && title !== 'Title') {
-            records.push({
+          if (title && title !== 'Unknown' && title !== 'Title' && title.length > 2) {
+            const record = {
               name: title,
               code: code,
               attended: totalAttd,
@@ -930,7 +960,9 @@ function parseAttendanceHTML(html: string): AttendanceRecord[] {
               eligibleDelivered: eligDelv,
               eligibleAttended: eligAttd,
               eligiblePercentage: eligPerc
-            })
+            }
+            if (i < 2) console.log(`[parseAttendanceHTML] Sample Record [${i}]:`, record)
+            records.push(record)
           }
         }
       })
