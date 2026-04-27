@@ -300,13 +300,15 @@ export interface AttendanceHistoryRecord {
   type: string
   time: string
   status: string
+  section?: string
+  group?: string
   markedBy: string
 }
 
 export async function fetchCULKOData(
   endpoint: 'attendance' | 'marks' | 'timetable' | 'profile' | 'announcements' | 'hostel' | 'attendance-details', 
   customCookie?: string,
-  extraParams?: { courseCode?: string }
+  extraParams?: { courseCode?: string; chk?: string }
 ) {
   try {
     const cookieStore = await cookies()
@@ -419,24 +421,21 @@ async function fetchCULKOResource(endpoint: string, cookies: Record<string, stri
   // Parse HTML based on endpoint - DIRECT HTML SCRAPING
   switch (endpoint) {
     case 'attendance':
-      // TRY HTML FIRST: Image 2 confirms HTML table has the right 74/75 metrics.
-      // AJAX sometimes returns simplified data.
+      // ALWAYS use HTML parsing — it has data-label attributes with exact portal values.
+      // The AJAX endpoint returns simplified data that lacks eligible metrics.
       const htmlData = parseAttendanceHTML(html)
       if (htmlData && htmlData.length > 0) {
-        // Double check if HTML data actually has the eligible fields
-        const hasEligible = htmlData.some(r => r.eligibleDelivered !== r.total)
-        if (hasEligible) {
-           console.log('[fetchCULKOResource] Using High-Accuracy HTML Attendance Data')
-           return htmlData
-        }
+        console.log(`[fetchCULKOResource] HTML parsed ${htmlData.length} attendance records`)
+        return htmlData
       }
       
-      console.log('[fetchCULKOResource] HTML low accuracy, trying AJAX fallback...')
+      // Only fall back to AJAX if HTML parsing completely failed
+      console.log('[fetchCULKOResource] HTML parsing failed, trying AJAX...')
       const ajaxData = await fetchAttendanceViaAjax(url, cookies)
       if (ajaxData && ajaxData.length > 0) {
         return ajaxData
       }
-      return htmlData // Return whatever we found in HTML if AJAX failed
+      return htmlData
     case 'marks':
       return parseMarksHTML(html)
     case 'timetable':
@@ -478,102 +477,170 @@ async function fetchCULKOResource(endpoint: string, cookies: Record<string, stri
 
 async function fetchAttendanceDetails(cookies: Record<string, string>, courseCode: string, chk?: string) {
   const cookieStr = Object.entries(cookies).map(([k, v]) => `${k}=${v}`).join('; ')
-  const reqHeaders: Record<string, string> = {
+  const baseHeaders: Record<string, string> = {
     'Cookie': cookieStr,
     'User-Agent': USER_AGENT,
-    'Referrer': `${BASE_URL}/frmStudentCourseWiseAttendanceSummary.aspx?type=etgkYfqBdH1fSfc255iYGw==`
+    'Referer': `${BASE_URL}/frmStudentCourseWiseAttendanceSummary.aspx?type=etgkYfqBdH1fSfc255iYGw==`
   }
 
-  // 1. Get summary page to extract fresh parameters
+  // ── Step 1: Load summary page to get chk/obj and __VIEWSTATE ──
   const summaryUrl = `${BASE_URL}/frmStudentCourseWiseAttendanceSummary.aspx?type=etgkYfqBdH1fSfc255iYGw==`
-  const summaryRes = await fetch(summaryUrl, { headers: reqHeaders })
+  console.log(`[fetchDetails] Loading summary page for ${courseCode}...`)
+  
+  const summaryRes = await fetch(summaryUrl, { headers: baseHeaders })
   const html = await summaryRes.text()
   const $ = cheerio.load(html)
 
-  // 2. Extract specific parameters for this course
+  // Extract chk and obj from the VIEW button for this specific course
   let obj = courseCode
+  const btn = $(`input[obj="${courseCode}"], input[obj*="${courseCode}"]`).first()
   if (!chk) {
-    // Look for any button that has obj containing our code (e.g. 25CSH-102)
-    const btn = $(`input[obj*="${courseCode}"], [obj="${courseCode}"], input[chk][onclick*="${courseCode}"]`).first()
     chk = btn.attr('chk') || ''
     obj = btn.attr('obj') || courseCode
-    console.log(`[fetchDetails] Extracted for ${courseCode}: chk=${chk.substring(0, 10)}... obj=${obj}`)
+  }
+  console.log(`[fetchDetails] chk=${chk ? chk.substring(0, 15) + '...' : 'EMPTY'} obj=${obj}`)
+
+  if (!chk) {
+    console.error(`[fetchDetails] No chk found for ${courseCode}. View buttons found:`, 
+      $('input[chk]').map((_, el) => $(el).attr('obj')).get())
+    return []
   }
 
-  // 3. Find AJAX URL from script tags
+  // Extract ASP.NET form fields for postback
+  const viewState = $('#__VIEWSTATE').val() as string || ''
+  const eventValidation = $('#__EVENTVALIDATION').val() as string || ''
+  const viewStateGen = $('#__VIEWSTATEGENERATOR').val() as string || ''
+
+  // ── Step 2: Find the AJAX URL from getdata() in page scripts ──
   let ajaxUrl: string | null = null
+  let ajaxMethod: string | null = null
+  
   $('script').each((_, s) => {
     const sc = $(s).html() || ''
-    if (sc.includes('getdata')) {
-      const match = sc.match(/url\s*:\s*['"]([^'"]+)['"]/i)
-      if (match) ajaxUrl = match[1]
+    if (!sc.includes('getdata')) return
+    
+    // Extract URL from $.ajax({ url: '...' }) or similar patterns
+    const urlMatch = sc.match(/url\s*:\s*['"]([^'"]+)['"]/i)
+    if (urlMatch) ajaxUrl = urlMatch[1]
+    
+    // Try to understand what data format it sends
+    if (sc.includes('JSON.stringify') || sc.includes("contentType.*json")) {
+      ajaxMethod = 'json'
+    } else if (sc.includes('data:') && sc.includes('chk')) {
+      ajaxMethod = 'form'
     }
+    
+    console.log(`[fetchDetails] Found getdata() script — URL: ${ajaxUrl}, Method: ${ajaxMethod || 'unknown'}`)
   })
 
-  // 4. Try posting to the identified or fallback URL using BOTH JSON and Form-Encoded
-  const urls = [
+  // ── Step 3: Try all possible approaches ──
+  const endpoints = [
     ajaxUrl,
-    '/frmStudentCourseWiseAttendanceSummary.aspx/GetData',
-    '/frmStudentCourseWiseAttendanceSummary.aspx/GetAttendanceDetails',
-    '/frmStudentCourseWiseAttendanceSummary.aspx/getdata'
+    'frmStudentCourseWiseAttendanceSummary.aspx/GetData',
+    'frmStudentCourseWiseAttendanceSummary.aspx/GetAttendanceDetails', 
+    'frmStudentCourseWiseAttendanceSummary.aspx/getdata',
+    'frmStudentCourseWiseAttendanceSummary.aspx/GetReport',
   ].filter(Boolean) as string[]
 
-  for (const url of urls) {
-    const fullUrl = url.startsWith('http') ? url : `${BASE_URL}/${url.replace(/^\//, '')}`
+  for (const ep of endpoints) {
+    const fullUrl = ep.startsWith('http') ? ep : `${BASE_URL}/${ep.replace(/^\//, '')}`
     
-    // Try JSON POST (most common for ASP.NET AJAX)
+    // Approach A: JSON WebMethod POST (ASP.NET AJAX pattern)
     try {
-      const resJSON = await fetch(fullUrl, {
+      const res = await fetch(fullUrl, {
         method: 'POST',
         headers: {
-          ...reqHeaders,
+          ...baseHeaders,
           'Content-Type': 'application/json; charset=UTF-8',
           'X-Requested-With': 'XMLHttpRequest'
         },
         body: JSON.stringify({ chk, obj })
       })
-      if (resJSON.ok) {
-        const text = await resJSON.text()
+      
+      if (res.ok) {
+        const text = await res.text()
+        console.log(`[fetchDetails] JSON POST to ${ep}: ${text.length} chars`)
+        
+        // Try JSON response (WebMethod returns { d: "..." })
         try {
           const parsed = JSON.parse(text)
-          const data = parsed.d ? JSON.parse(parsed.d) : parsed
-          if (Array.isArray(data) && data.length > 0) {
-            return data.map((r: any) => ({
-              date: r.Date || r.date || r.AttDate || r.ClassDate || '',
-              type: r.Type || r.ClassType || r.SubjectType || '',
+          // If d contains HTML string
+          if (typeof parsed.d === 'string' && parsed.d.includes('<')) {
+            const history = parseAttendanceHistory(parsed.d)
+            if (history.length > 0) return history
+          }
+          // If d contains JSON string
+          if (typeof parsed.d === 'string') {
+            try {
+              const data = JSON.parse(parsed.d)
+              if (Array.isArray(data) && data.length > 0) {
+                return data.map((r: any) => ({
+                  date: r.Date || r.date || r.AttDate || '',
+                  type: r.Type || r.ClassType || r.SubjectType || '',
+                  time: r.Time || r.ClassTime || '',
+                  status: r.Status || r.AttStatus || r.Attendance || '',
+                  section: r.Section || '',
+                  group: r.Group || '',
+                  markedBy: r.MarkedBy || r.Faculty || r.FacultyName || ''
+                }))
+              }
+            } catch {}
+          }
+          // If response is directly an array
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return parsed.map((r: any) => ({
+              date: r.Date || r.date || '',
+              type: r.Type || r.ClassType || '',
               time: r.Time || r.ClassTime || '',
               status: r.Status || r.AttStatus || r.Attendance || '',
-              markedBy: r.MarkedBy || r.Faculty || r.FacultyName || ''
+              section: r.Section || '',
+              group: r.Group || '',
+              markedBy: r.MarkedBy || r.Faculty || ''
             }))
           }
-        } catch { /* parse HTML if not JSON */ }
-        const history = parseAttendanceHistory(text)
-        if (history.length > 0) return history
+        } catch { /* not JSON */ }
+        
+        // Try as raw HTML
+        if (text.includes('<table') || text.includes('<tr')) {
+          const history = parseAttendanceHistory(text)
+          if (history.length > 0) return history
+        }
       }
-    } catch (e) { /* silent fail */ }
+    } catch (e) {
+      console.log(`[fetchDetails] JSON POST failed for ${ep}`)
+    }
 
-    // Try Form POST (alternative for some portals)
+    // Approach B: Form POST 
     try {
       const formData = new URLSearchParams()
       formData.append('chk', chk || '')
-      formData.append('obj', obj || '')
+      formData.append('obj', obj)
+      if (viewState) formData.append('__VIEWSTATE', viewState)
+      if (eventValidation) formData.append('__EVENTVALIDATION', eventValidation)
+      if (viewStateGen) formData.append('__VIEWSTATEGENERATOR', viewStateGen)
       
-      const resForm = await fetch(fullUrl, {
+      const res = await fetch(fullUrl, {
         method: 'POST',
         headers: {
-          ...reqHeaders,
+          ...baseHeaders,
           'Content-Type': 'application/x-www-form-urlencoded',
+          'X-Requested-With': 'XMLHttpRequest'
         },
         body: formData
       })
-      if (resForm.ok) {
-        const text = await resForm.text()
+      
+      if (res.ok) {
+        const text = await res.text()
+        console.log(`[fetchDetails] Form POST to ${ep}: ${text.length} chars`)
         const history = parseAttendanceHistory(text)
         if (history.length > 0) return history
       }
-    } catch (e) { /* silent fail */ }
+    } catch (e) {
+      console.log(`[fetchDetails] Form POST failed for ${ep}`)
+    }
   }
 
+  console.error(`[fetchDetails] All approaches failed for ${courseCode}`)
   return []
 }
 
@@ -581,48 +648,91 @@ function parseAttendanceHistory(html: string): AttendanceHistoryRecord[] {
   const $ = cheerio.load(html)
   const history: AttendanceHistoryRecord[] = []
   
-  // SCAN ALL TABLES - The university portal sometimes wraps history in nested tables
-  $('table').each((_, table) => {
-    $(table).find('tr').each((i, row) => {
-      const cells = $(row).find('td')
-      if (cells.length >= 4) {
-        // Search for a date pattern DD/MM/YYYY in the first few cells
-        let date = ''
-        let dateIdx = -1
-        
-        for (let j = 0; j < Math.min(cells.length, 3); j++) {
-          const txt = $(cells[j]).text().trim()
-          if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(txt)) {
-            date = txt
-            dateIdx = j
-            break
-          }
-        }
-        
-        if (date) {
-          // Once a date is found, mapping is usually consistent:
-          // Date (Idx), Type (Idx+1), Time (Idx+2), Status (Idx+3)
-          const type = $(cells[dateIdx + 1]).text().trim()
-          const time = $(cells[dateIdx + 2]).text().trim()
-          const status = $(cells[dateIdx + 3]).text().trim()
-          
-          // Only add if we have a valid status (Present/Absent/DL/ML/etc)
-          if (status && status.length > 2) {
-            history.push({
-              date,
-              type: type || 'Class',
-              time: time || '--:--',
-              status: status,
-              markedBy: $(cells[dateIdx + 6]).text().trim() || $(cells[cells.length - 1]).text().trim() || 'System'
-            })
-          }
-        }
-      }
-    })
+  // Target the #fullreport table specifically (from portal inspect element)
+  let targetTable = $('table#fullreport')
+  
+  // Fallback: find any table with attendance-like content
+  if (targetTable.length === 0) {
+    targetTable = $('table').filter((_, el) => {
+      const txt = $(el).text().toLowerCase()
+      return (txt.includes('present') || txt.includes('absent')) && 
+             (txt.includes('date') || txt.includes('time'))
+    }).first()
+  }
+  
+  if (targetTable.length === 0) {
+    // Last resort: scan ALL tables
+    targetTable = $('table')
+  }
+  
+  targetTable.find('tr').each((_, row) => {
+    const cells = $(row).find('td')
+    if (cells.length < 4) return
     
-    if (history.length > 0) return false // break out of table loop if records found
+    // Strategy 1: Use data-label attributes (mobile responsive)
+    const hasDataLabels = cells.filter((__, c) => $(c).attr('data-label')).length > 0
+    
+    if (hasDataLabels) {
+      const getLabel = (needle: string) => {
+        let val = ''
+        cells.each((__, c) => {
+          const label = ($(c).attr('data-label') || '').toLowerCase()
+          if (label.includes(needle.toLowerCase())) {
+            val = $(c).text().trim()
+            return false
+          }
+        })
+        return val
+      }
+      
+      const date = getLabel('date')
+      const status = getLabel('attendance') || getLabel('status')
+      
+      if (date && status) {
+        history.push({
+          date,
+          type: getLabel('type') || 'Class',
+          time: getLabel('time') || '--:--',
+          status,
+          section: getLabel('section') || '',
+          group: getLabel('group') || '',
+          markedBy: getLabel('marked by') || getLabel('marked') || 'System'
+        })
+      }
+      return // next row
+    }
+    
+    // Strategy 2: Positional parsing (desktop view)
+    // Portal columns: SrNo(0), Date(1), Type(2), Time(3), Attendance(4), Section(5), Group(6), Marked By(7)
+    // Check for date in cell 1 (skip SrNo)
+    let dateIdx = -1
+    for (let j = 0; j < Math.min(cells.length, 3); j++) {
+      const txt = $(cells[j]).text().trim()
+      // Match: DD/MM/YYYY or "Saturday, 25 Apr 2026" or "25 Apr 2026"
+      if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(txt) || 
+          /\d{1,2}\s+\w{3,9}\s+\d{4}/.test(txt) ||
+          /^\w+day,?\s+\d{1,2}\s+\w+\s+\d{4}$/.test(txt)) {
+        dateIdx = j
+        break
+      }
+    }
+    
+    if (dateIdx >= 0) {
+      const date = $(cells[dateIdx]).text().trim()
+      const type = $(cells[dateIdx + 1])?.text().trim() || 'Class'
+      const time = $(cells[dateIdx + 2])?.text().trim() || '--:--'
+      const status = $(cells[dateIdx + 3])?.text().trim() || ''
+      const section = $(cells[dateIdx + 4])?.text().trim() || ''
+      const group = $(cells[dateIdx + 5])?.text().trim() || ''
+      const markedBy = $(cells[dateIdx + 6])?.text().trim() || $(cells[cells.length - 1]).text().trim() || 'System'
+      
+      if (status && status.length > 2) {
+        history.push({ date, type, time, status, section, group, markedBy })
+      }
+    }
   })
   
+  console.log(`[parseAttendanceHistory] Parsed ${history.length} history records`)
   return history
 }
 
@@ -920,127 +1030,162 @@ function parseAttendanceHTML(html: string): AttendanceRecord[] {
   try {
     const $ = cheerio.load(html)
     
-    // 1. Identify valid attendance tables
-    let tables = $('table#SortTable, table#dgAttendance, table#grvAttendance')
-    if (tables.length === 0) {
-      tables = $('table').filter((_, el) => {
-        const txt = $(el).text().toLowerCase()
-        return txt.includes('eligible delivered') || txt.includes('attendance summary')
+    // ═══════════════════════════════════════════════════════════════
+    // PASS 1: DATA-LABEL APPROACH (Most Reliable)
+    // The portal puts data-label="Eligible Delivered:" on every <td>
+    // in mobile-responsive tables. We find those cells and walk UP
+    // to the parent <tr> to read ALL other cells by THEIR data-labels.
+    // This is immune to column reordering or nested table issues.
+    // ═══════════════════════════════════════════════════════════════
+    
+    // Find ALL td elements whose data-label contains "Eligible Delivered"
+    const eligDelvCells = $('td').filter((_, el) => {
+      const label = $(el).attr('data-label') || ''
+      return label.toLowerCase().includes('eligible delivered')
+    })
+    
+    console.log(`[parseAttendanceHTML] Pass 1: Found ${eligDelvCells.length} data-label "Eligible Delivered" cells`)
+    
+    if (eligDelvCells.length > 0) {
+      eligDelvCells.each((_, eligCell) => {
+        const $row = $(eligCell).closest('tr')
+        
+        // Helper: find a cell in THIS row by partial data-label match
+        const getByLabel = (...needles: string[]): string => {
+          let found = ''
+          $row.find('td[data-label]').each((__, td) => {
+            const label = ($(td).attr('data-label') || '').toLowerCase()
+            for (const needle of needles) {
+              if (label.includes(needle.toLowerCase())) {
+                found = $(td).text().trim()
+                return false // break inner loop
+              }
+            }
+          })
+          return found
+        }
+        
+        const code = getByLabel('course code', 'code')
+        const title = getByLabel('title', 'subject name', 'course name')
+        const totalDelv = getByLabel('total_delv', 'total delv')
+        const totalAttd = getByLabel('total_attd', 'total attd')
+        const idl = getByLabel('duty leave n', 'idl') || '0'
+        const adl = getByLabel('duty leave adl', 'adl') || '0'
+        const vdl = getByLabel('duty leave other', 'vdl') || '0'
+        const ml = getByLabel('medical leave', 'medical') || '0'
+        const eligDelv = $(eligCell).text().trim() // This IS the cell we found
+        const eligAttd = getByLabel('eligible attended')
+        const eligPerc = getByLabel('eligible percentage', 'percentage')
+        
+        // Extract chk from VIEW button in this row
+        const viewBtn = $row.find('input[chk], input[onclick*="getdata"], button[chk]')
+        const chk = viewBtn.attr('chk') || ''
+        const obj = viewBtn.attr('obj') || code
+        
+        if (title && title.length > 2) {
+          const record: any = {
+            name: title,
+            code: code || obj,
+            chk,
+            obj: obj || code,
+            attended: totalAttd || '0',
+            total: totalDelv || '0',
+            percentage: eligPerc || '0',
+            idl, adl, vdl,
+            medicalLeave: ml,
+            eligibleDelivered: eligDelv || totalDelv || '0',
+            eligibleAttended: eligAttd || totalAttd || '0',
+            eligiblePercentage: eligPerc || '0'
+          }
+          if (records.length < 2) {
+            console.log(`[parseAttendanceHTML] Pass 1 Record: ${record.name} | EligDelv=${record.eligibleDelivered} | EligAttd=${record.eligibleAttended} | Perc=${record.eligiblePercentage}`)
+          }
+          records.push(record)
+        }
       })
     }
     
-    tables.each((_, tableEl) => {
-      const $table = $(tableEl)
-      
-      // 2. Dynamic Column Mapping (Specific-First)
-      const colMap: Record<string, number> = {
-        code: 0, title: 1, totalDelv: 2, totalAttd: 3, 
-        idl: 4, adl: 5, vdl: 6, ml: 7, 
-        eligDelv: 8, eligAttd: 9, perc: 10
-      }
-
-      $table.find('tr').each((_, tr) => {
-        const headers = $(tr).find('th, td.header, td[style*="bold"]')
-        if (headers.length >= 8) {
-          headers.each((i, h) => {
-            const txt = $(h).text().toLowerCase().replace(/[^a-z ]/g, '').trim()
-            if (txt.includes('eligible delivered')) colMap.eligDelv = i
-            else if (txt.includes('eligible attended')) colMap.eligAttd = i
-            else if (txt.includes('eligible percentage')) colMap.perc = i
-            else if (txt.includes('duty leave idl') || (txt.includes('idl') && !txt.includes('adl'))) colMap.idl = i
-            else if (txt.includes('duty leave adl') || txt.includes('adl')) colMap.adl = i
-            else if (txt.includes('duty leave others') || txt.includes('vdl')) colMap.vdl = i
-            else if (txt.includes('medical') || txt.includes('ml')) colMap.ml = i
-            else if (txt.includes('total delv') || (txt.includes('total') && txt.includes('delv'))) colMap.totalDelv = i
-            else if (txt.includes('total attd') || (txt.includes('total') && txt.includes('attd'))) colMap.totalAttd = i
-            else if (txt.includes('code')) colMap.code = i
-            else if (txt.includes('title') || (txt.includes('subject') && !txt.includes('code'))) colMap.title = i
-          })
-          return false // Stop after first header row identified
-        }
-      })
-
-      console.log('[parseAttendanceHTML] Using Map:', colMap)
-
-      // 3. Row Parsing with Anchor Check
-      $table.find('tr').each((_, row) => {
-        const $row = $(row)
-        const cells = $row.find('td')
-        if (cells.length < 8) return
-
-        const code = cells.eq(colMap.code).text().trim()
-        const title = cells.eq(colMap.title).text().trim()
-        
-        // Subject Anchor: Row must have a code like "25CSH-102"
-        if (!/^[A-Z0-9]{2,}-[A-Z0-9]+$/.test(code) && !/^[A-Z0-9]{3,}$/.test(code)) return
-        if (!title || title.length < 3) return
-
-        const getVal = (idx: number) => cells.eq(idx).text().trim() || '0'
-        
-        const totalDelv = getVal(colMap.totalDelv)
-        const totalAttd = getVal(colMap.totalAttd)
-        const eligDelv = getVal(colMap.eligDelv)
-        const eligAttd = getVal(colMap.eligAttd)
-        const percText = getVal(colMap.perc)
-
-        // Force manual fallback if mapping failed (collision or missing)
-        // If eligDelv is identical to totalDelv but the visual table suggests otherwise, we check offsets
-        let finalEligDelv = eligDelv
-        if (finalEligDelv === totalDelv && cells.length >= 11) {
-           // Standard GridView often groups Total (2,3) and Eligible (8,9)
-           // If they matched, maybe the header was misaligned. Try the "8" index surgically.
-           const surgical = cells.eq(8).text().trim()
-           if (surgical && surgical !== title && surgical !== code) finalEligDelv = surgical
-        }
-
-        const viewBtn = $row.find('input[chk], button[chk], [onclick*="getdata"]')
-        
-        records.push({
-          name: title,
-          code: code,
-          chk: viewBtn.attr('chk') || '',
-          obj: viewBtn.attr('obj') || code,
-          attended: totalAttd,
-          total: totalDelv,
-          percentage: percText,
-          idl: getVal(colMap.idl),
-          adl: getVal(colMap.adl),
-          vdl: getVal(colMap.vdl),
-          medicalLeave: getVal(colMap.ml),
-          eligibleDelivered: finalEligDelv,
-          eligibleAttended: eligAttd || totalAttd,
-          eligiblePercentage: percText
-        } as any)
-      })
-      if (records.length > 0) return false // Found the primary table
-    })
-
-    // Absolute fallback: manual cell scan if primary table mapping was zero
+    // ═══════════════════════════════════════════════════════════════
+    // PASS 2: COLUMN-INDEX APPROACH (Fallback for non-responsive pages)
+    // Only runs if Pass 1 found nothing (e.g., desktop-only HTML)
+    // ═══════════════════════════════════════════════════════════════
     if (records.length === 0) {
-      console.log('[parseAttendanceHTML] Map yielded zero, attempting brute-force search...')
-      $('tr').each((_, row) => {
-        const cells = $(row).find('td')
-        if (cells.length >= 11) {
-          const code = $(cells[0]).text().trim()
-          if (/^[A-Z0-9]+-[A-Z0-9]+$/.test(code)) {
-            records.push({
-              name: $(cells[1]).text().trim(),
-              code: code,
-              total: $(cells[2]).text().trim(),
-              attended: $(cells[3]).text().trim(),
-              eligibleDelivered: $(cells[8]).text().trim(),
-              eligibleAttended: $(cells[9]).text().trim(),
-              percentage: $(cells[10]).text().trim()
-            } as any)
-          }
+      console.log('[parseAttendanceHTML] Pass 1 yielded 0, trying column-index Pass 2...')
+      
+      // Find the correct table — must contain course codes
+      $('table').each((_, tableEl) => {
+        const $table = $(tableEl)
+        
+        // Build column map from header row
+        const colMap: Record<string, number> = {
+          code: 0, title: 1, totalDelv: 2, totalAttd: 3,
+          idl: 4, adl: 5, vdl: 6, ml: 7,
+          eligDelv: 8, eligAttd: 9, perc: 10
         }
+        
+        // Try to find headers
+        $table.find('tr').each((_, tr) => {
+          const headers = $(tr).find('th')
+          if (headers.length >= 8) {
+            headers.each((i, h) => {
+              const txt = $(h).text().toLowerCase().replace(/[^a-z ]/g, '').trim()
+              // Most-specific matches first
+              if (txt.includes('eligible delivered')) colMap.eligDelv = i
+              else if (txt.includes('eligible attended')) colMap.eligAttd = i
+              else if (txt.includes('eligible percentage')) colMap.perc = i
+              else if (txt.includes('medical')) colMap.ml = i
+              else if (txt.includes('total delv')) colMap.totalDelv = i
+              else if (txt.includes('total attd')) colMap.totalAttd = i
+              else if (txt.includes('course code') || txt === 'code') colMap.code = i
+              else if (txt.includes('title')) colMap.title = i
+              else if (txt.includes('idl')) colMap.idl = i
+              else if (txt.includes('adl')) colMap.adl = i
+              else if (txt.includes('vdl')) colMap.vdl = i
+            })
+            return false
+          }
+        })
+        
+        // Parse data rows — anchor on course code pattern
+        $table.find('tr').each((_, row) => {
+          const cells = $(row).find('td')
+          if (cells.length < 8) return
+          
+          const code = cells.eq(colMap.code).text().trim()
+          // Must look like a course code: 25CSH-102, 25MTT-108, etc.
+          if (!/^\d{2}[A-Z]{2,4}-\d{2,3}$/.test(code) && !/^[A-Z0-9]{3,}-[A-Z0-9]+$/.test(code)) return
+          
+          const title = cells.eq(colMap.title).text().trim()
+          if (!title || title.length < 3) return
+          
+          const viewBtn = $(row).find('input[chk], [onclick*="getdata"]')
+          
+          records.push({
+            name: title,
+            code,
+            chk: viewBtn.attr('chk') || '',
+            obj: viewBtn.attr('obj') || code,
+            attended: cells.eq(colMap.totalAttd).text().trim() || '0',
+            total: cells.eq(colMap.totalDelv).text().trim() || '0',
+            percentage: cells.eq(colMap.perc).text().trim() || '0',
+            idl: cells.eq(colMap.idl).text().trim() || '0',
+            adl: cells.eq(colMap.adl).text().trim() || '0',
+            vdl: cells.eq(colMap.vdl).text().trim() || '0',
+            medicalLeave: cells.eq(colMap.ml).text().trim() || '0',
+            eligibleDelivered: cells.eq(colMap.eligDelv).text().trim() || '0',
+            eligibleAttended: cells.eq(colMap.eligAttd).text().trim() || '0',
+            eligiblePercentage: cells.eq(colMap.perc).text().trim() || '0'
+          } as any)
+        })
+        
+        if (records.length > 0) return false // stop after first table with data
       })
     }
   } catch (error) {
     console.error('[parseAttendanceHTML] Error:', error)
   }
   
-  console.log(`[parseAttendanceHTML] Parsed ${records.length} subjects`)
+  console.log(`[parseAttendanceHTML] Total: ${records.length} subjects parsed`)
   return records
 }
 

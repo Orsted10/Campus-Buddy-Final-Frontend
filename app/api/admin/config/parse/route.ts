@@ -11,7 +11,30 @@ export async function POST(req: Request) {
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user || user.email !== '25lbcs3067@culkomail.in') {
+    
+    // Admin check: auth email OR portal profile UID
+    const ADMIN_EMAILS = ['25lbcs3067@culkomail.in']
+    const ADMIN_UIDS = ['25LBCS3067']
+    
+    let isAdmin = user && ADMIN_EMAILS.includes(user.email || '')
+    
+    // Also check portal_records for user's UID
+    if (!isAdmin && user) {
+      const { data: profile } = await supabase
+        .from('portal_records')
+        .select('data')
+        .eq('user_id', user.id)
+        .eq('type', 'profile')
+        .maybeSingle()
+      
+      const portalUid = profile?.data?.uid?.toUpperCase()
+      const portalEmail = profile?.data?.email?.toLowerCase()
+      if (ADMIN_UIDS.includes(portalUid) || ADMIN_EMAILS.includes(portalEmail)) {
+        isAdmin = true
+      }
+    }
+    
+    if (!isAdmin) {
       return NextResponse.json({ error: 'Unauthorized: Admin access only' }, { status: 403 })
     }
 

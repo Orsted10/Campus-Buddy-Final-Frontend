@@ -78,6 +78,13 @@ export const usePortalStore = create<PortalState>()(
       syncAll: async (): Promise<boolean> => {
         if (get().isSyncing) return false
         
+        // Debounce: prevent re-sync within 5 seconds
+        const last = get().lastSync
+        if (last && Date.now() - new Date(last).getTime() < 5000) {
+          console.log('[usePortalStore] Sync debounced (< 5s since last)')
+          return false
+        }
+        
         const isNative = isNativeApp()
 
         console.log(`[usePortalStore] syncAll triggered. Native=${isNative}, Status=${get().portalStatus}`)
