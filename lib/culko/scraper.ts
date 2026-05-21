@@ -1032,52 +1032,69 @@ function parseAttendanceHTML(html: string): AttendanceRecord[] {
     
     // ═══════════════════════════════════════════════════════════════
     // PASS 1: DATA-LABEL APPROACH (Most Reliable)
-    // The portal puts data-label="Eligible Delivered:" on every <td>
-    // in mobile-responsive tables. We find those cells and walk UP
-    // to the parent <tr> to read ALL other cells by THEIR data-labels.
-    // This is immune to column reordering or nested table issues.
+    // The portal puts data-label attributes on every <td>.
+    // We normalize labels by stripping ALL non-alpha chars to handle
+    // variants like "Eligible_Delivered", "Eligible Delivered:", etc.
     // ═══════════════════════════════════════════════════════════════
     
-    // Find ALL td elements whose data-label contains "Eligible Delivered"
+    // Normalize: strip everything except lowercase letters
+    const norm = (s: string) => s.toLowerCase().replace(/[^a-z]/g, '')
+    
+    // Find ALL td elements whose normalized data-label contains "eligibledelivered"
     const eligDelvCells = $('td').filter((_, el) => {
-      const label = $(el).attr('data-label') || ''
-      return label.toLowerCase().includes('eligible delivered')
+      const label = norm($(el).attr('data-label') || '')
+      return label.includes('eligibledelivered')
     })
     
-    console.log(`[parseAttendanceHTML] Pass 1: Found ${eligDelvCells.length} data-label "Eligible Delivered" cells`)
+    // Debug: dump actual data-labels from the first data row
+    if (eligDelvCells.length === 0) {
+      const firstDataRow = $('tr').filter((_, tr) => {
+        const code = $(tr).find('td').first().text().trim()
+        return /^\d{2}[A-Z]/.test(code)
+      }).first()
+      if (firstDataRow.length) {
+        const labels: string[] = []
+        firstDataRow.find('td').each((_, td) => {
+          const dl = $(td).attr('data-label')
+          if (dl) labels.push(dl)
+        })
+        console.log('[parseAttendanceHTML] DEBUG data-labels from first row:', labels.length ? labels : 'NONE FOUND')
+      }
+    }
+    
+    console.log(`[parseAttendanceHTML] Pass 1: Found ${eligDelvCells.length} data-label cells`)
     
     if (eligDelvCells.length > 0) {
       eligDelvCells.each((_, eligCell) => {
         const $row = $(eligCell).closest('tr')
         
-        // Helper: find a cell in THIS row by partial data-label match
+        // Helper: find a cell in THIS row by normalized data-label match
         const getByLabel = (...needles: string[]): string => {
           let found = ''
           $row.find('td[data-label]').each((__, td) => {
-            const label = ($(td).attr('data-label') || '').toLowerCase()
+            const labelNorm = norm($(td).attr('data-label') || '')
             for (const needle of needles) {
-              if (label.includes(needle.toLowerCase())) {
+              if (labelNorm.includes(norm(needle))) {
                 found = $(td).text().trim()
-                return false // break inner loop
+                return false
               }
             }
           })
           return found
         }
         
-        const code = getByLabel('course code', 'code')
+        const code = getByLabel('course code', 'coursecode', 'code')
         const title = getByLabel('title', 'subject name', 'course name')
-        const totalDelv = getByLabel('total_delv', 'total delv')
-        const totalAttd = getByLabel('total_attd', 'total attd')
-        const idl = getByLabel('duty leave n', 'idl') || '0'
-        const adl = getByLabel('duty leave adl', 'adl') || '0'
-        const vdl = getByLabel('duty leave other', 'vdl') || '0'
+        const totalDelv = getByLabel('total delv', 'total_delv', 'totaldelv')
+        const totalAttd = getByLabel('total attd', 'total_attd', 'totalattd')
+        const idl = getByLabel('idl', 'duty leave n') || '0'
+        const adl = getByLabel('adl', 'duty leave adl') || '0'
+        const vdl = getByLabel('vdl', 'duty leave other') || '0'
         const ml = getByLabel('medical leave', 'medical') || '0'
-        const eligDelv = $(eligCell).text().trim() // This IS the cell we found
-        const eligAttd = getByLabel('eligible attended')
-        const eligPerc = getByLabel('eligible percentage', 'percentage')
+        const eligDelv = $(eligCell).text().trim()
+        const eligAttd = getByLabel('eligible attended', 'eligibleattended')
+        const eligPerc = getByLabel('eligible percentage', 'eligiblepercentage', 'percentage')
         
-        // Extract chk from VIEW button in this row
         const viewBtn = $row.find('input[chk], input[onclick*="getdata"], button[chk]')
         const chk = viewBtn.attr('chk') || ''
         const obj = viewBtn.attr('obj') || code
@@ -1107,56 +1124,82 @@ function parseAttendanceHTML(html: string): AttendanceRecord[] {
     
     // ═══════════════════════════════════════════════════════════════
     // PASS 2: COLUMN-INDEX APPROACH (Fallback for non-responsive pages)
-    // Only runs if Pass 1 found nothing (e.g., desktop-only HTML)
+    // Only runs if Pass 1 found nothing (no data-label attributes)
     // ═══════════════════════════════════════════════════════════════
     if (records.length === 0) {
       console.log('[parseAttendanceHTML] Pass 1 yielded 0, trying column-index Pass 2...')
       
-      // Find the correct table — must contain course codes
       $('table').each((_, tableEl) => {
         const $table = $(tableEl)
         
-        // Build column map from header row
+        // Default column map matching standard CULKO layout
         const colMap: Record<string, number> = {
           code: 0, title: 1, totalDelv: 2, totalAttd: 3,
           idl: 4, adl: 5, vdl: 6, ml: 7,
           eligDelv: 8, eligAttd: 9, perc: 10
         }
         
-        // Try to find headers
+        let headerFound = false
+        
+        // Scan for header row — check BOTH <th> AND <td> cells
         $table.find('tr').each((_, tr) => {
-          const headers = $(tr).find('th')
+          // Try <th> first, then fall back to all <td>
+          let headers = $(tr).find('th')
+          if (headers.length < 8) {
+            // Check if this row's <td> cells look like headers (contain "Eligible" or "Total")
+            const allTds = $(tr).find('td')
+            const rowText = $(tr).text().toLowerCase()
+            if (allTds.length >= 8 && (rowText.includes('eligible') || rowText.includes('total delv'))) {
+              headers = allTds
+            }
+          }
+          
           if (headers.length >= 8) {
+            const headerTexts: string[] = []
             headers.each((i, h) => {
-              const txt = $(h).text().toLowerCase().replace(/[^a-z ]/g, '').trim()
-              // Most-specific matches first
-              if (txt.includes('eligible delivered')) colMap.eligDelv = i
-              else if (txt.includes('eligible attended')) colMap.eligAttd = i
-              else if (txt.includes('eligible percentage')) colMap.perc = i
-              else if (txt.includes('medical')) colMap.ml = i
-              else if (txt.includes('total delv')) colMap.totalDelv = i
-              else if (txt.includes('total attd')) colMap.totalAttd = i
-              else if (txt.includes('course code') || txt === 'code') colMap.code = i
+              const raw = $(h).text().trim()
+              const txt = norm(raw)
+              headerTexts.push(`${i}:${raw}`)
+              
+              // Most-specific matches first (use normalized comparison)
+              if (txt.includes('eligibledelivered')) colMap.eligDelv = i
+              else if (txt.includes('eligibleattended')) colMap.eligAttd = i
+              else if (txt.includes('eligiblepercentage')) colMap.perc = i
+              else if (txt.includes('medicalleave') || txt === 'medical' || txt === 'ml') colMap.ml = i
+              else if (txt.includes('totaldelv')) colMap.totalDelv = i
+              else if (txt.includes('totalattd')) colMap.totalAttd = i
+              else if (txt.includes('coursecode') || txt === 'code') colMap.code = i
               else if (txt.includes('title')) colMap.title = i
-              else if (txt.includes('idl')) colMap.idl = i
-              else if (txt.includes('adl')) colMap.adl = i
-              else if (txt.includes('vdl')) colMap.vdl = i
+              else if (txt === 'idl' || txt.includes('dutyleaveidl') || txt.includes('dutyleaven')) colMap.idl = i
+              else if (txt === 'adl' || txt.includes('dutyleaveadl')) colMap.adl = i
+              else if (txt === 'vdl' || txt.includes('dutyleaveother')) colMap.vdl = i
             })
+            headerFound = true
+            console.log('[parseAttendanceHTML] Pass 2 Headers:', headerTexts.join(' | '))
+            console.log('[parseAttendanceHTML] Pass 2 ColMap:', JSON.stringify(colMap))
             return false
           }
         })
         
-        // Parse data rows — anchor on course code pattern
+        // Parse data rows
+        let firstRowLogged = false
         $table.find('tr').each((_, row) => {
           const cells = $(row).find('td')
           if (cells.length < 8) return
           
           const code = cells.eq(colMap.code).text().trim()
-          // Must look like a course code: 25CSH-102, 25MTT-108, etc.
           if (!/^\d{2}[A-Z]{2,4}-\d{2,3}$/.test(code) && !/^[A-Z0-9]{3,}-[A-Z0-9]+$/.test(code)) return
           
           const title = cells.eq(colMap.title).text().trim()
           if (!title || title.length < 3) return
+          
+          // Debug: log first data row values
+          if (!firstRowLogged) {
+            const vals: string[] = []
+            cells.each((ci, c) => vals.push(`${ci}:"${$(c).text().trim()}"`))
+            console.log(`[parseAttendanceHTML] Pass 2 First Row (${cells.length} cells):`, vals.join(' | '))
+            firstRowLogged = true
+          }
           
           const viewBtn = $(row).find('input[chk], [onclick*="getdata"]')
           
@@ -1178,7 +1221,7 @@ function parseAttendanceHTML(html: string): AttendanceRecord[] {
           } as any)
         })
         
-        if (records.length > 0) return false // stop after first table with data
+        if (records.length > 0) return false
       })
     }
   } catch (error) {
