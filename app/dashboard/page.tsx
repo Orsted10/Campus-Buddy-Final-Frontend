@@ -10,7 +10,7 @@ import {
   Calendar as CalendarIcon, Utensils, AlertTriangle, 
   ChevronRight, ArrowRight, Zap, BookOpen, 
   RefreshCw, MapPin, Settings as SettingsIcon,
-  Smile, Sun, Moon, Coffee, UtensilsCrossed, Sparkles
+  Smile, Sun, Moon, Coffee, UtensilsCrossed, Sparkles, Users
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -19,6 +19,7 @@ import { getISTDate, isBetweenTimings, parseTimeString } from '@/lib/utils-date'
 import { useRouter } from 'next/navigation'
 import { useConfig } from '@/components/providers/ConfigProvider'
 import { getApiUrl } from '@/lib/api-config'
+import { PerformanceRadar } from './components/PerformanceRadar'
 
 export default function DashboardPage() {
   const { academicCalendar: ACADEMIC_CALENDAR_2026, messMenu: MESS_MENU } = useConfig()
@@ -358,12 +359,19 @@ export default function DashboardPage() {
             )}
           </AnimatePresence>
 
+          {/* PERFORMANCE RADAR */}
+          <Card className="card-app overflow-hidden">
+             <CardContent className="p-0">
+                <PerformanceRadar attendance={Array.isArray(attendanceData) ? attendanceData : []} />
+             </CardContent>
+          </Card>
+
           {/* QUICK ACTIONS HUB */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
              {[
                { name: 'CULKO Portal', icon: GraduationCap, color: 'text-blue-500', href: '/dashboard/academics' },
-               { name: 'Campus AI', icon: Zap, color: 'text-primary', href: '/dashboard/chat' },
-               { name: 'Maintenance', icon: SettingsIcon, color: 'text-orange-500', href: '/dashboard/hostel' },
+               { name: 'AI Predictor', icon: Zap, color: 'text-primary', href: '/dashboard/analytics' },
+               { name: 'Social Hub', icon: Users, color: 'text-indigo-500', href: '/dashboard/social' },
                { name: 'Library Search', icon: BookOpen, color: 'text-purple-500', href: '/dashboard/library' }
              ].map((action, i) => (
                 <motion.button

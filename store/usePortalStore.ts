@@ -21,6 +21,7 @@ interface PortalState {
   
   // High-level sync action
   syncAll: () => Promise<boolean>
+  forceSyncAll: () => Promise<boolean>
   checkStatus: () => Promise<boolean>
 }
 

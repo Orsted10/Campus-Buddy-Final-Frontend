@@ -562,8 +562,8 @@ async function fetchAttendanceDetails(cookies: Record<string, string>, courseCod
         body: JSON.stringify({
           course: chk,
           UID: reportId,
-          fromDate: '',
-          toDate: '',
+          fromDate: '0',
+          toDate: '0',
           type: 'All',
           Session: sessionId
         })

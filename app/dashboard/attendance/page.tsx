@@ -42,10 +42,9 @@ function AttendanceRing({
       <div className="flex items-center gap-5">
         <div className="relative w-[88px] h-[88px] flex-shrink-0">
           <svg className="w-full h-full transform -rotate-90">
-            <circle cx="44" cy="44" r={radius} stroke="currentColor" strokeWidth="7" fill="transparent" className="text-muted/60" />
+            <circle cx="44" cy="44" r={radius} stroke="currentColor" strokeWidth="7" fill="transparent" className="text-muted/20" />
             <circle cx="44" cy="44" r={radius} stroke="currentColor" strokeWidth="7" fill="transparent" 
-              className={ringColor} strokeDasharray={circumference} strokeDashoffset={strokeDashoffset} strokeLinecap="round"
-              style={{ transition: 'stroke-dashoffset 1s ease-out' }}
+              className={`${ringColor} drop-shadow-[0_0_8px_currentColor] transition-all duration-1000 ease-out`} strokeDasharray={circumference} strokeDashoffset={strokeDashoffset} strokeLinecap="round"
             />
           </svg>
           <div className="absolute inset-0 flex items-center justify-center">
@@ -119,85 +118,137 @@ function HistoryModal({ isOpen, onClose, subjectName, history, isLoading }: {
   const absentCount = history.filter(r => r.status?.toLowerCase().includes('absent')).length
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 bg-black/70 backdrop-blur-md animate-in fade-in" onClick={onClose}>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 bg-black/60 backdrop-blur-xl animate-in fade-in duration-300" onClick={onClose}>
       <motion.div 
-        initial={{ scale: 0.92, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', damping: 25 }}
-        className="w-full max-w-2xl max-h-[88vh] overflow-hidden rounded-2xl bg-background/95 backdrop-blur-xl border border-white/10 flex flex-col shadow-2xl"
+        initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+        className="w-full max-w-2xl max-h-[88vh] overflow-hidden rounded-[2rem] bg-background/95 backdrop-blur-2xl border border-white/10 flex flex-col shadow-2xl"
         onClick={e => e.stopPropagation()}
       >
-        <div className="p-5 border-b border-white/5 flex items-center justify-between sticky top-0 bg-background/90 backdrop-blur-md z-10">
-          <div>
-            <h2 className="text-lg font-black tracking-tight">{subjectName}</h2>
-            <div className="flex items-center gap-3 mt-1">
-              <span className="text-[9px] font-black uppercase text-muted-foreground/60 tracking-[0.15em]">Class Record</span>
-              {!isLoading && history.length > 0 && (
-                <div className="flex items-center gap-2">
-                  <span className="text-[9px] font-bold text-green-500">{presentCount}P</span>
-                  <span className="text-[9px] font-bold text-red-500">{absentCount}A</span>
-                </div>
-              )}
+         {/* HEADER */}
+        <div className="p-6 border-b border-black/5 dark:border-white/5 flex flex-col relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent opacity-50" />
+          <div className="flex items-start justify-between relative z-10">
+            <div className="pr-4">
+              <div className="flex items-center gap-2 mb-2">
+                 <div className="p-2 bg-primary/10 rounded-xl">
+                    <BookOpen className="w-4 h-4 text-primary" />
+                 </div>
+                 <span className="text-[10px] font-black uppercase text-primary tracking-[0.2em]">Detailed Record</span>
+              </div>
+              <h2 className="text-xl md:text-2xl font-black tracking-tighter leading-tight text-foreground">{subjectName}</h2>
+              <div className="flex items-center gap-3 mt-3">
+                 <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/20 px-3 py-1 font-black">
+                    {presentCount} PRESENT
+                 </Badge>
+                 <Badge variant="outline" className="bg-red-500/10 text-red-500 border-red-500/20 px-3 py-1 font-black">
+                    {absentCount} ABSENT
+                 </Badge>
+              </div>
             </div>
+            <button onClick={onClose} className="w-10 h-10 rounded-2xl bg-black/5 dark:bg-white/5 flex items-center justify-center hover:bg-black/10 dark:hover:bg-white/10 transition-colors shrink-0">
+              <X className="w-5 h-5 text-muted-foreground" />
+            </button>
           </div>
-          <button onClick={onClose} className="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors">
-            <X className="w-4 h-4" />
-          </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-3 space-y-1.5 custom-scrollbar">
+        {/* TIMELINE CONTENT */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar relative">
           {isLoading ? (
-            <div className="py-20 flex flex-col items-center gap-3">
-              <RefreshCw className="w-7 h-7 text-primary animate-spin" />
-              <p className="text-xs font-black text-muted-foreground/60 uppercase tracking-[0.15em] animate-pulse">Fetching records...</p>
+            <div className="py-24 flex flex-col items-center gap-4">
+              <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center">
+                 <RefreshCw className="w-8 h-8 text-primary animate-spin" />
+              </div>
+              <p className="text-xs font-black text-muted-foreground/60 uppercase tracking-[0.2em] animate-pulse">Syncing CULKO Logs...</p>
             </div>
           ) : history.length === 0 ? (
-            <div className="py-20 text-center space-y-2">
-              <BookOpen className="w-10 h-10 text-muted-foreground/30 mx-auto" />
-              <p className="text-sm font-bold text-muted-foreground/50">No detailed records found</p>
-              <p className="text-[10px] text-muted-foreground/40">The portal may not have detailed history available for this subject.</p>
+            <div className="py-24 text-center space-y-3">
+              <div className="w-20 h-20 rounded-full bg-muted/30 flex items-center justify-center mx-auto">
+                 <BookOpen className="w-10 h-10 text-muted-foreground/30" />
+              </div>
+              <p className="text-sm font-black text-foreground">No Classes Logged Yet</p>
+              <p className="text-xs text-muted-foreground/60">The portal has not recorded any details for this subject.</p>
             </div>
           ) : (
-            history.map((record, i) => {
-              const s = record.status?.toLowerCase() || ''
-              const isPresent = s.includes('present')
-              const isAbsent = s.includes('absent')
-              const isDL = s.includes('dl') || s.includes('duty') || s.includes('medical')
-              
-              let dotColor = 'bg-muted-foreground/40'
-              let statusBg = 'bg-muted/50 text-muted-foreground'
-              if (isPresent) { dotColor = 'bg-green-500'; statusBg = 'bg-green-500/10 text-green-500' }
-              else if (isAbsent && isDL) { dotColor = 'bg-blue-500'; statusBg = 'bg-blue-500/10 text-blue-500' }
-              else if (isAbsent) { dotColor = 'bg-red-500'; statusBg = 'bg-red-500/10 text-red-500' }
+            <div className="relative pl-4 space-y-8 before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-border/50 before:to-transparent">
+              {history.map((record, i) => {
+                const s = record.status?.toLowerCase() || ''
+                const isPresent = s.includes('present')
+                const isAbsent = s.includes('absent')
+                const isDL = s.includes('dl') || s.includes('duty') || s.includes('medical')
+                
+                let dotColor = 'bg-muted-foreground/40 border-muted-foreground/20'
+                let dotGlow = ''
+                let statusBg = 'bg-muted/50 text-muted-foreground'
+                let cardBorder = 'border-border/20 hover:border-border/40'
 
-              return (
-                <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-muted/20 border border-border/20 hover:border-border/40 transition-colors group">
-                  <div className={`w-2 h-2 rounded-full ${dotColor} flex-shrink-0`} />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-xs font-bold">{record.date}</span>
-                      <Badge variant="outline" className={`text-[7px] uppercase font-black px-1.5 py-0 ${statusBg} border-0`}>
-                        {record.status}
-                      </Badge>
+                if (isPresent) { 
+                   dotColor = 'bg-green-500 border-green-400'
+                   dotGlow = 'shadow-[0_0_15px_rgba(34,197,94,0.4)]'
+                   statusBg = 'bg-green-500/10 text-green-500' 
+                   cardBorder = 'border-green-500/10 hover:border-green-500/30 bg-green-500/[0.02]'
+                } else if (isDL) { 
+                   dotColor = 'bg-blue-500 border-blue-400'
+                   dotGlow = 'shadow-[0_0_15px_rgba(59,130,246,0.4)]'
+                   statusBg = 'bg-blue-500/10 text-blue-500' 
+                   cardBorder = 'border-blue-500/10 hover:border-blue-500/30 bg-blue-500/[0.02]'
+                } else if (isAbsent) { 
+                   dotColor = 'bg-red-500 border-red-400'
+                   dotGlow = 'shadow-[0_0_15px_rgba(239,68,68,0.4)]'
+                   statusBg = 'bg-red-500/10 text-red-500' 
+                   cardBorder = 'border-red-500/10 hover:border-red-500/30 bg-red-500/[0.02]'
+                }
+
+                return (
+                  <div key={i} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
+                    {/* Timeline Dot */}
+                    <div className={`flex items-center justify-center w-6 h-6 rounded-full border-2 bg-background absolute left-0 md:left-1/2 -translate-x-1/2 shrink-0 z-10 ${dotColor} ${dotGlow}`}>
+                       <div className="w-1.5 h-1.5 rounded-full bg-background" />
                     </div>
-                    <div className="flex items-center gap-3 mt-0.5 text-[9px] text-muted-foreground/60 font-medium">
-                      {record.type && <span>{record.type}</span>}
-                      {record.time && <span className="flex items-center gap-0.5"><Clock className="w-2.5 h-2.5" />{record.time}</span>}
-                      {record.section && <span>Sec: {record.section}</span>}
-                      {record.group && <span>Grp: {record.group}</span>}
-                      {record.markedBy && record.markedBy !== 'System' && (
-                        <span className="flex items-center gap-0.5"><User className="w-2.5 h-2.5" />{record.markedBy.split(' ').slice(0, 2).join(' ')}</span>
-                      )}
-                    </div>
+
+                    {/* Content Card */}
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true, margin: "-50px" }}
+                      className={`w-[calc(100%-2.5rem)] md:w-[calc(50%-2rem)] p-5 rounded-2xl border backdrop-blur-sm transition-all duration-300 ${cardBorder}`}
+                    >
+                      <div className="flex items-center justify-between gap-2 mb-4">
+                         <div className="flex items-center gap-2">
+                            <Calendar className="w-4 h-4 text-muted-foreground" />
+                            <span className="text-sm font-black text-foreground">{record.date}</span>
+                         </div>
+                         <Badge variant="outline" className={`text-[10px] uppercase font-black px-2.5 py-0.5 ${statusBg} border-0 tracking-wider`}>
+                           {record.status}
+                         </Badge>
+                      </div>
+                      
+                      <div className="space-y-2">
+                         <div className="flex items-center gap-3 text-xs text-muted-foreground font-bold bg-black/5 dark:bg-white/5 p-2.5 rounded-xl">
+                            <Clock className="w-4 h-4 text-primary" />
+                            <span>{record.time || 'Time not specified'}</span>
+                         </div>
+                         
+                         {record.markedBy && record.markedBy !== 'System' && (
+                           <div className="flex items-center gap-3 text-xs text-muted-foreground font-bold bg-black/5 dark:bg-white/5 p-2.5 rounded-xl">
+                              <User className="w-4 h-4 text-primary" />
+                              <span className="truncate">{record.markedBy}</span>
+                           </div>
+                         )}
+                         
+                         {(record.type || record.section || record.group) && (
+                           <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-black/5 dark:border-white/5">
+                              {record.type && <span className="text-[9px] font-black uppercase text-muted-foreground/60 tracking-wider">TYPE: {record.type}</span>}
+                              {record.section && <span className="text-[9px] font-black uppercase text-muted-foreground/60 tracking-wider">SEC: {record.section}</span>}
+                              {record.group && <span className="text-[9px] font-black uppercase text-muted-foreground/60 tracking-wider">GRP: {record.group}</span>}
+                           </div>
+                         )}
+                      </div>
+                    </motion.div>
                   </div>
-                </div>
-              )
-            })
+                )
+              })}
+            </div>
           )}
-        </div>
-        
-        <div className="p-3 border-t border-white/5 bg-muted/10">
-          <p className="text-[8px] font-bold text-muted-foreground/40 uppercase text-center tracking-[0.15em]">
-            Data from university portal records
-          </p>
         </div>
       </motion.div>
     </div>

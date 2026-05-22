@@ -3,6 +3,7 @@
 import { useEffect } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useAuthStore } from '@/store/useAuthStore'
+import { usePortalStore } from '@/store/usePortalStore'
 import Sidebar from '@/components/shared/Sidebar'
 import Topbar from '@/components/shared/Topbar'
 import BottomNav from '@/components/shared/BottomNav'
@@ -18,6 +19,9 @@ export default function DashboardLayout({
   const pathname = usePathname()
   const user = useAuthStore((state) => state.user)
   const hasHydrated = useAuthStore((state) => state._hasHydrated)
+  const portalStatus = usePortalStore((state) => state.portalStatus)
+  const syncAll = usePortalStore((state) => state.syncAll)
+  const lastSync = usePortalStore((state) => state.lastSync)
 
   useEffect(() => {
     // Only redirect AFTER zustand has hydrated from localStorage
@@ -25,6 +29,19 @@ export default function DashboardLayout({
       router.push('/login')
     }
   }, [user, router, hasHydrated])
+
+  // Global Auto-Sync
+  useEffect(() => {
+    if (hasHydrated && portalStatus === 'connected') {
+      const now = Date.now()
+      const last = lastSync ? new Date(lastSync).getTime() : 0
+      if (now - last > 60000) { // 1 minute threshold
+        console.log('[DashboardLayout] Auto-sync triggered on mount')
+        syncAll().catch(() => {})
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasHydrated, portalStatus])
 
   // Show a loading screen while zustand is reading from localStorage
   if (!hasHydrated) {

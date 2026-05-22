@@ -21,6 +21,7 @@ import { getISTDate } from '@/lib/utils-date'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { ACADEMIC_CALENDAR_2026 } from '@/lib/constants'
+import { downloadICS } from '@/lib/export-ics'
 
 const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
@@ -97,6 +98,19 @@ export default function TimetablePage() {
         </div>
 
         <div className="flex gap-2">
+            <button 
+              onClick={() => {
+                if (data) {
+                  downloadICS(data)
+                  toast.success('Calendar file downloaded! Open it to add classes to your calendar.')
+                } else {
+                  toast.error('No timetable data available to sync.')
+                }
+              }}
+              className="glass px-4 py-3 rounded-2xl border-black/5 dark:border-white/5 hover:border-primary/30 text-primary font-black uppercase text-[10px] tracking-widest flex items-center gap-2 hover:bg-primary/5 transition-all"
+            >
+              <Calendar className="w-4 h-4" /> Sync to Calendar
+            </button>
             <button 
               onClick={() => syncAll()}
               disabled={loading}

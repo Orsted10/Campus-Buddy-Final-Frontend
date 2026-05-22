@@ -102,6 +102,21 @@ export default function AdminPage() {
             </button>
           </div>
 
+          {/* METRICS PREVIEW */}
+          <div className="grid grid-cols-2 gap-4 mt-6">
+             <div className="glass-panel p-4 rounded-2xl border-black/5 dark:border-white/5 bg-primary/5">
+                <span className="text-[10px] font-black uppercase tracking-widest text-primary">Live Users</span>
+                <div className="text-3xl font-black text-foreground mt-1 flex items-center gap-2">
+                   <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                   1,024
+                </div>
+             </div>
+             <div className="glass-panel p-4 rounded-2xl border-black/5 dark:border-white/5">
+                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Active Servers</span>
+                <div className="text-3xl font-black text-foreground mt-1">42</div>
+             </div>
+          </div>
+
           <div className="space-y-2">
             <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Paste Raw Text / Data Snippet</label>
             <textarea 
