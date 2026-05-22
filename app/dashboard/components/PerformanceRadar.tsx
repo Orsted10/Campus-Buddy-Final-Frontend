@@ -14,13 +14,13 @@ export function PerformanceRadar({ attendance }: { attendance: any[] }) {
     )
   }
 
-  // Process data for radar chart
+  // Process data for radar chart (Show ALL subjects)
   const data = attendance.map(subject => ({
     subject: (subject?.name || subject?.subject_name || 'Unknown').split(' ')[0], // Take only the first word/code
     fullSubject: subject?.name || subject?.subject_name || 'Unknown',
     percentage: parseFloat(subject?.percentage || subject?.eligiblePercentage) || 0,
     fullMark: 100,
-  })).slice(0, 6) // Radar charts look best with 5-6 points max
+  }))
 
   // Calculate average
   const avg = data.reduce((sum, item) => sum + item.percentage, 0) / data.length
@@ -51,7 +51,7 @@ export function PerformanceRadar({ attendance }: { attendance: any[] }) {
         </span>
       </div>
 
-      <div className="flex-1 w-full h-full -mt-4">
+      <div className="w-full h-[280px] -mt-4">
         <ResponsiveContainer width="100%" height="100%">
           <RadarChart cx="50%" cy="50%" outerRadius="65%" data={data}>
             <PolarGrid stroke="rgba(255,255,255,0.1)" />
