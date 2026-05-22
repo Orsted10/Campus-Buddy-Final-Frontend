@@ -587,12 +587,12 @@ async function fetchAttendanceDetails(cookies: Record<string, string>, courseCod
               }
               
               const dateVal = r[findK(['attdate', 'date'])] || ''
-              const typeVal = r[findK(['subjecttype', 'type', 'classtype'])] || ''
-              const timeVal = r[findK(['classtime', 'time'])] || ''
-              const statusVal = r[findK(['attendance', 'status', 'attstatus'])] || ''
+              const typeVal = r[findK(['attendancetype', 'subjecttype', 'type', 'classtype'])] || ''
+              const timeVal = r[findK(['timing', 'classtime', 'time'])] || ''
+              const statusVal = r[findK(['attendancecode', 'attendance', 'status', 'attstatus'])] || ''
               const sectionVal = r[findK(['section'])] || ''
-              const groupVal = r[findK(['group'])] || ''
-              const markedByVal = r[findK(['facultyname', 'markedby', 'faculty'])] || ''
+              const groupVal = r[findK(['studentgroup', 'group'])] || ''
+              const markedByVal = r[findK(['name', 'facultyname', 'markedby', 'faculty'])] || ''
               
               return {
                 date: dateVal,
@@ -1092,9 +1092,9 @@ async function fetchAttendanceViaAjax(url: string, cookies: Record<string, strin
       let percentage = getVal(['totalpercentage', 'percentage']) || '0%'
 
       // Eligible metrics (must be precise to prevent total delivered fallback)
-      let eligDelv = getVal(['eligibledelivered', 'eligibledelv', 'eligdelv', 'serveddelivered']) || total
-      let eligAttd = getVal(['eligibleattended', 'eligibleattd', 'eligattd', 'servedattended']) || attended
-      let eligPerc = getVal(['eligiblepercentage', 'eligibleperc', 'eligperc', 'servedpercentage']) || percentage
+      let eligDelv = getVal(['eligibilitydelivered', 'eligibledelivered', 'eligibledelv', 'eligdelv', 'serveddelivered']) || total
+      let eligAttd = getVal(['eligibilityattended', 'eligibleattended', 'eligibleattd', 'eligattd', 'servedattended']) || attended
+      let eligPerc = getVal(['eligibilitypercentage', 'eligiblepercentage', 'eligibleperc', 'eligperc', 'servedpercentage']) || percentage
 
       // Leave Stats
       let idl = getVal(['idl', 'dutyleaveidl', 'dutyleaven']) || '0'
