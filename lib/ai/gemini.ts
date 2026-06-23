@@ -1,27 +1,32 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { SYSTEM_PROMPT } from './systemPrompt'
 
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GEMINI_API_KEY || '')
-
 export async function chatWithGemini(messages: Array<{ role: string; content: string }>, customSystemPrompt?: string) {
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
+    if (!process.env.GOOGLE_GEMINI_API_KEY) {
+      throw new Error('GOOGLE_GEMINI_API_KEY is not set')
+    }
+    
+    const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GEMINI_API_KEY)
+    const model = genAI.getGenerativeModel({ 
+      model: 'gemini-1.5-flash',
+      systemInstruction: customSystemPrompt || SYSTEM_PROMPT
+    })
 
     // Convert messages to Gemini format
-    const chatHistory = messages.slice(-10).map((msg) => ({
+    const history = messages.slice(-10).map((msg) => ({
       role: msg.role === 'assistant' ? 'model' : 'user',
       parts: [{ text: msg.content }],
     }))
 
-    const chat = model.startChat({
-      history: chatHistory,
+    const result = await model.generateContent({
+      contents: history,
       generationConfig: {
         maxOutputTokens: 1024,
         temperature: 0.7,
-      },
+      }
     })
-
-    const result = await chat.sendMessage(customSystemPrompt || SYSTEM_PROMPT)
+    
     const response = await result.response
     const text = response.text()
 

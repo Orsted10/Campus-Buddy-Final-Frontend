@@ -1,15 +1,19 @@
 import Groq from 'groq-sdk'
 import { SYSTEM_PROMPT } from './systemPrompt'
 
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
-})
-
 export async function chatWithGroq(
   messages: Array<{ role: string; content: string }>,
   usePrebuilt: boolean = false
 ) {
   try {
+    if (!process.env.GROQ_API_KEY) {
+      throw new Error('GROQ_API_KEY is not set')
+    }
+    
+    const groq = new Groq({
+      apiKey: process.env.GROQ_API_KEY,
+    })
+
     const formattedMessages = usePrebuilt
       ? messages.map((msg) => ({
           role: msg.role as 'user' | 'assistant' | 'system',

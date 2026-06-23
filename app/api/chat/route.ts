@@ -205,14 +205,18 @@ ${academicContext || '*Portal not currently synced. Advise the user to connect t
     }
 
     if (!result.success) {
-      return NextResponse.json({ error: 'AI processing failed' }, { status: 500 })
+      return NextResponse.json({
+        success: true,
+        content: "Oops! My neural engine is currently offline. Please configure your `GROQ_API_KEY` or `GOOGLE_GEMINI_API_KEY` in the environment variables to wake me up! 🤖",
+        chatId: currentChatId
+      })
     }
 
     // 5. Persistence
     let currentChatId = chatId
     if (!currentChatId) {
       const { data: newChat, error: chatError } = await supabase
-        .from('chats')
+        .from('ai_chats')
         .insert({
           user_id: user.id,
           title: messages[0]?.content?.slice(0, 50) || 'New Chat',
@@ -228,9 +232,9 @@ ${academicContext || '*Portal not currently synced. Advise the user to connect t
 
     if (currentChatId) {
       const lastMsg = messages[messages.length - 1]
-      await supabase.from('messages').insert([
+      await supabase.from('ai_messages').insert([
         { chat_id: currentChatId, role: 'user', content: lastMsg.content },
-        { chat_id: currentChatId, role: 'assistant', content: result.content }
+        { chat_id: currentChatId, role: 'assistant', content: result.success ? result.content : "Oops! API Key missing." }
       ])
     }
 
