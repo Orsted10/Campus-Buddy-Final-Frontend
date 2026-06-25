@@ -600,7 +600,7 @@ async function fetchAttendanceDetails(cookies: Record<string, string>, courseCod
         log(`[fetchDetails] GetFullReport response status: ${res.status}, length: ${text.length}`)
         const parsed = JSON.parse(text)
         if (parsed.d) {
-          const data = JSON.parse(parsed.d)
+          const data = typeof parsed.d === 'string' ? JSON.parse(parsed.d) : parsed.d
           if (Array.isArray(data) && data.length > 0) {
             log(`[fetchDetails] Successfully parsed ${data.length} detailed records from GetFullReport`)
             const history = data.map((r: any) => {
