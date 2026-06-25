@@ -44,7 +44,7 @@ function AttendanceRing({
           <svg className="w-full h-full transform -rotate-90">
             <circle cx="44" cy="44" r={radius} stroke="currentColor" strokeWidth="7" fill="transparent" className="text-muted/20" />
             <circle cx="44" cy="44" r={radius} stroke="currentColor" strokeWidth="7" fill="transparent" 
-              className={`${ringColor} drop-shadow-[0_0_8px_currentColor] transition-all duration-1000 ease-out`} strokeDasharray={circumference} strokeDashoffset={strokeDashoffset} strokeLinecap="round"
+              className={`${ringColor} transition-all duration-1000 ease-out drop-shadow-sm`} strokeDasharray={circumference} strokeDashoffset={strokeDashoffset} strokeLinecap="round"
             />
           </svg>
           <div className="absolute inset-0 flex items-center justify-center">

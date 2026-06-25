@@ -43,7 +43,7 @@ const features = [
     icon: MapPin,
     title: 'Intelligent Maps',
     description: 'Turn-by-turn navigation for your specific campus.',
-    className: "md:col-span-2 md:row-span-1",
+    className: "md:col-span-1 md:row-span-1",
   },
 ]
 
@@ -186,7 +186,7 @@ export default function LandingPage() {
             <span>Campus Buddy 2.0 is here</span>
           </div>
 
-          <h1 className="text-[3.5rem] md:text-[5.5rem] lg:text-[7rem] font-bold tracking-[-0.04em] leading-[0.9] mb-8 text-foreground max-w-5xl">
+          <h1 className="text-[3.5rem] md:text-[5.5rem] lg:text-[7rem] font-bold tracking-[-0.04em] leading-[1.1] pb-2 mb-6 text-foreground max-w-5xl">
             The intelligent OS for your <span className="text-gradient">university.</span>
           </h1>
 
