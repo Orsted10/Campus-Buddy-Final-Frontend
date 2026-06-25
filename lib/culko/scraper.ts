@@ -504,7 +504,22 @@ async function fetchAttendanceDetails(cookies: Record<string, string>, courseCod
   // Extract chk and obj from the VIEW button if not provided
   let obj = courseCode
   if (!chk) {
-    const btn = $(`input[obj="${courseCode}"], input[obj*="${courseCode}"]`).first()
+    // 1. Try finding by courseCode as obj
+    let btn = $(`input[obj="${courseCode}"], input[obj*="${courseCode}"]`).first()
+    
+    // 2. If not found (courseCode is actually the name), find the table row containing the name
+    if (btn.length === 0) {
+      $('tr').each((_, row) => {
+        if ($(row).text().includes(courseCode)) {
+          const rowBtn = $(row).find('input[chk], button[chk], [onclick*="getdata"]')
+          if (rowBtn.length > 0) {
+            btn = rowBtn.first()
+            return false // break
+          }
+        }
+      })
+    }
+    
     chk = btn.attr('chk') || ''
     obj = btn.attr('obj') || courseCode
   }
