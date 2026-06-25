@@ -523,9 +523,6 @@ async function fetchAttendanceDetails(cookies: Record<string, string>, courseCod
     chk = btn.attr('chk') || ''
     obj = btn.attr('obj') || courseCode
   }
-  const fs = require('fs');
-  const logFile = 'e:/CampusBuddyFinal/scraper.log';
-  fs.appendFileSync(logFile, `\n[fetchDetails] Resolved courseCode=${courseCode}, chk=${chk ? chk.substring(0, 15) + '...' : 'EMPTY'} obj=${obj}\n`);
   console.log(`[fetchDetails] Resolved courseCode=${courseCode}, chk=${chk ? chk.substring(0, 15) + '...' : 'EMPTY'} obj=${obj}`)
 
   // Extract reportId and sessionId
@@ -558,7 +555,6 @@ async function fetchAttendanceDetails(cookies: Record<string, string>, courseCod
     }
   }
 
-  fs.appendFileSync(logFile, `[fetchDetails] Extracted reportId=${reportId}, sessionId=${sessionId}\n`);
   console.log(`[fetchDetails] Extracted reportId=${reportId}, sessionId=${sessionId}`)
 
   // Extract ASP.NET form fields for fallback postback
@@ -570,7 +566,6 @@ async function fetchAttendanceDetails(cookies: Record<string, string>, courseCod
   if (reportId && sessionId && chk) {
     try {
       const fullReportUrl = `${BASE_URL}/frmStudentCourseWiseAttendanceSummary.aspx/GetFullReport`
-      fs.appendFileSync(logFile, `[fetchDetails] Sending request to GetFullReport: ${fullReportUrl}\n`);
       console.log(`[fetchDetails] Sending request to GetFullReport: ${fullReportUrl}`)
       const res = await fetch(fullReportUrl, {
         method: 'POST',
@@ -591,8 +586,6 @@ async function fetchAttendanceDetails(cookies: Record<string, string>, courseCod
       
       if (res.ok) {
         const text = await res.text()
-        fs.appendFileSync(logFile, `[fetchDetails] GetFullReport response status: ${res.status}, length: ${text.length}\n`);
-        fs.appendFileSync(logFile, `[fetchDetails] GetFullReport raw response: ${text.substring(0, 200)}...\n`);
         console.log(`[fetchDetails] GetFullReport response status: ${res.status}, length: ${text.length}`)
         const parsed = JSON.parse(text)
         if (parsed.d) {
@@ -629,11 +622,9 @@ async function fetchAttendanceDetails(cookies: Record<string, string>, courseCod
           }
         }
       } else {
-        fs.appendFileSync(logFile, `[fetchDetails] GetFullReport endpoint returned status ${res.status}\n`);
         console.error(`[fetchDetails] GetFullReport endpoint returned status ${res.status}`)
       }
     } catch (e) {
-      fs.appendFileSync(logFile, `[fetchDetails] GetFullReport execution error: ${e}\n`);
       console.error(`[fetchDetails] GetFullReport execution error:`, e)
     }
   }
@@ -670,7 +661,6 @@ async function fetchAttendanceDetails(cookies: Record<string, string>, courseCod
     
     // Approach A: JSON WebMethod POST
     try {
-      fs.appendFileSync(logFile, `[fetchDetails] Fallback A: JSON POST to ${fullUrl}\n`);
       const res = await fetch(fullUrl, {
         method: 'POST',
         headers: {
@@ -683,14 +673,11 @@ async function fetchAttendanceDetails(cookies: Record<string, string>, courseCod
       
       if (res.ok) {
         const text = await res.text()
-        fs.appendFileSync(logFile, `[fetchDetails] Fallback A JSON POST response length: ${text.length}\n`);
-        fs.appendFileSync(logFile, `[fetchDetails] Fallback A JSON POST raw: ${text.substring(0, 300)}...\n`);
         console.log(`[fetchDetails] JSON POST fallback to ${ep}: ${text.length} chars`)
         
         try {
           const parsed = JSON.parse(text)
           if (typeof parsed.d === 'string' && parsed.d.includes('<')) {
-            fs.appendFileSync(logFile, `[fetchDetails] Fallback A parsed.d is string with HTML. calling parseAttendanceHistory\n`);
             const history = parseAttendanceHistory(parsed.d)
             if (history.length > 0) return history
           }
