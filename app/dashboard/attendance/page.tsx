@@ -25,11 +25,15 @@ function AttendanceRing({
   
   if (isSafe) {
     let skips = 0
-    while (((attended) / (total + skips + 1)) >= 0.75) skips++
+    // Use the exact percentage to reverse-engineer the effective attended
+    // This perfectly matches the portal's logic even if they added bonus/leaves not parsed here
+    const effectiveAttended = (percentage / 100) * total;
+    while (((effectiveAttended) / (total + skips + 1)) >= 0.75) skips++
     message = skips > 0 ? `Safe Zone: You can skip next ${skips} classes.` : `Borderline! One absence drops you below 75%.`
   } else {
     let needed = 0
-    while (((attended + needed) / (total + needed)) < 0.75) needed++
+    const effectiveAttended = (percentage / 100) * total;
+    while (((effectiveAttended + needed) / (total + needed)) < 0.75) needed++
     message = `Critical: Attend next ${needed} classes to reach 75%.`
   }
 
@@ -292,8 +296,9 @@ export default function AttendancePage() {
   // Calculate overall attendance
   let totalEligAttd = 0, totalEligDelv = 0
   attendance.forEach((s: any) => {
-    totalEligAttd += parseInt(s.eligibleAttended) || parseInt(s.attended) || 0
-    totalEligDelv += parseInt(s.eligibleDelivered) || parseInt(s.total) || 0
+    // Use parseFloat to handle fractional attendances (like 0.5 for half days) which CULKO sometimes uses
+    totalEligAttd += parseFloat(s.eligibleAttended) || parseFloat(s.attended) || 0
+    totalEligDelv += parseFloat(s.eligibleDelivered) || parseFloat(s.total) || 0
   })
   const overallPercentage = totalEligDelv > 0 ? (totalEligAttd / totalEligDelv) * 100 : 0
 
@@ -364,7 +369,7 @@ export default function AttendancePage() {
                         {overallPercentage.toFixed(1)}%
                       </span>
                       <span className="text-xs text-muted-foreground/50 font-bold">
-                        {totalEligAttd} / {totalEligDelv} classes
+                        {totalEligAttd % 1 !== 0 ? totalEligAttd.toFixed(1) : totalEligAttd} / {totalEligDelv % 1 !== 0 ? totalEligDelv.toFixed(1) : totalEligDelv} classes
                       </span>
                     </div>
                   </div>
@@ -372,7 +377,7 @@ export default function AttendancePage() {
                 <div className="text-right">
                   <div className="text-[9px] font-black uppercase text-muted-foreground/50 tracking-wider">{attendance.length} Subjects</div>
                   <div className="text-xs font-bold text-muted-foreground/40 mt-0.5">
-                    {totalEligDelv - totalEligAttd} absent
+                    {(totalEligDelv - totalEligAttd) % 1 !== 0 ? (totalEligDelv - totalEligAttd).toFixed(1) : (totalEligDelv - totalEligAttd)} absent
                   </div>
                 </div>
               </div>
@@ -392,8 +397,9 @@ export default function AttendancePage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <AnimatePresence>
             {attendance.map((subject: any, idx: number) => {
-              const attended = parseInt(subject.eligibleAttended) || parseInt(subject.attended) || 0
-              const total = parseInt(subject.eligibleDelivered) || parseInt(subject.total) || 0
+              // Parse using parseFloat so fractional class attendances aren't truncated
+              const attended = parseFloat(subject.eligibleAttended) || parseFloat(subject.attended) || 0
+              const total = parseFloat(subject.eligibleDelivered) || parseFloat(subject.total) || 0
               // USE PORTAL'S EXACT PERCENTAGE — only calculate if missing
               const portalPerc = parseFloat(String(subject.eligiblePercentage || subject.percentage || '0').replace('%', ''))
               const percentage = portalPerc > 0 ? portalPerc : (total > 0 ? (attended / total) * 100 : 0)
