@@ -179,30 +179,43 @@ function HistoryModal({ isOpen, onClose, subjectName, history, isLoading }: {
           ) : (
             <div className="relative before:absolute before:inset-0 before:left-[27px] md:before:left-[39px] before:w-px before:bg-border/60">
               {history.map((record, i) => {
-                const s = record.status?.toLowerCase() || ''
-                const isPresent = s.includes('present')
-                const isAbsent = s.includes('absent')
-                const isDL = s.includes('dl') || s.includes('duty') || s.includes('medical')
+                const typeStr = (record.type || '').toLowerCase()
+                const statusStr = (record.status || '').toLowerCase()
+                
+                // CULKO sometimes puts 'P', 'A', 'L' inside the Type column instead of Status
+                const isTypeActingAsStatus = ['p', 'a', 'l', 'dl', 'ml'].includes(typeStr)
+                const combinedStatus = isTypeActingAsStatus ? typeStr : statusStr
+                
+                const isPresent = combinedStatus.includes('present') || combinedStatus === 'p'
+                const isAbsent = combinedStatus.includes('absent') || combinedStatus === 'a'
+                const isDL = combinedStatus.includes('dl') || combinedStatus.includes('duty') || combinedStatus.includes('medical') || combinedStatus === 'l' || combinedStatus === 'ml'
+                
+                let displayStatus = isTypeActingAsStatus ? record.type : (record.status || 'Unknown')
+                if (displayStatus.toLowerCase() === 'p') displayStatus = 'Present'
+                else if (displayStatus.toLowerCase() === 'a') displayStatus = 'Absent'
+                else if (displayStatus.toLowerCase() === 'l') displayStatus = 'Leave'
+                else if (displayStatus.toLowerCase() === 'dl') displayStatus = 'Duty Leave'
+                else if (displayStatus.toLowerCase() === 'ml') displayStatus = 'Medical Leave'
                 
                 let dotColor = 'bg-muted-foreground/30 border-muted-foreground/20'
                 let dotGlow = ''
-                let statusBadge = <span className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-muted text-muted-foreground shadow-sm">{record.status}</span>
+                let statusBadge = <span className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-muted text-muted-foreground shadow-sm">{displayStatus}</span>
                 let cardHover = 'hover:bg-muted/40'
 
                 if (isPresent) { 
                    dotColor = 'bg-green-500 border-green-500/20'
                    dotGlow = 'ring-4 ring-green-500/10'
-                   statusBadge = <span className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20 shadow-sm">{record.status}</span>
+                   statusBadge = <span className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20 shadow-sm">{displayStatus}</span>
                    cardHover = 'hover:bg-green-500/[0.02] hover:border-green-500/30'
                 } else if (isDL) { 
                    dotColor = 'bg-blue-500 border-blue-500/20'
                    dotGlow = 'ring-4 ring-blue-500/10'
-                   statusBadge = <span className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 shadow-sm">{record.status}</span>
+                   statusBadge = <span className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 shadow-sm">{displayStatus}</span>
                    cardHover = 'hover:bg-blue-500/[0.02] hover:border-blue-500/30'
                 } else if (isAbsent) { 
                    dotColor = 'bg-red-500 border-red-500/20'
                    dotGlow = 'ring-4 ring-red-500/10'
-                   statusBadge = <span className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20 shadow-sm">{record.status}</span>
+                   statusBadge = <span className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20 shadow-sm">{displayStatus}</span>
                    cardHover = 'hover:bg-red-500/[0.02] hover:border-red-500/30'
                 }
 
@@ -239,9 +252,9 @@ function HistoryModal({ isOpen, onClose, subjectName, history, isLoading }: {
                            </div>
                          )}
                          
-                         {(record.type || record.section || record.group) && (
+                         {((!isTypeActingAsStatus && record.type) || record.section || record.group) && (
                            <div className="flex items-center gap-2 ml-auto">
-                              {record.type && <Badge variant="secondary" className="bg-muted/50 text-muted-foreground border-0 text-[10px] px-2 py-0.5 font-medium rounded-md tracking-wider">Type: {record.type}</Badge>}
+                              {!isTypeActingAsStatus && record.type && <Badge variant="secondary" className="bg-muted/50 text-muted-foreground border-0 text-[10px] px-2 py-0.5 font-medium rounded-md tracking-wider">Type: {record.type}</Badge>}
                               {record.section && <Badge variant="secondary" className="bg-muted/50 text-muted-foreground border-0 text-[10px] px-2 py-0.5 font-medium rounded-md tracking-wider">Sec: {record.section}</Badge>}
                               {record.group && <Badge variant="secondary" className="bg-muted/50 text-muted-foreground border-0 text-[10px] px-2 py-0.5 font-medium rounded-md tracking-wider">Group {record.group}</Badge>}
                            </div>

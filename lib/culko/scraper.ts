@@ -649,16 +649,26 @@ async function fetchAttendanceDetails(cookies: Record<string, string>, courseCod
               log(`[fetchDetails] Successfully found ${data.length} records!`)
               const history = data.map((r: any) => {
                 const keys = Object.keys(r)
-                const findK = (patterns: string[]) => {
+                if (i === 0) log(`[fetchDetails] Record keys: ${keys.join(',')}`)
+                const findK = (patterns: string[], exclude: string[] = []) => {
+                  // 1. Exact match
+                  let match = keys.find(k => {
+                    const lowerK = k.toLowerCase().replace(/[^a-z0-9]/g, '')
+                    return patterns.some(p => lowerK === p.replace(/[^a-z0-9]/g, ''))
+                  })
+                  if (match) return match
+
+                  // 2. Substring match
                   return keys.find(k => {
                     const lowerK = k.toLowerCase().replace(/[^a-z0-9]/g, '')
+                    if (exclude.some(e => lowerK.includes(e))) return false
                     return patterns.some(p => lowerK.includes(p.replace(/[^a-z0-9]/g, '')))
                   })
                 }
                 const dateKey = findK(['attdate', 'date'])
                 const typeKey = findK(['attendancetype', 'subjecttype', 'type', 'classtype'])
                 const timeKey = findK(['timing', 'classtime', 'time'])
-                const statusKey = findK(['attendancecode', 'attendance', 'status', 'attstatus'])
+                const statusKey = findK(['status', 'attendancecode', 'attstatus', 'ispresent', 'attendance'], ['date', 'time'])
                 const sectionKey = findK(['section'])
                 const groupKey = findK(['studentgroup', 'group'])
                 const markedByKey = findK(['name', 'facultyname', 'markedby', 'faculty'])
