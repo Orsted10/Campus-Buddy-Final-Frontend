@@ -69,19 +69,23 @@ export default function Sidebar({ mobile }: SidebarProps) {
 
   return (
     <aside className={cn(
-      "w-64 glass-panel flex flex-col relative z-20 transition-all border-white/5 bg-background/30 shadow-2xl overflow-hidden before:absolute before:inset-0 before:-z-10 before:bg-gradient-to-b before:from-white/[0.04] before:to-transparent h-full",
-      mobile ? "w-full rounded-none m-0" : "hidden md:flex m-4 rounded-3xl"
+      "w-[260px] flex flex-col relative z-20 transition-all",
+      mobile 
+        ? "w-full h-full bg-background/95 backdrop-blur-3xl" 
+        : "hidden md:flex h-[calc(100vh-2rem)] m-4 rounded-[1.25rem] border border-border/50 glass shadow-premium-lg"
     )}>
-      <div className="p-6 border-b border-white/5 relative">
-        <h1 className="text-2xl font-black tracking-tighter text-gradient flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center shadow-[0_0_15px_rgba(139,92,246,0.5)]">
-            <span className="text-white text-sm">CB</span>
-          </div>
+      {/* Brand Header */}
+      <div className="p-6 pb-4 relative z-10 flex items-center gap-3">
+        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shadow-premium-sm glow-primary-sm">
+          <span className="text-white font-bold text-sm tracking-tighter">CB</span>
+        </div>
+        <h1 className="text-xl font-bold tracking-tight text-foreground">
           Campus Buddy
         </h1>
       </div>
 
-      <nav className="flex-1 p-4 space-y-1 overflow-y-auto scrollbar-hide">
+      {/* Navigation */}
+      <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto scrollbar-hide py-2 relative z-10">
         {navItems.map((item) => {
           const Icon = item.icon
           const isActive = pathname === item.href
@@ -89,69 +93,61 @@ export default function Sidebar({ mobile }: SidebarProps) {
           return (
             <Link key={item.href} href={item.href} className="block relative focus:outline-none">
               <motion.div
-                whileHover={{ x: 5, backgroundColor: "rgba(255,255,255,0.05)" }}
+                whileHover={{ backgroundColor: "var(--color-secondary)" }}
                 whileTap={{ scale: 0.98 }}
                 className={cn(
-                  'flex items-center gap-3 px-4 py-3 rounded-xl transition-all relative z-10',
+                  'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors relative z-10 group',
                   isActive
                     ? 'text-foreground font-semibold'
                     : 'text-muted-foreground font-medium hover:text-foreground'
                 )}
               >
-                {/* Active Indicator Glow */}
+                {/* Active Indicator Background */}
                 {isActive && (
                   <motion.div
-                    layoutId="activeTabGlow"
+                    layoutId="activeTabBackground"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="absolute inset-0 bg-primary/20 rounded-xl neon-glow -z-10"
-                    transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                    className="absolute inset-0 bg-secondary/80 border border-border/50 rounded-lg -z-10 shadow-premium-inner"
+                    transition={{ type: "spring", stiffness: 350, damping: 30 }}
                   />
                 )}
-                {/* Active Left Border Pill */}
-                {isActive && (
-                  <motion.div
-                    layoutId="activeTabIndicator"
-                    className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-full shadow-[0_0_10px_rgba(139,92,246,0.8)]"
-                  />
-                )}
-                <Icon className={cn("w-5 h-5", isActive ? "text-primary" : "opacity-70")} />
-                <span>{item.label}</span>
+                <Icon className={cn(
+                  "w-[18px] h-[18px] transition-colors", 
+                  isActive ? "text-primary" : "opacity-70 group-hover:opacity-100"
+                )} />
+                <span className="text-sm tracking-tight">{item.label}</span>
               </motion.div>
             </Link>
           )
         })}
       </nav>
 
-      <div className="p-4 border-t border-white/5 bg-foreground/[0.02]">
-        <div className="flex items-center gap-2">
-          <motion.div 
-            whileHover={{ y: -2 }}
-            className="flex-1 flex items-center gap-3 px-4 py-3 glass-panel rounded-2xl cursor-pointer"
-          >
-            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-purple-400 p-[2px] shadow-lg">
-               <div className="w-full h-full bg-card rounded-full flex items-center justify-center">
-                  <span className="text-foreground dark:text-white font-bold text-lg">
-                    {user?.full_name?.charAt(0) || 'U'}
-                  </span>
-               </div>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-foreground truncate">{user?.full_name}</p>
-              <p className="text-[10px] text-primary uppercase tracking-wider font-bold">{user?.role}</p>
-            </div>
-          </motion.div>
+      {/* User Footer Profile */}
+      <div className="p-4 mt-auto border-t border-border/40 relative z-10 bg-background/30 backdrop-blur-md rounded-b-[1.25rem]">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-secondary border border-border flex items-center justify-center shrink-0 shadow-premium-sm">
+            <span className="text-foreground font-semibold text-sm">
+              {user?.full_name?.charAt(0) || 'U'}
+            </span>
+          </div>
+          <div className="flex-1 min-w-0 flex flex-col justify-center">
+            <p className="text-sm font-semibold text-foreground truncate">{user?.full_name}</p>
+            <p className="text-[11px] text-muted-foreground truncate uppercase tracking-widest font-medium mt-0.5">
+              {user?.role?.replace('_', ' ')}
+            </p>
+          </div>
           <button
             onClick={handleLogout}
             disabled={loggingOut}
-            className="p-3 glass-panel rounded-2xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all disabled:opacity-50"
+            className="p-2 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50"
             title="Logout"
           >
             {loggingOut ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
+              <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
-              <LogOut className="w-5 h-5" />
+              <LogOut className="w-4 h-4" />
             )}
           </button>
         </div>
@@ -159,3 +155,4 @@ export default function Sidebar({ mobile }: SidebarProps) {
     </aside>
   )
 }
+
