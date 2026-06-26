@@ -595,6 +595,47 @@ async function fetchAttendanceDetails(cookies: Record<string, string>, courseCod
 
   for (const ep of endpoints) {
     const fullUrl = ep.startsWith('http') ? ep : `${BASE_URL}/${ep.replace(/^\//, '')}`
+    
+    // Approach 2A: JSON WebMethod POST
+    try {
+      const res = await fetch(fullUrl, {
+        method: 'POST',
+        headers: {
+          ...baseHeaders,
+          'Content-Type': 'application/json; charset=UTF-8',
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({ chk, obj })
+      })
+
+      if (res.ok) {
+        const text = await res.text()
+        log(`[fetchDetails] HTML Table JSON POST to ${ep}: ${text.length} chars`)
+        try {
+          const parsed = JSON.parse(text)
+          const htmlContent = parsed.d || parsed
+          if (typeof htmlContent === 'string' && (htmlContent.includes('<table') || htmlContent.includes('<tr'))) {
+            const history = parseAttendanceHistory(htmlContent)
+            if (history.length > 0) {
+               log(`[fetchDetails] Successfully extracted ${history.length} records from HTML JSON!`)
+               return { data: history, debug: debugLogs }
+            }
+          }
+        } catch {
+          if (text.includes('<table') || text.includes('<tr')) {
+            const history = parseAttendanceHistory(text)
+            if (history.length > 0) {
+               log(`[fetchDetails] Successfully extracted ${history.length} records from HTML text!`)
+               return { data: history, debug: debugLogs }
+            }
+          }
+        }
+      }
+    } catch (e) {
+      log(`[fetchDetails] HTML Table JSON POST failed for ${ep}: ${e}`)
+    }
+
+    // Approach 2B: Form POST
     try {
       const formData = new URLSearchParams()
       formData.append('chk', chk || '')
@@ -610,22 +651,22 @@ async function fetchAttendanceDetails(cookies: Record<string, string>, courseCod
           'Content-Type': 'application/x-www-form-urlencoded',
           'X-Requested-With': 'XMLHttpRequest'
         },
-        body: formData.toString() // Fix TypeError: fetch failed
+        body: formData.toString()
       })
 
       if (res.ok) {
         const text = await res.text()
-        log(`[fetchDetails] HTML Table POST to ${ep}: ${text.length} chars`)
+        log(`[fetchDetails] HTML Table Form POST to ${ep}: ${text.length} chars`)
         if (text.includes('<table') || text.includes('<tr')) {
           const history = parseAttendanceHistory(text)
           if (history.length > 0) {
-             log(`[fetchDetails] Successfully extracted ${history.length} records from HTML!`)
+             log(`[fetchDetails] Successfully extracted ${history.length} records from HTML Form!`)
              return { data: history, debug: debugLogs }
           }
         }
       }
     } catch (e) {
-      log(`[fetchDetails] HTML Table POST failed for ${ep}: ${e}`)
+      log(`[fetchDetails] HTML Table Form POST failed for ${ep}: ${e}`)
     }
   }
 
