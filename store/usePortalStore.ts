@@ -133,13 +133,12 @@ export const usePortalStore = create<PortalState>()(
             console.log('[usePortalStore] Cache clear failed (non-fatal):', e)
           }
 
-          const [attendRes, ttRes, profileRes, hostelRes, marksRes, attendDetailsRes] = await Promise.all([
+          const [attendRes, ttRes, profileRes, hostelRes, marksRes] = await Promise.all([
             fetch(getApiUrl('/api/culko?endpoint=attendance'), { headers }),
             fetch(getApiUrl('/api/culko?endpoint=timetable'), { headers }),
             fetch(getApiUrl('/api/culko?endpoint=profile'), { headers }),
             fetch(getApiUrl('/api/culko?endpoint=hostel'), { headers }),
             fetch(getApiUrl('/api/culko?endpoint=marks'), { headers }),
-            fetch(getApiUrl('/api/culko?endpoint=attendance-details-all'), { headers }),
           ])
 
           // 401 on data endpoints = session truly died
@@ -149,13 +148,12 @@ export const usePortalStore = create<PortalState>()(
             return false
           }
 
-          const [attendance, timetable, profile, hostel, marks, attendanceDetails] = await Promise.all([
+          const [attendance, timetable, profile, hostel, marks] = await Promise.all([
             attendRes.json(),
             ttRes.json(),
             profileRes.json(),
             hostelRes.json(),
-            marksRes.json(),
-            attendDetailsRes.json()
+            marksRes.json()
           ])
 
           const updates: Partial<PortalState> = {
@@ -165,7 +163,6 @@ export const usePortalStore = create<PortalState>()(
           }
 
           if (attendRes.ok && attendance.success) updates.attendance = attendance.data || []
-          if (attendDetailsRes.ok && attendanceDetails.success) updates.attendanceDetails = attendanceDetails.data || {}
           if (ttRes.ok && timetable.success) updates.timetable = timetable.data
           if (profileRes.ok && profile.success) updates.profile = profile.data
           if (hostelRes.ok && hostel.success) updates.hostel = hostel.data
@@ -178,6 +175,17 @@ export const usePortalStore = create<PortalState>()(
           })
 
           set(updates)
+
+          // Fire detailed attendance sync asynchronously in the background so it doesn't block the UI
+          fetch(getApiUrl('/api/culko?endpoint=attendance-details-all'), { headers })
+            .then(res => res.json())
+            .then(detailsData => {
+              if (detailsData.success) {
+                get().setPortalData({ attendanceDetails: detailsData.data || {} })
+              }
+            })
+            .catch(err => console.error('[usePortalStore] Background details sync failed:', err))
+
           return true
         } catch (err) {
           console.error('Portal sync failed:', err)

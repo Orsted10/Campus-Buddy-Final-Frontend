@@ -157,30 +157,6 @@ export async function captureBasePortalData(cookieJar: Record<string, string>) {
     }
   }
 
-  // Fetch detailed attendance for all subjects
-  if (results.attendance && Array.isArray(results.attendance)) {
-    console.log('[captureBasePortalData] Fetching detailed attendance for all subjects...')
-    const allDetails: Record<string, any> = {}
-    
-    // Process all subjects sequentially to avoid hammering the CULKO portal and triggering 500s
-    for (const subject of results.attendance) {
-      try {
-        const detailsData = await fetchAttendanceDetails(cookieJar, subject.code, subject.chk)
-        if (detailsData && detailsData.data) {
-          allDetails[subject.code] = detailsData.data
-        }
-      } catch (e) {
-        console.error(`[captureBasePortalData] Failed to fetch details for ${subject.code}:`, e)
-      }
-    }
-    
-    if (Object.keys(allDetails).length > 0) {
-      await savePortalData('attendance-details' as any, allDetails)
-      results.attendanceDetails = allDetails
-      console.log(`[captureBasePortalData] ✅ attendance-details captured and saved for ${Object.keys(allDetails).length} subjects`)
-    }
-  }
-
   return results
 }
 
