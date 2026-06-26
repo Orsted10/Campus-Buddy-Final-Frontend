@@ -179,23 +179,16 @@ function HistoryModal({ isOpen, onClose, subjectName, history, isLoading }: {
           ) : (
             <div className="relative before:absolute before:inset-0 before:left-[27px] md:before:left-[39px] before:w-px before:bg-border/60">
               {history.map((record, i) => {
-                const typeStr = (record.type || '').toLowerCase()
-                const statusStr = (record.status || '').toLowerCase()
+                const s = (record.status || '').toLowerCase()
                 
-                // CULKO sometimes puts 'P', 'A', 'L' inside the Type column instead of Status
-                const isTypeActingAsStatus = ['p', 'a', 'l', 'dl', 'ml'].includes(typeStr)
-                const combinedStatus = isTypeActingAsStatus ? typeStr : statusStr
+                const isPresent = s.includes('present') || s === 'p' || s.includes('vdl')
+                const isAbsent = s.includes('absent') || s === 'a'
+                const isDL = s.includes('dl') || s.includes('duty') || s.includes('medical') || s === 'l' || s === 'ml'
                 
-                const isPresent = combinedStatus.includes('present') || combinedStatus === 'p'
-                const isAbsent = combinedStatus.includes('absent') || combinedStatus === 'a'
-                const isDL = combinedStatus.includes('dl') || combinedStatus.includes('duty') || combinedStatus.includes('medical') || combinedStatus === 'l' || combinedStatus === 'ml'
-                
-                let displayStatus = isTypeActingAsStatus ? record.type : (record.status || 'Unknown')
-                if (displayStatus.toLowerCase() === 'p') displayStatus = 'Present'
-                else if (displayStatus.toLowerCase() === 'a') displayStatus = 'Absent'
-                else if (displayStatus.toLowerCase() === 'l') displayStatus = 'Leave'
-                else if (displayStatus.toLowerCase() === 'dl') displayStatus = 'Duty Leave'
-                else if (displayStatus.toLowerCase() === 'ml') displayStatus = 'Medical Leave'
+                let displayStatus = record.status || 'Unknown'
+                // Title case it nicely if it's just 'present' or 'absent'
+                if (displayStatus.toLowerCase() === 'present') displayStatus = 'Present'
+                if (displayStatus.toLowerCase() === 'absent') displayStatus = 'Absent'
                 
                 let dotColor = 'bg-muted-foreground/30 border-muted-foreground/20'
                 let dotGlow = ''
@@ -252,9 +245,9 @@ function HistoryModal({ isOpen, onClose, subjectName, history, isLoading }: {
                            </div>
                          )}
                          
-                         {((!isTypeActingAsStatus && record.type) || record.section || record.group) && (
+                         {(record.type || record.section || record.group) && (
                            <div className="flex items-center gap-2 ml-auto">
-                              {!isTypeActingAsStatus && record.type && <Badge variant="secondary" className="bg-muted/50 text-muted-foreground border-0 text-[10px] px-2 py-0.5 font-medium rounded-md tracking-wider">Type: {record.type}</Badge>}
+                              {record.type && <Badge variant="secondary" className="bg-muted/50 text-muted-foreground border-0 text-[10px] px-2 py-0.5 font-medium rounded-md tracking-wider">Type: {record.type}</Badge>}
                               {record.section && <Badge variant="secondary" className="bg-muted/50 text-muted-foreground border-0 text-[10px] px-2 py-0.5 font-medium rounded-md tracking-wider">Sec: {record.section}</Badge>}
                               {record.group && <Badge variant="secondary" className="bg-muted/50 text-muted-foreground border-0 text-[10px] px-2 py-0.5 font-medium rounded-md tracking-wider">Group {record.group}</Badge>}
                            </div>
