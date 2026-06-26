@@ -82,18 +82,33 @@ export default function AcademicCalendarPage() {
     const explicitEvent = ACADEMIC_CALENDAR_2026.find(e => e.date === dateStr)
     if (explicitEvent) return explicitEvent
 
-    // 2. Fallback to default teaching days (Mon-Fri)
-    const dateObj = new Date(currentYear, currentMonth, day)
-    const dayOfWeekIdx = dateObj.getDay()
-    if (dayOfWeekIdx >= 1 && dayOfWeekIdx <= 5) {
+    // 2. Fallback to default summer break for June (month index 5)
+    if (currentMonth === 5) {
       return {
         date: dateStr,
-        type: 'teaching' as const,
-        event: 'Regular Teaching Day'
+        type: 'holiday' as const,
+        event: 'Summer Break'
       }
     }
 
-    return null
+    // 3. Fallback to weekend
+    const dateObj = new Date(currentYear, currentMonth, day)
+    const dayOfWeekIdx = dateObj.getDay()
+    
+    if (dayOfWeekIdx === 0 || dayOfWeekIdx === 6) {
+      return {
+        date: dateStr,
+        type: 'holiday' as const,
+        event: 'Weekend'
+      }
+    }
+
+    // 4. Default to teaching day
+    return {
+      date: dateStr,
+      type: 'teaching' as const,
+      event: 'Regular Teaching Day'
+    }
   }
 
   const selectedEvent = selectedDate ? getEventForDate(parseInt(selectedDate.split('-')[2])) : null
