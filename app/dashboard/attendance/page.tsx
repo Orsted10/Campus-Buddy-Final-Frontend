@@ -140,7 +140,7 @@ function HistoryModal({ isOpen, onClose, subjectName, history, isLoading }: {
         onClick={e => e.stopPropagation()}
       >
          {/* HEADER */}
-        <div className="p-6 md:p-8 border-b border-border/40 relative overflow-hidden bg-muted/10">
+        <div className="shrink-0 p-6 md:p-8 border-b border-border/40 relative overflow-hidden bg-muted/10">
           <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
           <div className="flex items-start justify-between relative z-10">
             <div className="pr-4 space-y-3">
