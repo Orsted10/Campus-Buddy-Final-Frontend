@@ -2,37 +2,37 @@
 @import "tailwindcss";
 
 :root {
-  /* === PREMIUM LIGHT THEME (Apple / Vercel style) === */
-  --background: oklch(0.99 0.002 260); /* Stark white with tiny cool hint */
-  --foreground: oklch(0.15 0.02 260); /* Very dark gray, not quite black */
-  --card: oklch(1 0 0); /* Pure white */
-  --card-foreground: oklch(0.15 0.02 260);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.15 0.02 260);
+  /* === SOOTHING CREAM LIGHT THEME === */
+  --background: oklch(0.97 0.015 85); /* Warm creamy beige (soothing to eyes) */
+  --foreground: oklch(0.25 0.02 75); /* Warm dark espresso/brown-grey */
+  --card: oklch(0.995 0.005 85); /* Almost pure cream */
+  --card-foreground: oklch(0.25 0.02 75);
+  --popover: oklch(0.995 0.005 85);
+  --popover-foreground: oklch(0.25 0.02 75);
   
-  /* Primary: Professional Indigo (Stripe/Vercel vibe) */
-  --primary: oklch(0.45 0.2 265); 
-  --primary-foreground: oklch(0.98 0 0);
+  /* Primary: Professional Indigo */
+  --primary: oklch(0.45 0.18 265); 
+  --primary-foreground: oklch(0.99 0.005 85);
   
-  --secondary: oklch(0.96 0.01 260);
-  --secondary-foreground: oklch(0.2 0.02 260);
-  --muted: oklch(0.96 0.01 260);
-  --muted-foreground: oklch(0.5 0.02 260);
+  --secondary: oklch(0.94 0.02 85); /* Slightly darker cream for contrast */
+  --secondary-foreground: oklch(0.25 0.02 75);
+  --muted: oklch(0.94 0.02 85);
+  --muted-foreground: oklch(0.55 0.03 75); /* Warm muted gray */
   
-  --accent: oklch(0.95 0.02 265);
-  --accent-foreground: oklch(0.2 0.02 260);
+  --accent: oklch(0.93 0.02 85);
+  --accent-foreground: oklch(0.25 0.02 75);
   
   --destructive: oklch(0.5 0.2 20);
-  --destructive-foreground: oklch(0.98 0 0);
+  --destructive-foreground: oklch(0.99 0.005 85);
   
-  --border: oklch(0.92 0.01 260);
-  --input: oklch(0.92 0.01 260);
-  --ring: oklch(0.45 0.2 265);
+  --border: oklch(0.90 0.02 85); /* Soft warm border */
+  --input: oklch(0.90 0.02 85);
+  --ring: oklch(0.45 0.18 265);
   
-  --radius: 0.85rem; /* Smoother border radius */
+  --radius: 0.85rem;
 
   /* Gradients & Glows */
-  --brand-glow: oklch(0.6 0.2 265);
+  --brand-glow: oklch(0.6 0.18 265);
 }
 
 .dark {
@@ -131,8 +131,8 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     /* Soft mesh gradient background default */
-    background-image: radial-gradient(circle at 50% -20%, rgba(100, 100, 255, 0.05) 0%, transparent 40%),
-                      radial-gradient(circle at 100% 100%, rgba(100, 100, 255, 0.05) 0%, transparent 40%);
+    background-image: radial-gradient(circle at 50% -20%, rgba(217, 119, 6, 0.03) 0%, transparent 40%),
+                      radial-gradient(circle at 100% 100%, rgba(217, 119, 6, 0.03) 0%, transparent 40%);
     background-size: 100vw 100vh;
     background-attachment: fixed;
   }
