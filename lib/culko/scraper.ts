@@ -146,7 +146,7 @@ export async function captureBasePortalData(cookieJar: Record<string, string>) {
     })
   )
 
-  const results: Record<string, any> = { profile: null, attendance: [], marks: [], hostel: null }
+  const results: Record<string, any> = { profile: null, attendance: [], marks: [], hostel: null, attendanceDetails: {} }
   for (const result of settled) {
     if (result.status === 'fulfilled') {
       const { endpoint, data } = result.value
@@ -154,6 +154,30 @@ export async function captureBasePortalData(cookieJar: Record<string, string>) {
       console.log(`[captureBasePortalData] ✅ ${endpoint} captured`)
     } else {
       console.error(`[captureBasePortalData] ❌ A capture failed:`, result.reason)
+    }
+  }
+
+  // Fetch detailed attendance for all subjects
+  if (results.attendance && Array.isArray(results.attendance.data)) {
+    console.log('[captureBasePortalData] Fetching detailed attendance for all subjects...')
+    const allDetails: Record<string, any> = {}
+    
+    // Process all subjects sequentially to avoid hammering the CULKO portal and triggering 500s
+    for (const subject of results.attendance.data) {
+      try {
+        const detailsData = await fetchCULKOResource('attendance-details', cookieJar, { courseCode: subject.code, chk: subject.chk })
+        if (detailsData.data) {
+          allDetails[subject.code] = detailsData.data
+        }
+      } catch (e) {
+        console.error(`[captureBasePortalData] Failed to fetch details for ${subject.code}:`, e)
+      }
+    }
+    
+    if (Object.keys(allDetails).length > 0) {
+      await savePortalData('attendance-details' as any, { success: true, data: allDetails })
+      results.attendanceDetails = allDetails
+      console.log(`[captureBasePortalData] ✅ attendance-details captured and saved for ${Object.keys(allDetails).length} subjects`)
     }
   }
 
@@ -308,7 +332,7 @@ export interface AttendanceHistoryRecord {
 }
 
 export async function fetchCULKOData(
-  endpoint: 'attendance' | 'marks' | 'timetable' | 'profile' | 'announcements' | 'hostel' | 'attendance-details',
+  endpoint: 'attendance' | 'marks' | 'timetable' | 'profile' | 'announcements' | 'hostel' | 'attendance-details' | 'attendance-details-all',
   customCookie?: string,
   extraParams?: { courseCode?: string; chk?: string }
 ) {
@@ -316,12 +340,14 @@ export async function fetchCULKOData(
     const cookieStore = await cookies()
     const culkoCookies = customCookie || cookieStore.get('culko_session')?.value
 
+    const dbEndpoint = endpoint === 'attendance-details-all' ? 'attendance-details' : endpoint
+
     if (!culkoCookies) {
       console.warn(`[fetchCULKOData] No session for ${endpoint}. Trying DB fallback...`)
       if (endpoint === 'attendance-details') {
         return { success: false, error: 'No active portal session. Please login to portal sync first.' }
       }
-      const cached = await getPortalData(endpoint as any)
+      const cached = await getPortalData(dbEndpoint as any)
       if (cached.success) {
         return {
           success: true,
@@ -343,17 +369,39 @@ export async function fetchCULKOData(
     let response: any
     if (endpoint === 'attendance-details' && extraParams?.courseCode) {
       response = await fetchAttendanceDetails(sessionCookies, extraParams.courseCode, extraParams.chk)
+      // Do NOT overwrite DB with single subject details
+    } else if (endpoint === 'attendance-details-all') {
+      // Fetch base attendance to get course list, then fetch all details
+      const baseAttendance = await fetchCULKOResource('attendance', sessionCookies)
+      const allDetails: Record<string, any> = {}
+      if (baseAttendance.success && Array.isArray(baseAttendance.data)) {
+        for (const subject of baseAttendance.data) {
+          try {
+            const detailsData = await fetchAttendanceDetails(sessionCookies, subject.code, subject.chk)
+            if (detailsData.data) {
+              allDetails[subject.code] = detailsData.data
+            }
+          } catch (e) {
+            console.error(`Failed to fetch details for ${subject.code}:`, e)
+          }
+        }
+      }
+      response = { success: true, data: allDetails }
+      try {
+        await savePortalData('attendance-details' as any, response)
+      } catch (e) {
+        console.error('Failed to save unified attendance details:', e)
+      }
     } else {
       response = await fetchCULKOResource(endpoint, sessionCookies)
-    }
-
-    // MUST await - fire-and-forget is killed by serverless before it resolves
-    try {
-      if (endpoint !== 'announcements') {
-        await savePortalData(endpoint as any, response)
+      // MUST await - fire-and-forget is killed by serverless before it resolves
+      try {
+        if (endpoint !== 'announcements' && endpoint !== 'attendance-details') {
+          await savePortalData(endpoint as any, response)
+        }
+      } catch (syncErr) {
+        console.error(`[fetchCULKOData] Sync error for ${endpoint}:`, syncErr)
       }
-    } catch (syncErr) {
-      console.error(`[fetchCULKOData] Sync error for ${endpoint}:`, syncErr)
     }
 
     return {
@@ -365,8 +413,9 @@ export async function fetchCULKOData(
   } catch (error) {
     console.error(`Error fetching ${endpoint}:`, error)
 
+    const dbEndpoint = endpoint === 'attendance-details-all' ? 'attendance-details' : endpoint
     // On error, try DB fallback
-    const cached = await getPortalData(endpoint as any)
+    const cached = await getPortalData(dbEndpoint as any)
     if (cached.success) {
       return {
         success: true,

@@ -11,7 +11,7 @@ export async function GET(req: Request) {
   const courseCode = searchParams.get('courseCode')
   const chk = searchParams.get('chk')
   
-  if (!endpoint || !['attendance', 'marks', 'timetable', 'profile', 'announcements', 'hostel', 'attendance-details', 'delete-cache'].includes(endpoint)) {
+  if (!endpoint || !['attendance', 'marks', 'timetable', 'profile', 'announcements', 'hostel', 'attendance-details', 'attendance-details-all', 'delete-cache'].includes(endpoint)) {
     return NextResponse.json(
       { error: 'Invalid endpoint.' },
       { status: 400 }

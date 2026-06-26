@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 
-export type PortalDataType = 'profile' | 'attendance' | 'marks' | 'timetable' | 'announcements' | 'hostel'
+export type PortalDataType = 'profile' | 'attendance' | 'marks' | 'timetable' | 'announcements' | 'hostel' | 'attendance-details'
 
 export async function savePortalData(type: PortalDataType, data: any) {
   try {

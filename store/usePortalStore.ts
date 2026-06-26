@@ -4,6 +4,7 @@ import { getApiUrl, isNativeApp } from '@/lib/api-config'
 
 interface PortalState {
   attendance: any[]
+  attendanceDetails: Record<string, any[]>
   timetable: any
   marks: any[]
   profile: any
@@ -29,6 +30,7 @@ export const usePortalStore = create<PortalState>()(
   persist(
     (set, get) => ({
       attendance: [],
+      attendanceDetails: {},
       timetable: null,
       marks: [],
       profile: null,
@@ -67,6 +69,7 @@ export const usePortalStore = create<PortalState>()(
 
       clearData: () => set({
         attendance: [],
+        attendanceDetails: {},
         timetable: null,
         marks: [],
         profile: null,
@@ -130,12 +133,13 @@ export const usePortalStore = create<PortalState>()(
             console.log('[usePortalStore] Cache clear failed (non-fatal):', e)
           }
 
-          const [attendRes, ttRes, profileRes, hostelRes, marksRes] = await Promise.all([
+          const [attendRes, ttRes, profileRes, hostelRes, marksRes, attendDetailsRes] = await Promise.all([
             fetch(getApiUrl('/api/culko?endpoint=attendance'), { headers }),
             fetch(getApiUrl('/api/culko?endpoint=timetable'), { headers }),
             fetch(getApiUrl('/api/culko?endpoint=profile'), { headers }),
             fetch(getApiUrl('/api/culko?endpoint=hostel'), { headers }),
             fetch(getApiUrl('/api/culko?endpoint=marks'), { headers }),
+            fetch(getApiUrl('/api/culko?endpoint=attendance-details-all'), { headers }),
           ])
 
           // 401 on data endpoints = session truly died
@@ -145,12 +149,13 @@ export const usePortalStore = create<PortalState>()(
             return false
           }
 
-          const [attendance, timetable, profile, hostel, marks] = await Promise.all([
+          const [attendance, timetable, profile, hostel, marks, attendanceDetails] = await Promise.all([
             attendRes.json(),
             ttRes.json(),
             profileRes.json(),
             hostelRes.json(),
-            marksRes.json()
+            marksRes.json(),
+            attendDetailsRes.json()
           ])
 
           const updates: Partial<PortalState> = {
@@ -160,6 +165,7 @@ export const usePortalStore = create<PortalState>()(
           }
 
           if (attendRes.ok && attendance.success) updates.attendance = attendance.data || []
+          if (attendDetailsRes.ok && attendanceDetails.success) updates.attendanceDetails = attendanceDetails.data || {}
           if (ttRes.ok && timetable.success) updates.timetable = timetable.data
           if (profileRes.ok && profile.success) updates.profile = profile.data
           if (hostelRes.ok && hostel.success) updates.hostel = hostel.data
@@ -186,6 +192,7 @@ export const usePortalStore = create<PortalState>()(
       // Persist data AND status so mobile remembers connection across restarts
       partialize: (state) => ({
         attendance: state.attendance,
+        attendanceDetails: state.attendanceDetails,
         timetable: state.timetable,
         marks: state.marks,
         profile: state.profile,

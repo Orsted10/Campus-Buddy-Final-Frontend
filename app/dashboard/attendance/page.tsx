@@ -267,54 +267,27 @@ function HistoryModal({ isOpen, onClose, subjectName, history, isLoading }: {
 
 export default function AttendancePage() {
   const router = useRouter()
-  const { attendance, portalStatus, isSyncing, lastSync, syncAll } = usePortalStore()
+  const { attendance, attendanceDetails, portalStatus, isSyncing, lastSync, syncAll } = usePortalStore()
   const [selectedSubject, setSelectedSubject] = useState<any | null>(null)
   const [history, setHistory] = useState<any[]>([])
-  const [isHistoryLoading, setIsHistoryLoading] = useState(false)
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [recentDotsCache, setRecentDotsCache] = useState<Record<string, any[]>>({})
 
   useEffect(() => {
     if (attendance.length === 0) syncAll()
   }, [])
 
-  const fetchDetails = useCallback(async (subject: any) => {
+  const handleViewDetails = useCallback((subject: any) => {
     setSelectedSubject(subject)
     setIsModalOpen(true)
-    setIsHistoryLoading(true)
-    setHistory([])
-
-    try {
-      const chkParam = subject.chk ? `&chk=${encodeURIComponent(subject.chk)}` : ''
-      const res = await fetch(getApiUrl(`/api/culko?endpoint=attendance-details&courseCode=${subject.code}${chkParam}`))
-      const data = await res.json()
-      
-      // Check if backend sent debug logs instead of a straight array
-      let historyData = data.data
-      let debugLogs = null
-      
-      if (data.success && !Array.isArray(data.data) && data.data?.debug) {
-        historyData = data.data.data
-        debugLogs = data.data.debug
-        console.warn('Backend sent debug logs:', debugLogs)
-      }
-
-      if (data.success && Array.isArray(historyData) && historyData.length > 0) {
-        setHistory(historyData)
-        setRecentDotsCache(prev => ({ ...prev, [subject.code]: historyData.slice(0, 6) }))
-      } else if (debugLogs && debugLogs.length > 0) {
-        toast.error('Scraper failed. Check console for logs.')
-      } else if (!data.success) {
-        toast.error(`Backend error: ${data.error || 'Unknown error'}`)
-        console.error('Attendance Details Error:', data)
-      }
-    } catch (err) {
-      console.error('Connection error loading history', err)
-      toast.error(`Connection error: ${err}`)
-    } finally {
-      setIsHistoryLoading(false)
+    
+    // Fetch details instantly from global state
+    const historyData = attendanceDetails[subject.code]
+    if (Array.isArray(historyData)) {
+      setHistory(historyData)
+    } else {
+      setHistory([])
     }
-  }, [])
+  }, [attendanceDetails])
 
   // Calculate overall attendance
   let totalEligAttd = 0, totalEligDelv = 0
@@ -440,8 +413,8 @@ export default function AttendancePage() {
                       <AttendanceRing 
                         percentage={percentage} attended={attended} total={total} 
                         idl={subject.idl} adl={subject.adl} vdl={subject.vdl} ml={subject.medicalLeave}
-                        onViewDetails={() => fetchDetails(subject)}
-                        recentDots={recentDotsCache[subject.code]}
+                        onViewDetails={() => handleViewDetails(subject)}
+                        recentDots={attendanceDetails[subject.code]?.slice(0, 6) || []}
                       />
                     </CardContent>
                   </Card>
@@ -453,7 +426,7 @@ export default function AttendancePage() {
       )}
 
       <HistoryModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} 
-        subjectName={selectedSubject?.name || ''} history={history} isLoading={isHistoryLoading} />
+        subjectName={selectedSubject?.name || ''} history={history} isLoading={isSyncing && history.length === 0} />
     </div>
   )
 }
