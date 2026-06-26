@@ -30,6 +30,7 @@ export default function DashboardPage() {
   const [currentTime, setCurrentTime] = useState(getISTDate())
   const { 
     attendance: attendanceData, 
+    marks: marksData,
     timetable: timetableData, 
     portalStatus, 
     isSyncing, 
