@@ -126,10 +126,16 @@ export default function MarksPage() {
               total += parseFloat(e.grade)
             })
 
-            const percentage = total > 0 ? (obtained / total) * 100 : 0
-            const glowColor = percentage >= 80 ? 'shadow-[0_0_15px_rgba(16,185,129,0.3)] border-emerald-500/20' 
-                            : percentage >= 50 ? 'shadow-[0_0_15px_rgba(139,92,246,0.3)] border-primary/20' 
+            const percentage = total > 0 ? (obtained / total) * 100 : null
+            const glowColor = percentage === null ? 'border-black/5 dark:border-white/10 shadow-sm' 
+                            : percentage >= 80 ? 'shadow-[0_0_15px_rgba(16,185,129,0.3)] border-emerald-500/20' 
+                            : percentage >= 40 ? 'shadow-[0_0_15px_rgba(59,130,246,0.3)] border-blue-500/20' 
                             : 'shadow-[0_0_15px_rgba(239,68,68,0.3)] border-red-500/20'
+            
+            const textColor = percentage === null ? 'text-muted-foreground'
+                            : percentage >= 80 ? 'text-emerald-500 font-black'
+                            : percentage >= 40 ? 'text-blue-500 font-black'
+                            : 'text-red-500 font-black'
 
             return (
               <AccordionItem 
@@ -140,13 +146,17 @@ export default function MarksPage() {
                 <AccordionTrigger className="hover:no-underline py-4 sm:py-5 text-left group">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between w-full pr-1 sm:pr-4 gap-2 sm:gap-4">
                     <span className="font-bold text-base sm:text-xl text-foreground group-hover:text-primary transition-colors leading-tight">{subject.subject}</span>
-                    {total > 0 && (
+                    {total > 0 ? (
                       <span className="text-sm font-bold bg-primary/5 dark:bg-background/50 border border-black/10 dark:border-white/10 text-foreground px-4 py-1.5 rounded-full backdrop-blur-md">
-                        <span className={percentage >= 80 ? 'text-emerald-400' : percentage >= 50 ? 'text-primary' : 'text-red-400'}>
+                        <span className={textColor}>
                           {obtained.toFixed(1)}
                         </span> 
                         <span className="text-muted-foreground mx-1">/</span> 
                         {total.toFixed(0)} scored
+                      </span>
+                    ) : (
+                      <span className="text-sm font-bold bg-muted/20 border border-black/10 dark:border-white/10 text-muted-foreground px-4 py-1.5 rounded-full backdrop-blur-md">
+                        No Marks
                       </span>
                     )}
                   </div>
