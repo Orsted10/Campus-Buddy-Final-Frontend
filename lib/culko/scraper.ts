@@ -710,24 +710,24 @@ async function fetchAttendanceDetails(cookies: Record<string, string>, courseCod
             data = typeof parsed.d === 'string' ? JSON.parse(parsed.d) : parsed.d
           } else {
             data = parsed
-            if (!Array.isArray(data) && typeof data === 'object' && data !== null) {
-              if ('Result' in data && data.Result) {
-                // If Result is HTML, parse it!
-                if (typeof data.Result === 'string' && data.Result.includes('<table')) {
-                  const history = parseAttendanceHistory(data.Result)
-                  if (history.length > 0) {
-                    log(`[fetchDetails] Successfully extracted ${history.length} records from GetFullReport HTML (Result)!`)
-                    return { data: history, debug: debugLogs }
-                  }
+          }
+
+          if (!Array.isArray(data) && typeof data === 'object' && data !== null) {
+            if ('Result' in data && data.Result) {
+              if (typeof data.Result === 'string' && data.Result.includes('<table')) {
+                const history = parseAttendanceHistory(data.Result)
+                if (history.length > 0) {
+                  log(`[fetchDetails] Successfully extracted ${history.length} records from GetFullReport HTML (Result)!`)
+                  return { data: history, debug: debugLogs }
                 }
-                data = typeof data.Result === 'string' ? JSON.parse(data.Result) : data.Result
               }
-              if (!Array.isArray(data) && typeof data === 'object' && data !== null) {
-                for (const key of Object.keys(data)) {
-                  if (Array.isArray(data[key])) {
-                    data = data[key]
-                    break
-                  }
+              data = typeof data.Result === 'string' ? JSON.parse(data.Result) : data.Result
+            }
+            if (!Array.isArray(data) && typeof data === 'object' && data !== null) {
+              for (const key of Object.keys(data)) {
+                if (Array.isArray(data[key])) {
+                  data = data[key]
+                  break
                 }
               }
             }
