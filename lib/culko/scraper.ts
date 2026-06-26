@@ -647,7 +647,7 @@ async function fetchAttendanceDetails(cookies: Record<string, string>, courseCod
 
             if (Array.isArray(data) && data.length > 0) {
               log(`[fetchDetails] Successfully found ${data.length} records!`)
-              const history = data.map((r: any) => {
+              const history = data.map((r: any, i: number) => {
                 const keys = Object.keys(r)
                 if (i === 0) log(`[fetchDetails] Record keys: ${keys.join(',')}`)
                 const findK = (patterns: string[], exclude: string[] = []) => {
