@@ -702,6 +702,7 @@ async function fetchAttendanceDetails(cookies: Record<string, string>, courseCod
       if (res.ok) {
         const text = await res.text()
         log(`[fetchDetails] GetFullReport response status: ${res.status}, length: ${text.length}`)
+        log(`[fetchDetails] GetFullReport text preview: ${text.substring(0, 300)}`)
         try {
           const parsed = JSON.parse(text)
           let data = null
@@ -711,6 +712,14 @@ async function fetchAttendanceDetails(cookies: Record<string, string>, courseCod
             data = parsed
             if (!Array.isArray(data) && typeof data === 'object' && data !== null) {
               if ('Result' in data && data.Result) {
+                // If Result is HTML, parse it!
+                if (typeof data.Result === 'string' && data.Result.includes('<table')) {
+                  const history = parseAttendanceHistory(data.Result)
+                  if (history.length > 0) {
+                    log(`[fetchDetails] Successfully extracted ${history.length} records from GetFullReport HTML (Result)!`)
+                    return { data: history, debug: debugLogs }
+                  }
+                }
                 data = typeof data.Result === 'string' ? JSON.parse(data.Result) : data.Result
               }
               if (!Array.isArray(data) && typeof data === 'object' && data !== null) {
@@ -721,6 +730,14 @@ async function fetchAttendanceDetails(cookies: Record<string, string>, courseCod
                   }
                 }
               }
+            }
+          }
+
+          if (typeof data === 'string' && data.includes('<table')) {
+            const history = parseAttendanceHistory(data)
+            if (history.length > 0) {
+              log(`[fetchDetails] Successfully extracted ${history.length} records from GetFullReport HTML!`)
+              return { data: history, debug: debugLogs }
             }
           }
 
