@@ -35,7 +35,7 @@ export default function DashboardLayout({
     if (hasHydrated && portalStatus === 'connected') {
       const now = Date.now()
       const last = lastSync ? new Date(lastSync).getTime() : 0
-      if (now - last > 60000) { // 1 minute threshold
+      if (now - last > 3600000) { // 1 hour threshold
         console.log('[DashboardLayout] Auto-sync triggered on mount')
         syncAll().catch(() => {})
       }
