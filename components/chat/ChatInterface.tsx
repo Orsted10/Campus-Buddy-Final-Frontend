@@ -75,8 +75,8 @@ export default function ChatInterface() {
     setShowHistory(false)
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = async (e?: React.SyntheticEvent) => {
+    if (e) e.preventDefault()
 
     if (!input.trim() || !user) return
 
@@ -86,9 +86,14 @@ export default function ChatInterface() {
     setIsLoading(true)
 
     try {
+      const { data: { session } } = await supabase.auth.getSession()
+      
       const response = await fetch(getApiUrl('/api/chat'), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
+        },
         body: JSON.stringify({
           messages: [...messages, userMessage],
           chatId,
@@ -330,7 +335,8 @@ export default function ChatInterface() {
               className="flex-1 bg-transparent border-none outline-none focus-visible:ring-0 text-sm font-medium h-11 px-0 placeholder:text-muted-foreground/60"
             />
             <Button 
-              type="submit" 
+              type="submit"
+              onClick={(e) => { e.preventDefault(); handleSubmit(); }}
               disabled={isLoading || !input.trim()}
               size="icon"
               className="rounded-xl w-11 h-11 shadow-lg transition-transform active:scale-95 bg-primary text-primary-foreground hover:bg-primary/90"
