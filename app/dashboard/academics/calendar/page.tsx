@@ -73,31 +73,32 @@ export default function AcademicCalendarPage() {
     }
   }
 
-  const getEventForDate = (day: number) => {
-    const d = day.toString().padStart(2, '0')
-    const m = (currentMonth + 1).toString().padStart(2, '0')
-    const dateStr = `${currentYear}-${m}-${d}`
+  const getEventForDate = (dateString: string) => {
+    const [yearStr, monthStr, dayStr] = dateString.split('-')
+    const year = parseInt(yearStr)
+    const month = parseInt(monthStr) - 1 // 0-indexed
+    const day = parseInt(dayStr)
     
     // 1. Check for explicit event
-    const explicitEvent = ACADEMIC_CALENDAR_2026.find(e => e.date === dateStr)
+    const explicitEvent = ACADEMIC_CALENDAR_2026.find(e => e.date === dateString)
     if (explicitEvent) return explicitEvent
 
     // 2. Fallback to default summer break for June (month index 5)
-    if (currentMonth === 5) {
+    if (month === 5) {
       return {
-        date: dateStr,
+        date: dateString,
         type: 'holiday' as const,
         event: 'Summer Break'
       }
     }
 
     // 3. Fallback to weekend
-    const dateObj = new Date(currentYear, currentMonth, day)
+    const dateObj = new Date(year, month, day)
     const dayOfWeekIdx = dateObj.getDay()
     
     if (dayOfWeekIdx === 0 || dayOfWeekIdx === 6) {
       return {
-        date: dateStr,
+        date: dateString,
         type: 'holiday' as const,
         event: 'Weekend'
       }
@@ -105,13 +106,13 @@ export default function AcademicCalendarPage() {
 
     // 4. Default to teaching day
     return {
-      date: dateStr,
+      date: dateString,
       type: 'teaching' as const,
       event: 'Regular Teaching Day'
     }
   }
 
-  const selectedEvent = selectedDate ? getEventForDate(parseInt(selectedDate.split('-')[2])) : null
+  const selectedEvent = selectedDate ? getEventForDate(selectedDate) : null
   
   // Get timetable for selected day
   const getSelectedTimetable = () => {
@@ -188,7 +189,7 @@ export default function AcademicCalendarPage() {
                    {Array.from({ length: daysInMonth }).map((_, i) => {
                       const day = i + 1
                       const dateStr = `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`
-                      const event = getEventForDate(day)
+                      const event = getEventForDate(dateStr)
                       const isToday = istNow.toISOString().split('T')[0] === dateStr
                       const isSelected = selectedDate === dateStr
 

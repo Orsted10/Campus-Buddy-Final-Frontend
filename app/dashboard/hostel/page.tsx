@@ -124,11 +124,12 @@ export default function HostelPage() {
             </CardContent>
           </Card>
 
-          <Card className="glass border-black/5 dark:border-white/5 bg-black/[0.02] dark:bg-white/2 hidden md:flex flex-col items-center justify-center p-6 text-center">
+          <Card className="glass border-black/5 dark:border-white/5 bg-black/[0.02] dark:bg-white/2 hidden md:flex flex-col items-center justify-center p-6 text-center opacity-50 grayscale select-none">
              <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center mb-6 ring-8 ring-primary/5">
                <QrCode className="w-10 h-10 text-primary" />
              </div>
              <h3 className="font-bold text-lg mb-2">Digital Check-in</h3>
+             <p className="text-[10px] uppercase tracking-widest font-bold text-primary mb-2">Under Development</p>
              <p className="text-muted-foreground text-sm max-w-[200px]">Use your barcode to scan into the mess and entry gates seamlessly.</p>
           </Card>
         </motion.div>

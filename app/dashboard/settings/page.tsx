@@ -92,6 +92,17 @@ export default function SettingsPage() {
 
   // Fetch linked identities on mount
   useEffect(() => {
+    // Check for auth errors in URL (e.g. Identity already linked)
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search)
+      const errorMsg = params.get('error')
+      if (errorMsg) {
+        toast.error(errorMsg.replace(/\+/g, ' '))
+        // clean up URL
+        window.history.replaceState({}, document.title, window.location.pathname)
+      }
+    }
+
     async function checkIdentities() {
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {

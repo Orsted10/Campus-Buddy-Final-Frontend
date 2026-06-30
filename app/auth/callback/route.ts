@@ -6,6 +6,11 @@ export async function GET(request: Request) {
   const code = searchParams.get('code')
   // if "next" is in search params, use it as the redirection URL
   const next = searchParams.get('next') ?? '/dashboard'
+  const errorDescription = searchParams.get('error_description')
+
+  if (errorDescription) {
+    return NextResponse.redirect(`${origin}${next}?error=${encodeURIComponent(errorDescription)}`)
+  }
 
   if (code) {
     const supabase = await createClient()
