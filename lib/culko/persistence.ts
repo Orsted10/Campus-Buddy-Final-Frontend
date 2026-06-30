@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 export type PortalDataType = 'profile' | 'attendance' | 'marks' | 'timetable' | 'announcements' | 'hostel' | 'attendance-details'
 
@@ -53,7 +54,8 @@ export async function getPortalData(type: PortalDataType, userId?: string) {
 
     console.log(`[getPortalData] Fetching cached ${type} for user ${idToUse}...`)
 
-    const { data, error } = await supabase
+    const adminSupabase = createAdminClient()
+    const { data, error } = await adminSupabase
       .from('portal_records')
       .select('*')
       .eq('user_id', idToUse)
