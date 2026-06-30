@@ -108,10 +108,10 @@ export default function SignupPage() {
 
         {/* Email */}
         <div className="space-y-1.5">
-          <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">CULKO Email</label>
+          <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Email</label>
           <input
             type="email"
-            placeholder="25lbcs3067@culkomail.in"
+            placeholder="example@gmail.com"
             value={formData.email}
             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
             required

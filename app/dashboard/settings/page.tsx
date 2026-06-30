@@ -58,6 +58,27 @@ export default function SettingsPage() {
   const [isDeleting, setIsDeleting] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState('')
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+
+  // Load preferences from local storage
+  const [toggles, setToggles] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('elite_preferences')
+      if (saved) return JSON.parse(saved)
+    }
+    return {
+      push: true,
+      email: false,
+      aiStrict: false,
+      autoSync: true
+    }
+  })
+
+  // Save preferences when they change
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('elite_preferences', JSON.stringify(toggles))
+    }
+  }, [toggles])
   
   // Password Update State
   const [newPassword, setNewPassword] = useState('')
@@ -103,15 +124,22 @@ export default function SettingsPage() {
     }
   }
 
-  const [toggles, setToggles] = useState({
-    push: true,
-    email: false,
-    aiStrict: false,
-    autoSync: true
-  })
-  
   const [activeTab, setActiveTab] = useState('General')
-  const [activeTheme, setActiveTheme] = useState('System')
+  const [activeTheme, setActiveTheme] = useState(() => {
+    if (typeof window !== 'undefined') {
+      if (document.documentElement.classList.contains('dark')) return 'Dark'
+      if (localStorage.theme === 'light') return 'Light'
+    }
+    return 'System'
+  })
+
+  const scrollToSection = (id: string) => {
+    const el = document.getElementById(id)
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      setActiveTab(id)
+    }
+  }
 
   interface Item {
     label: string;
@@ -169,21 +197,27 @@ export default function SettingsPage() {
       <div className="grid gap-6 md:grid-cols-3">
         {/* Sidebar-like selection */}
         <div className="space-y-2">
-            {['General', 'Security', 'Data', 'Notifications'].map((t, i) => (
+            {[
+              { id: 'profile', label: 'Profile Settings' },
+              { id: 'security', label: 'Security' },
+              { id: 'app', label: 'App Preferences' },
+              { id: 'notifications', label: 'Notifications' }
+            ].map((t, i) => (
                 <button 
-                   key={t}
-                   className={`w-full text-left p-3 rounded-xl text-sm font-bold flex items-center justify-between transition-all ${i === 0 ? 'bg-primary text-background' : 'text-muted-foreground hover:bg-black/5 dark:bg-white/5'}`}
+                   key={t.id}
+                   onClick={() => scrollToSection(t.id)}
+                   className={`w-full text-left p-3 rounded-xl text-sm font-bold flex items-center justify-between transition-all ${activeTab === t.id ? 'bg-primary text-background' : 'text-muted-foreground hover:bg-black/5 dark:bg-white/5'}`}
                 >
-                    {t}
-                    {i === 0 && <ChevronRight className="w-4 h-4" />}
+                    {t.label}
+                    {activeTab === t.id && <ChevronRight className="w-4 h-4" />}
                 </button>
             ))}
         </div>
 
         {/* Main Content Area */}
-        <div className="md:col-span-2 space-y-8">
+        <div className="md:col-span-2 space-y-8 pb-20">
             {sections.map((section, idx) => (
-                <Card key={section.id} className="glass-panel border-black/5 dark:border-white/5 overflow-hidden animate-in fade-in slide-in-from-bottom-4" style={{ animationDelay: `${idx * 0.1}s` }}>
+                <Card id={section.id} key={section.id} className="glass-panel border-black/5 dark:border-white/5 overflow-hidden animate-in fade-in slide-in-from-bottom-4 scroll-mt-24" style={{ animationDelay: `${idx * 0.1}s` }}>
                     <CardHeader className="border-b border-black/5 dark:border-white/5 bg-black/[0.02] dark:bg-white/2 pb-4">
                         <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -230,7 +264,7 @@ export default function SettingsPage() {
             </Card>
 
             {/* SECURITY & PASSWORD */}
-            <Card className="glass-panel border-black/5 dark:border-white/5 overflow-hidden animate-in fade-in slide-in-from-bottom-4" style={{ animationDelay: `0.3s` }}>
+            <Card id="security" className="glass-panel border-black/5 dark:border-white/5 overflow-hidden animate-in fade-in slide-in-from-bottom-4 scroll-mt-24" style={{ animationDelay: `0.3s` }}>
                 <CardHeader className="border-b border-black/5 dark:border-white/5 bg-black/[0.02] dark:bg-white/2 pb-4">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center">
@@ -260,12 +294,37 @@ export default function SettingsPage() {
                         </div>
                         <p className="text-[10px] text-muted-foreground font-medium">Changing this will update your Campus Buddy login, not your university portal password.</p>
                     </div>
+
+                    <div className="pt-4 border-t border-black/5 dark:border-white/5 space-y-3">
+                        <label className="text-xs font-black text-muted-foreground uppercase tracking-widest">Connected Accounts</label>
+                        <Button 
+                            variant="outline"
+                            onClick={async () => {
+                              try {
+                                const { error } = await supabase.auth.linkIdentity({ provider: 'google' })
+                                if (error) throw error
+                                toast.success('Redirecting to Google to link account...')
+                              } catch (e: any) {
+                                toast.error(e.message || 'Failed to link Google account')
+                              }
+                            }}
+                            className="w-full justify-start gap-3 rounded-xl border-black/5 dark:border-white/5 bg-black/[0.02] dark:bg-white/5 hover:bg-black/5 dark:hover:bg-white/10"
+                        >
+                            <svg className="w-4 h-4" viewBox="0 0 24 24">
+                              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                            </svg>
+                            Link Google Account
+                        </Button>
+                    </div>
                 </CardContent>
             </Card>
 
 
             {/* DANGER ZONE */}
-            <Card className="border-destructive/20 bg-destructive/5 overflow-hidden">
+            <Card className="border-destructive/20 bg-destructive/5 overflow-hidden scroll-mt-24">
                 <CardHeader className="bg-destructive/10">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-xl bg-destructive/20 flex items-center justify-center">

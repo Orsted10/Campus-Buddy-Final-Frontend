@@ -14,6 +14,7 @@ interface PortalState {
   lastSync: string | null
   isSyncing: boolean
   culkoCookies: Record<string, string> | null
+  notifications: Array<{ id: string, type: string, message: string, read: boolean, timestamp: string }>
   
   // Actions
   setPortalData: (data: Partial<PortalState>) => void
@@ -25,6 +26,8 @@ interface PortalState {
   syncAll: () => Promise<boolean>
   forceSyncAll: () => Promise<boolean>
   checkStatus: () => Promise<boolean>
+  markNotificationRead: (id: string) => void
+  clearNotifications: () => void
 }
 
 export const usePortalStore = create<PortalState>()(
@@ -40,12 +43,19 @@ export const usePortalStore = create<PortalState>()(
       lastSync: null,
       isSyncing: false,
       culkoCookies: null,
+      notifications: [],
       forceSyncAll: async () => { return false },
 
       setPortalData: (data) => set((state) => ({ ...state, ...data })),
       
       setPortalStatus: (status) => set({ portalStatus: status }),
       setPortalCookies: (cookies) => set({ culkoCookies: cookies }),
+      
+      markNotificationRead: (id) => set((state) => ({
+        notifications: state.notifications.map(n => n.id === id ? { ...n, read: true } : n)
+      })),
+      
+      clearNotifications: () => set({ notifications: [] }),
       
       checkStatus: async () => {
         try {
@@ -78,7 +88,8 @@ export const usePortalStore = create<PortalState>()(
         portalStatus: null,
         lastSync: null,
         isSyncing: false,
-        culkoCookies: null
+        culkoCookies: null,
+        notifications: []
       }),
 
       syncAll: async (): Promise<boolean> => {
@@ -170,12 +181,57 @@ export const usePortalStore = create<PortalState>()(
             portalStatus: 'connected'
           }
 
-          if (attendRes.ok && attendance.success) updates.attendance = attendance.data || []
+          let newNotifications = [...get().notifications]
+          
+          if (attendRes.ok && attendance.success) {
+            updates.attendance = attendance.data || []
+            // Diff Attendance
+            const oldAtt = get().attendance
+            if (oldAtt.length > 0 && updates.attendance.length > 0) {
+              updates.attendance.forEach((newSubj: any) => {
+                const oldSubj = oldAtt.find((s: any) => s.subject === newSubj.subject)
+                if (oldSubj && parseFloat(newSubj.percentage) < parseFloat(oldSubj.percentage)) {
+                  newNotifications.push({
+                    id: Math.random().toString(36).substring(7),
+                    type: 'attendance',
+                    message: `Attendance dropped for ${newSubj.subject} (${newSubj.percentage}%)`,
+                    read: false,
+                    timestamp: new Date().toISOString()
+                  })
+                }
+              })
+            }
+          }
+          
           if (ttRes.ok && timetable.success) updates.timetable = timetable.data
           if (profileRes.ok && profile.success) updates.profile = profile.data
           if (hostelRes.ok && hostel.success) updates.hostel = hostel.data
-          if (marksRes.ok && marks.success) updates.marks = marks.data || []
+          
+          if (marksRes.ok && marks.success) {
+            updates.marks = marks.data || []
+            // Diff Marks
+            const oldMarks = get().marks
+            if (oldMarks.length > 0 && updates.marks.length > 0) {
+              updates.marks.forEach((newMark: any) => {
+                const oldMark = oldMarks.find((m: any) => m.subject === newMark.subject && m.type === newMark.type)
+                if (!oldMark || parseFloat(newMark.score) !== parseFloat(oldMark.score)) {
+                  newNotifications.push({
+                    id: Math.random().toString(36).substring(7),
+                    type: 'marks',
+                    message: `New/Updated marks for ${newMark.subject} ${newMark.type}: ${newMark.score}`,
+                    read: false,
+                    timestamp: new Date().toISOString()
+                  })
+                }
+              })
+            }
+          }
+          
           if (detailsRes.ok && details.success) updates.attendanceDetails = details.data || {}
+
+          if (newNotifications.length > get().notifications.length) {
+            updates.notifications = newNotifications.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).slice(0, 20)
+          }
 
           console.log('[usePortalStore] Sync completed.', { 
             attendance: !!attendance.data, 
@@ -208,7 +264,8 @@ export const usePortalStore = create<PortalState>()(
         hostel: state.hostel,
         lastSync: state.lastSync,
         portalStatus: state.portalStatus,
-        culkoCookies: state.culkoCookies
+        culkoCookies: state.culkoCookies,
+        notifications: state.notifications
       })
     }
   )

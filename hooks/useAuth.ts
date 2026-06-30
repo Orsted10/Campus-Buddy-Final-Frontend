@@ -173,6 +173,23 @@ export function useAuth() {
     }
   }
 
+  const resetPassword = async (email: string) => {
+    try {
+      const isApp = isNativeApp()
+      const redirectTo = isApp 
+        ? 'https://campus-buddy-phi.vercel.app/reset-password'
+        : `${window.location.origin}/reset-password`
+
+      const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo,
+      })
+      if (error) throw error
+      return { data, error: null }
+    } catch (error: any) {
+      return { data: null, error }
+    }
+  }
+
   const signOut = async () => {
     try {
       console.log('--- SIGNOUT START ---')
@@ -248,6 +265,7 @@ export function useAuth() {
     signIn,
     signUp,
     signInWithGoogle,
+    resetPassword,
     signOut,
   }
 }

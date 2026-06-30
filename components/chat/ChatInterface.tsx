@@ -12,6 +12,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { getApiUrl } from '@/lib/api-config'
+import { Volume2, VolumeX } from 'lucide-react'
 
 interface Message {
   role: 'user' | 'assistant'
@@ -38,7 +39,7 @@ export default function ChatInterface() {
     if (!user) return
     const fetchChats = async () => {
       const { data } = await supabase
-        .from('chats')
+        .from('ai_chats')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
@@ -55,11 +56,51 @@ export default function ChatInterface() {
     scrollToBottom()
   }, [messages, isLoading])
 
+  const [isSpeaking, setIsSpeaking] = useState(false)
+
+  const speak = (text: string) => {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return
+
+    // Stop any ongoing speech
+    window.speechSynthesis.cancel()
+
+    // Try to extract spoken summary
+    const match = text.match(/<spoken_summary>([\s\S]*?)<\/spoken_summary>/)
+    const textToSpeak = match ? match[1].trim() : text.replace(/[#*`_]/g, '') // Fallback
+
+    if (!textToSpeak) return
+
+    const utterance = new SpeechSynthesisUtterance(textToSpeak)
+    
+    // Find a nice female English voice
+    const voices = window.speechSynthesis.getVoices()
+    const preferredVoice = voices.find(v => v.lang.startsWith('en') && (v.name.includes('Female') || v.name.includes('Samantha') || v.name.includes('Google UK English Female') || v.name.includes('Zira')))
+    if (preferredVoice) {
+      utterance.voice = preferredVoice
+    }
+    
+    utterance.rate = 1.05
+    utterance.pitch = 1.1
+
+    utterance.onstart = () => setIsSpeaking(true)
+    utterance.onend = () => setIsSpeaking(false)
+    utterance.onerror = () => setIsSpeaking(false)
+
+    window.speechSynthesis.speak(utterance)
+  }
+
+  const stopSpeaking = () => {
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.cancel()
+      setIsSpeaking(false)
+    }
+  }
+
   const loadChat = async (id: string) => {
     setChatId(id)
     setShowHistory(false)
     const { data } = await supabase
-      .from('messages')
+      .from('ai_messages')
       .select('*')
       .eq('chat_id', id)
       .order('created_at', { ascending: true })
@@ -130,6 +171,9 @@ export default function ChatInterface() {
 
       setMessages((prev) => [...prev, assistantMessage])
       setChatId(data.chatId)
+      
+      // Auto-speak if it's enabled in preferences, or we can just always speak it
+      speak(data.content)
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to send message'
       toast.error(errorMessage)
@@ -218,6 +262,32 @@ export default function ChatInterface() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {isSpeaking ? (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="rounded-xl hover:bg-black/5 dark:hover:bg-white/5 text-primary transition-colors animate-pulse"
+              onClick={stopSpeaking}
+              title="Stop Speaking"
+            >
+              <Volume2 className="w-5 h-5" />
+            </Button>
+          ) : (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="rounded-xl hover:bg-black/5 dark:hover:bg-white/5 text-muted-foreground transition-colors"
+              onClick={() => {
+                 if (messages.length > 0) {
+                   const lastAssistantMsg = [...messages].reverse().find(m => m.role === 'assistant')
+                   if (lastAssistantMsg) speak(lastAssistantMsg.content)
+                 }
+              }}
+              title="Re-read last response"
+            >
+              <VolumeX className="w-5 h-5" />
+            </Button>
+          )}
           <Button 
             variant="ghost" 
             size="icon" 
@@ -320,7 +390,7 @@ export default function ChatInterface() {
                             h4: ({node, ...props}) => <h4 className="text-md font-bold mt-4 mb-2" {...props} />
                           }}
                         >
-                          {message.content}
+                          {message.content.replace(/<spoken_summary>[\s\S]*?<\/spoken_summary>/, '')}
                         </ReactMarkdown>
                       </div>
                     </div>

@@ -20,10 +20,10 @@ BEGIN
   VALUES (
     new.id,
     new.email,
-    new.raw_user_meta_data->>'full_name',
+    coalesce(new.raw_user_meta_data->>'full_name', split_part(new.email, '@', 1)),
     new.raw_user_meta_data->>'avatar_url',
-    COALESCE(new.raw_user_meta_data->>'role', 'student'), -- Default to student
-    new.raw_user_meta_data->>'student_id' -- This will likely be NULL for Google users
+    coalesce(new.raw_user_meta_data->>'role', 'student'),
+    NULLIF(new.raw_user_meta_data->>'student_id', '')
   )
   ON CONFLICT (id) DO NOTHING;
   

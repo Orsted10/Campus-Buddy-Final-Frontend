@@ -13,7 +13,8 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [showPwd, setShowPwd] = useState(false)
   const [loading, setLoading] = useState(false)
-  const { signIn, signInWithGoogle, user } = useAuth()
+  const [isResetting, setIsResetting] = useState(false)
+  const { signIn, signInWithGoogle, resetPassword, user } = useAuth()
   const router = useRouter()
 
   // Redirect logic moved to server-side middleware for better stability
@@ -36,6 +37,26 @@ export default function LoginPage() {
       toast.error('An error occurred during login')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      toast.error('Please enter your email first')
+      return
+    }
+    setIsResetting(true)
+    try {
+      const { error } = await resetPassword(email)
+      if (error) {
+        toast.error(error.message)
+      } else {
+        toast.success('Password reset link sent to your email!')
+      }
+    } catch {
+      toast.error('Failed to send reset link')
+    } finally {
+      setIsResetting(false)
     }
   }
 
@@ -84,7 +105,17 @@ export default function LoginPage() {
 
         {/* Password */}
         <div className="space-y-1.5">
-          <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Password</label>
+          <div className="flex justify-between items-center">
+            <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Password</label>
+            <button 
+              type="button" 
+              onClick={handleForgotPassword}
+              disabled={isResetting}
+              className="text-xs font-bold text-primary hover:text-white transition-colors"
+            >
+              {isResetting ? 'Sending...' : 'Forgot password?'}
+            </button>
+          </div>
           <div className="relative">
             <input
               type={showPwd ? 'text' : 'password'}

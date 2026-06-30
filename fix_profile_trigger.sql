@@ -31,21 +31,21 @@ BEGIN
     'User'
   );
   
-  user_role := COALESCE(
-    NEW.raw_user_meta_data->>'role',
-    'student'
-  );
-  
-  user_student_id := NEW.raw_user_meta_data->>'student_id';
-  
-  -- Insert profile
-  INSERT INTO public.profiles (id, email, full_name, role, student_id)
-  VALUES (
-    NEW.id,
-    NEW.email,
-    user_full_name,
-    user_role,
-    user_student_id
+    user_role := COALESCE(
+      NEW.raw_user_meta_data->>'role',
+      'student'
+    );
+    
+    user_student_id := NULLIF(NEW.raw_user_meta_data->>'student_id', '');
+    
+    -- Insert profile
+    INSERT INTO public.profiles (id, email, full_name, role, student_id)
+    VALUES (
+      NEW.id,
+      NEW.email,
+      user_full_name,
+      user_role,
+      user_student_id
   );
   
   RETURN NEW;
@@ -79,7 +79,7 @@ BEGIN
       user_record.email,
       COALESCE(user_record.raw_user_meta_data->>'full_name', split_part(user_record.email, '@', 1)),
       COALESCE(user_record.raw_user_meta_data->>'role', 'student'),
-      user_record.raw_user_meta_data->>'student_id'
+      NULLIF(user_record.raw_user_meta_data->>'student_id', '')
     )
     ON CONFLICT (id) DO NOTHING;
     
