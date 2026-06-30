@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { getApiUrl, isNativeApp } from '@/lib/api-config'
+import { createClient } from '@/utils/supabase/client'
 
 interface PortalState {
   attendance: any[]
@@ -116,12 +117,17 @@ export const usePortalStore = create<PortalState>()(
             }
           }
 
-          const headers = {
+          const headers: Record<string, string> = {
             'x-culko-session': get().culkoCookies ? JSON.stringify(get().culkoCookies) : ''
           }
           
           if (isNative) {
-             console.log('[usePortalStore] Sending request with x-culko-session header. Cookie length:', headers['x-culko-session'].length)
+             const supabase = createClient()
+             const sessionData = await supabase.auth.getSession()
+             if (sessionData.data.session?.access_token) {
+               headers['Authorization'] = `Bearer ${sessionData.data.session.access_token}`
+             }
+             console.log('[usePortalStore] Sending request with x-culko-session header. Cookie length:', headers['x-culko-session']?.length)
           }
 
           // Delete stale Supabase cache so the scraper always fetches fresh portal data

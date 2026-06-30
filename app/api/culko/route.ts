@@ -23,7 +23,11 @@ export async function GET(req: Request) {
     try {
       const { createClient } = await import('@/lib/supabase/server')
       const supabase = await createClient()
-      const { data: { user } } = await supabase.auth.getUser()
+      
+      const authHeader = req.headers.get('Authorization')
+      const token = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : undefined
+      const { data: { user } } = token ? await supabase.auth.getUser(token) : await supabase.auth.getUser()
+      
       if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
       await supabase.from('portal_records').delete().eq('user_id', user.id)
       return NextResponse.json({ success: true, message: 'All portal caches cleared' })
@@ -45,6 +49,14 @@ export async function GET(req: Request) {
   const extraParams: Record<string, string> = {}
   if (courseCode) extraParams.courseCode = courseCode
   if (chk) extraParams.chk = chk
+  const authHeader = req.headers.get('Authorization')
+  const token = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : undefined
+  if (token) {
+    const { createClient } = await import('@/lib/supabase/server')
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser(token)
+    if (user?.id) extraParams.userId = user.id
+  }
 
   const result = await fetchCULKOData(endpoint, customSessionCookie, Object.keys(extraParams).length > 0 ? extraParams : undefined)
   

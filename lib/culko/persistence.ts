@@ -3,22 +3,26 @@ import { createAdminClient } from '@/lib/supabase/admin'
 
 export type PortalDataType = 'profile' | 'attendance' | 'marks' | 'timetable' | 'announcements' | 'hostel' | 'attendance-details'
 
-export async function savePortalData(type: PortalDataType, data: any) {
+export async function savePortalData(type: PortalDataType, data: any, userId?: string) {
   try {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    // If userId is explicitly provided, bypass RLS with admin client
+    // Otherwise use cookie session
+    const idToUse = userId || (await supabase.auth.getUser()).data.user?.id
     
-    if (!user) {
+    if (!idToUse) {
       console.warn(`[savePortalData] No user found, skipping sync for ${type}`)
       return { success: false, error: 'Not authenticated' }
     }
 
-    console.log(`[savePortalData] Syncing ${type} for user ${user.id}...`)
+    console.log(`[savePortalData] Syncing ${type} for user ${idToUse}...`)
 
-    const { error } = await supabase
+    const client = userId ? createAdminClient() : supabase
+
+    const { error } = await client
       .from('portal_records')
       .upsert({
-        user_id: user.id,
+        user_id: idToUse,
         type,
         data,
         updated_at: new Date().toISOString()

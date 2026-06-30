@@ -364,7 +364,7 @@ export async function fetchCULKOData(
       }
       response = allDetails
       try {
-        await savePortalData('attendance-details' as any, response)
+        await savePortalData('attendance-details' as any, response, extraParams?.userId)
       } catch (e) {
         console.error('Failed to save unified attendance details:', e)
       }
@@ -373,7 +373,7 @@ export async function fetchCULKOData(
       // MUST await - fire-and-forget is killed by serverless before it resolves
       try {
         if (endpoint !== 'announcements' && endpoint !== 'attendance-details') {
-          await savePortalData(endpoint as any, response)
+          await savePortalData(endpoint as any, response, extraParams?.userId)
         }
       } catch (syncErr) {
         console.error(`[fetchCULKOData] Sync error for ${endpoint}:`, syncErr)
