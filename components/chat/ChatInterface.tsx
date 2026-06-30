@@ -302,9 +302,24 @@ export default function ChatInterface() {
                     : "glass text-foreground rounded-tl-none border border-black/5 dark:border-white/10 bg-white/50 dark:bg-black/20 backdrop-blur-xl"
                 )}>
                   {message.role === 'assistant' ? (
-                    <div className="prose prose-sm dark:prose-invert max-w-none prose-headings:font-black prose-headings:tracking-tight prose-a:text-primary prose-strong:text-primary prose-table:border-collapse prose-table:w-full prose-th:bg-black/5 dark:prose-th:bg-white/5 prose-th:px-4 prose-th:py-3 prose-td:border prose-td:border-black/5 dark:prose-td:border-white/5 prose-td:px-4 prose-td:py-3 prose-tr:transition-colors hover:prose-tr:bg-black/[0.02] dark:hover:prose-tr:bg-white/[0.02]">
-                      <div className="overflow-x-auto max-w-[100%] pb-2">
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    <div className="text-sm dark:text-gray-200">
+                      <div className="overflow-x-auto max-w-[100%] pb-2 custom-scrollbar">
+                        <ReactMarkdown 
+                          remarkPlugins={[remarkGfm]}
+                          components={{
+                            table: ({node, ...props}) => <table className="w-full border-collapse border border-border/50 my-4 text-xs sm:text-sm" {...props} />,
+                            th: ({node, ...props}) => <th className="border border-border/50 px-3 py-2 sm:px-4 sm:py-3 bg-black/5 dark:bg-white/5 font-bold text-left" {...props} />,
+                            td: ({node, ...props}) => <td className="border border-border/50 px-3 py-2 sm:px-4 sm:py-3" {...props} />,
+                            p: ({node, ...props}) => <p className="mb-4 last:mb-0 leading-relaxed" {...props} />,
+                            a: ({node, ...props}) => <a className="text-primary hover:underline font-bold" {...props} />,
+                            ul: ({node, ...props}) => <ul className="list-disc pl-5 mb-4 space-y-1" {...props} />,
+                            ol: ({node, ...props}) => <ol className="list-decimal pl-5 mb-4 space-y-1" {...props} />,
+                            li: ({node, ...props}) => <li className="" {...props} />,
+                            strong: ({node, ...props}) => <strong className="font-black text-primary" {...props} />,
+                            h3: ({node, ...props}) => <h3 className="text-lg font-black mt-6 mb-3" {...props} />,
+                            h4: ({node, ...props}) => <h4 className="text-md font-bold mt-4 mb-2" {...props} />
+                          }}
+                        >
                           {message.content}
                         </ReactMarkdown>
                       </div>

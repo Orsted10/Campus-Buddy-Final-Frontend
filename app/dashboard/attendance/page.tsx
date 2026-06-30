@@ -44,41 +44,43 @@ function AttendanceRing({
 
   return (
     <div className="flex flex-col gap-4 p-4 rounded-xl bg-muted/30 border border-border/30">
-      <div className="flex items-center gap-5">
-        <div className="relative w-[88px] h-[88px] flex-shrink-0">
-          <svg className="w-full h-full transform -rotate-90">
-            <circle cx="44" cy="44" r={radius} stroke="currentColor" strokeWidth="7" fill="transparent" className="text-muted/20" />
-            <circle cx="44" cy="44" r={radius} stroke="currentColor" strokeWidth="7" fill="transparent" 
-              className={`${ringColor} transition-all duration-1000 ease-out drop-shadow-sm`} strokeDasharray={circumference} strokeDashoffset={strokeDashoffset} strokeLinecap="round"
-            />
-          </svg>
-          <div className="absolute inset-0 flex items-center justify-center">
-            <span className={`text-sm font-black ${statusColor}`}>{percentage.toFixed(1)}%</span>
+      <div className="flex items-start sm:items-center justify-between gap-3 sm:gap-5">
+        <div className="flex items-center gap-3 sm:gap-5 flex-1">
+          <div className="relative w-[72px] h-[72px] sm:w-[88px] sm:h-[88px] flex-shrink-0">
+            <svg className="w-full h-full transform -rotate-90">
+              <circle cx="50%" cy="50%" r={radius} stroke="currentColor" strokeWidth="7" fill="transparent" className="text-muted/20" />
+              <circle cx="50%" cy="50%" r={radius} stroke="currentColor" strokeWidth="7" fill="transparent" 
+                className={`${ringColor} transition-all duration-1000 ease-out drop-shadow-sm`} strokeDasharray={circumference} strokeDashoffset={strokeDashoffset} strokeLinecap="round"
+              />
+            </svg>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className={`text-xs sm:text-sm font-black ${statusColor}`}>{percentage.toFixed(1)}%</span>
+            </div>
           </div>
-        </div>
-        
-        <div className="flex-1 space-y-2">
-          <div className="text-[9px] font-black uppercase text-muted-foreground/70 tracking-[0.15em]">Attendance Status</div>
-          <div className="flex items-center gap-4">
-            <div className="flex flex-col">
-              <span className="text-[9px] text-muted-foreground/60 uppercase font-bold tracking-wider">Elig. Attd</span>
-              <span className="text-lg font-black text-foreground leading-none">{attended}</span>
-            </div>
-            <div className="w-px h-8 bg-border/30" />
-            <div className="flex flex-col">
-              <span className="text-[9px] text-muted-foreground/60 uppercase font-bold tracking-wider">Elig. Delv</span>
-              <span className="text-lg font-black text-foreground leading-none">{total}</span>
-            </div>
-            <div className="w-px h-8 bg-border/30" />
-            <div className="flex flex-col">
-              <span className="text-[9px] text-muted-foreground/60 uppercase font-bold tracking-wider">Absent</span>
-              <span className="text-lg font-black text-foreground leading-none">{total - attended}</span>
+          
+          <div className="flex-1 space-y-1.5 sm:space-y-2">
+            <div className="text-[9px] font-black uppercase text-muted-foreground/70 tracking-[0.15em] truncate">Attendance Status</div>
+            <div className="flex items-center gap-2 sm:gap-4">
+              <div className="flex flex-col">
+                <span className="text-[8px] sm:text-[9px] text-muted-foreground/60 uppercase font-bold tracking-wider">Elig. Attd</span>
+                <span className="text-base sm:text-lg font-black text-foreground leading-none">{attended}</span>
+              </div>
+              <div className="w-px h-8 bg-border/30" />
+              <div className="flex flex-col">
+                <span className="text-[8px] sm:text-[9px] text-muted-foreground/60 uppercase font-bold tracking-wider">Elig. Delv</span>
+                <span className="text-base sm:text-lg font-black text-foreground leading-none">{total}</span>
+              </div>
+              <div className="w-px h-8 bg-border/30" />
+              <div className="flex flex-col">
+                <span className="text-[8px] sm:text-[9px] text-muted-foreground/60 uppercase font-bold tracking-wider">Absent</span>
+                <span className="text-base sm:text-lg font-black text-foreground leading-none">{total - attended}</span>
+              </div>
             </div>
           </div>
         </div>
         
         <button onClick={onViewDetails}
-          className="flex items-center gap-1 text-[9px] font-black uppercase text-primary hover:text-primary/80 transition-colors tracking-[0.15em] group self-start mt-1"
+          className="flex flex-shrink-0 items-center gap-1 text-[9px] font-black uppercase text-primary hover:text-primary/80 transition-colors tracking-[0.15em] group mt-1"
         >
           Details <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
         </button>
@@ -188,9 +190,9 @@ function HistoryModal({ isOpen, onClose, subjectName, history, isLoading }: {
               {history.map((record, i) => {
                 const s = (record.status || '').toLowerCase()
                 
-                const isPresent = s.includes('present') || s === 'p' || s.includes('vdl')
-                const isAbsent = s.includes('absent') || s === 'a'
                 const isDL = s.includes('dl') || s.includes('duty') || s.includes('medical') || s === 'l' || s === 'ml'
+                const isPresent = s.includes('present') || s === 'p'
+                const isAbsent = s.includes('absent') || s === 'a'
                 
                 let displayStatus = record.status || 'Unknown'
                 // Title case it nicely if it's just 'present' or 'absent'
@@ -202,16 +204,16 @@ function HistoryModal({ isOpen, onClose, subjectName, history, isLoading }: {
                 let statusBadge = <span className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-muted text-muted-foreground shadow-sm">{displayStatus}</span>
                 let cardHover = 'hover:bg-muted/40'
 
-                if (isPresent) { 
+                if (isDL) { 
+                   dotColor = 'bg-blue-500 border-blue-500/20'
+                   dotGlow = 'ring-4 ring-blue-500/10'
+                   statusBadge = <span className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 shadow-sm flex items-center max-w-[200px] truncate">{displayStatus}</span>
+                   cardHover = 'hover:bg-blue-500/[0.02] hover:border-blue-500/30'
+                } else if (isPresent) { 
                    dotColor = 'bg-green-500 border-green-500/20'
                    dotGlow = 'ring-4 ring-green-500/10'
                    statusBadge = <span className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20 shadow-sm">{displayStatus}</span>
                    cardHover = 'hover:bg-green-500/[0.02] hover:border-green-500/30'
-                } else if (isDL) { 
-                   dotColor = 'bg-blue-500 border-blue-500/20'
-                   dotGlow = 'ring-4 ring-blue-500/10'
-                   statusBadge = <span className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 shadow-sm">{displayStatus}</span>
-                   cardHover = 'hover:bg-blue-500/[0.02] hover:border-blue-500/30'
                 } else if (isAbsent) { 
                    dotColor = 'bg-red-500 border-red-500/20'
                    dotGlow = 'ring-4 ring-red-500/10'
