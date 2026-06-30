@@ -10,9 +10,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: true, queries: ['computer science', 'programming', 'engineering'] })
     }
 
-    const systemPrompt = `You are a university librarian AI. Based on the following subjects the student is enrolled in, provide exactly 3 to 5 highly relevant ONE-WORD or TWO-WORD search queries that can be used on Project Gutenberg (Gutendex API) to find useful textbooks, classic literature, or reference books. 
-Respond ONLY with a valid JSON array of strings. Do not include any markdown formatting, backticks, or other text.
-Example output: ["calculus", "algorithms", "physics"]
+    const systemPrompt = `You are a university librarian AI. Based on the following subjects the student is enrolled in, provide exactly 3 to 5 highly relevant BROAD AND GENERAL ONE-WORD search queries that can be used on Project Gutenberg (Gutendex API) to find useful textbooks, classic literature, or reference books. 
+Since Project Gutenberg mostly contains older classics, map specific modern subjects to their foundational roots (e.g. "Data Structures" -> "mathematics" or "logic", "Computer Science" -> "science" or "engineering", "Network Security" -> "technology").
+Respond ONLY with a valid JSON array of strings in all lowercase. Do not include any markdown formatting, backticks, or other text.
+Example output: ["science", "mathematics", "physics", "logic"]
 
 Subjects: ${subjects.join(', ')}`
 

@@ -1,9 +1,12 @@
 'use client'
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Bell } from 'lucide-react'
+import { Bell, Clock } from 'lucide-react'
+import { usePortalStore } from '@/store/usePortalStore'
 
 export default function NotificationsPage() {
+  const notifications = usePortalStore((state) => state.notifications)
+
   return (
     <div className="p-6 space-y-6">
       <div>
@@ -18,18 +21,24 @@ export default function NotificationsPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="flex items-start gap-4 p-4 bg-muted rounded-lg">
-                <Bell className="w-5 h-5 text-primary mt-1" />
-                <div className="flex-1">
-                  <p className="font-medium">Sample Notification {i}</p>
-                  <p className="text-sm text-muted-foreground">
-                    This is a sample notification message
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">2 hours ago</p>
+            {notifications.length > 0 ? (
+              notifications.map((notif: any) => (
+                <div key={notif.id} className={`flex items-start gap-4 p-4 rounded-lg transition-colors ${notif.read ? 'bg-muted/50' : 'bg-primary/10 border border-primary/20'}`}>
+                  <Bell className="w-5 h-5 text-primary mt-1 shrink-0" />
+                  <div className="flex-1">
+                    <p className="font-medium">{notif.message}</p>
+                    <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                      <Clock className="w-3 h-3" /> {new Date(notif.timestamp).toLocaleString()}
+                    </p>
+                  </div>
                 </div>
+              ))
+            ) : (
+              <div className="text-center py-10 opacity-50">
+                <Bell className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                <p>No new notifications</p>
               </div>
-            ))}
+            )}
           </div>
         </CardContent>
       </Card>

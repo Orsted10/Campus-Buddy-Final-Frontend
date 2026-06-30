@@ -362,7 +362,7 @@ export default function SettingsPage() {
                                 const { error } = await supabase.auth.linkIdentity({ 
                                   provider: 'google',
                                   options: {
-                                    redirectTo: window.location.origin + '/dashboard/settings'
+                                    redirectTo: window.location.origin + '/auth/callback?next=/dashboard/settings'
                                   }
                                 })
                                 if (error) throw error

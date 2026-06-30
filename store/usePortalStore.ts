@@ -150,14 +150,23 @@ export const usePortalStore = create<PortalState>()(
             console.log('[usePortalStore] Cache clear failed (non-fatal):', e)
           }
 
-          const [attendRes, ttRes, profileRes, hostelRes, marksRes, detailsRes] = await Promise.all([
+          const [attendRes, ttRes, profileRes, hostelRes, marksRes] = await Promise.all([
             fetch(getApiUrl('/api/culko?endpoint=attendance'), { headers }),
             fetch(getApiUrl('/api/culko?endpoint=timetable'), { headers }),
             fetch(getApiUrl('/api/culko?endpoint=profile'), { headers }),
             fetch(getApiUrl('/api/culko?endpoint=hostel'), { headers }),
-            fetch(getApiUrl('/api/culko?endpoint=marks'), { headers }),
-            fetch(getApiUrl('/api/culko?endpoint=attendance-details-all'), { headers }),
+            fetch(getApiUrl('/api/culko?endpoint=marks'), { headers })
           ])
+
+          // Fetch attendance details asynchronously so it doesn't block the UI
+          fetch(getApiUrl('/api/culko?endpoint=attendance-details-all'), { headers })
+            .then(res => res.json())
+            .then(details => {
+              if (details.success && details.data) {
+                set({ attendanceDetails: details.data })
+              }
+            })
+            .catch(err => console.error('[usePortalStore] Async attendance details failed:', err))
 
           // 401 on data endpoints = session truly died
           if (attendRes.status === 401 || profileRes.status === 401) {
@@ -166,13 +175,12 @@ export const usePortalStore = create<PortalState>()(
             return false
           }
 
-          const [attendance, timetable, profile, hostel, marks, details] = await Promise.all([
+          const [attendance, timetable, profile, hostel, marks] = await Promise.all([
             attendRes.json(),
             ttRes.json(),
             profileRes.json(),
             hostelRes.json(),
-            marksRes.json(),
-            detailsRes.json()
+            marksRes.json()
           ])
 
           const updates: Partial<PortalState> = {
@@ -235,7 +243,7 @@ export const usePortalStore = create<PortalState>()(
             }
           }
           
-          if (detailsRes.ok && details.success) updates.attendanceDetails = details.data || {}
+
 
           if (newNotifications.length > get().notifications.length) {
             updates.notifications = newNotifications.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).slice(0, 20)
