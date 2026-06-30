@@ -88,9 +88,8 @@ export default function MarksPage() {
         </div>
         <div className="flex flex-col">
           <h1 className="text-2xl md:text-4xl font-black tracking-tight text-foreground">Grades & Marks</h1>
-          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mt-2 md:mt-2">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mt-2 md:mt-2">
             <p className="text-muted-foreground font-medium">Detailed evaluation breakdowns grouped by subject</p>
-            <span className="text-muted-foreground mx-1">•</span>
             {metadata.isCached ? (
               <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/20 text-[10px] font-medium text-amber-500">
                 <div className="w-1 h-1 rounded-full bg-amber-500 animate-pulse" />

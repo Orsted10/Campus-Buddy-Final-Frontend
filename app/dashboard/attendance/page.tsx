@@ -47,9 +47,9 @@ function AttendanceRing({
       <div className="flex items-start sm:items-center justify-between gap-3 sm:gap-5">
         <div className="flex items-center gap-3 sm:gap-5 flex-1">
           <div className="relative w-[72px] h-[72px] sm:w-[88px] sm:h-[88px] flex-shrink-0">
-            <svg className="w-full h-full transform -rotate-90">
-              <circle cx="50%" cy="50%" r={radius} stroke="currentColor" strokeWidth="7" fill="transparent" className="text-muted/20" />
-              <circle cx="50%" cy="50%" r={radius} stroke="currentColor" strokeWidth="7" fill="transparent" 
+            <svg className="w-full h-full transform -rotate-90" viewBox="0 0 88 88">
+              <circle cx="44" cy="44" r={radius} stroke="currentColor" strokeWidth="7" fill="transparent" className="text-muted/20" />
+              <circle cx="44" cy="44" r={radius} stroke="currentColor" strokeWidth="7" fill="transparent" 
                 className={`${ringColor} transition-all duration-1000 ease-out drop-shadow-sm`} strokeDasharray={circumference} strokeDashoffset={strokeDashoffset} strokeLinecap="round"
               />
             </svg>
@@ -124,11 +124,13 @@ function HistoryModal({ isOpen, onClose, subjectName, history, isLoading }: {
 
   const presentCount = history.filter(r => {
     const s = (r.status || '').toLowerCase()
-    return s === 'p' || s.includes('present')
+    const isDL = s.includes('dl') || s.includes('duty') || s.includes('medical') || s === 'l' || s === 'ml'
+    return !isDL && (s === 'p' || s.includes('present'))
   }).length
   const absentCount = history.filter(r => {
     const s = (r.status || '').toLowerCase()
-    return s === 'a' || s.includes('absent')
+    const isDL = s.includes('dl') || s.includes('duty') || s.includes('medical') || s === 'l' || s === 'ml'
+    return !isDL && (s === 'a' || s.includes('absent'))
   }).length
 
   return (

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { chatWithGroq } from '@/lib/ai/groq'
-import { chatWithGemini } from '@/lib/ai/gemini'
+import { chatWithOpenRouter } from '@/lib/ai/openrouter'
 import { fetchCULKOData } from '@/lib/culko/scraper'
 import { CAMPUS_POI, MESS_MENU } from '@/lib/constants'
 
@@ -212,16 +212,16 @@ ${academicContext || '*Portal not currently synced. Advise the user to connect t
       }))
     ]
 
-    let result = await chatWithGroq(enrichedMessages, true)
+    let result = await chatWithOpenRouter(enrichedMessages)
     if (!result.success) {
-      result = await chatWithGemini(messages, systemPrompt)
+      result = await chatWithGroq(enrichedMessages, true)
     }
 
     let currentChatId = chatId
     if (!result.success) {
       return NextResponse.json({
         success: true,
-        content: "Oops! My neural engine is currently offline. Please configure your `GROQ_API_KEY` or `GOOGLE_GEMINI_API_KEY` in the environment variables to wake me up! 🤖",
+        content: "Oops! My neural engine is currently offline. Please configure your `OPENROUTER_API_KEY` or `GROQ_API_KEY` in the environment variables to wake me up! 🤖",
         chatId: currentChatId
       })
     }
