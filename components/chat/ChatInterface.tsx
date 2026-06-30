@@ -86,9 +86,14 @@ export default function ChatInterface() {
     setIsLoading(true)
 
     try {
-      const { data: { session } } = await supabase.auth.getSession()
+      // Add a timeout to getSession to prevent infinite loops on mobile if the auth lock gets stuck
+      const sessionData = await Promise.race([
+        supabase.auth.getSession(),
+        new Promise<any>((_, reject) => setTimeout(() => reject(new Error("Auth session timeout")), 3000))
+      ])
+      const session = sessionData?.data?.session
       
-      const response = await fetch(getApiUrl('/api/chat'), {
+      const fetchPromise = fetch(getApiUrl('/api/chat'), {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -99,6 +104,11 @@ export default function ChatInterface() {
           chatId,
         }),
       })
+
+      const response = await Promise.race([
+        fetchPromise,
+        new Promise<any>((_, reject) => setTimeout(() => reject(new Error("Network request timed out")), 15000))
+      ])
 
       const data = await response.json()
 
@@ -114,7 +124,8 @@ export default function ChatInterface() {
       setMessages((prev) => [...prev, assistantMessage])
       setChatId(data.chatId)
     } catch (error) {
-      toast.error('Failed to send message')
+      const errorMessage = error instanceof Error ? error.message : 'Failed to send message'
+      toast.error(errorMessage)
       console.error(error)
     } finally {
       setIsLoading(false)

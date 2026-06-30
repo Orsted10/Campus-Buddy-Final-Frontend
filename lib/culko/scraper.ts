@@ -310,7 +310,7 @@ export interface AttendanceHistoryRecord {
 export async function fetchCULKOData(
   endpoint: 'attendance' | 'marks' | 'timetable' | 'profile' | 'announcements' | 'hostel' | 'attendance-details' | 'attendance-details-all',
   customCookie?: string,
-  extraParams?: { courseCode?: string; chk?: string }
+  extraParams?: { courseCode?: string; chk?: string; userId?: string }
 ) {
   try {
     const cookieStore = await cookies()
@@ -323,7 +323,7 @@ export async function fetchCULKOData(
       if (endpoint === 'attendance-details') {
         return { success: false, error: 'No active portal session. Please login to portal sync first.' }
       }
-      const cached = await getPortalData(dbEndpoint as any)
+      const cached = await getPortalData(dbEndpoint as any, extraParams?.userId)
       if (cached.success) {
         return {
           success: true,
@@ -391,7 +391,7 @@ export async function fetchCULKOData(
 
     const dbEndpoint = endpoint === 'attendance-details-all' ? 'attendance-details' : endpoint
     // On error, try DB fallback
-    const cached = await getPortalData(dbEndpoint as any)
+    const cached = await getPortalData(dbEndpoint as any, extraParams?.userId)
     if (cached.success) {
       return {
         success: true,

@@ -38,22 +38,25 @@ export async function savePortalData(type: PortalDataType, data: any) {
   }
 }
 
-export async function getPortalData(type: PortalDataType) {
+export async function getPortalData(type: PortalDataType, userId?: string) {
   try {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
     
-    if (!user) {
+    // If userId is provided explicitly (e.g. from API route with bearer token), use it directly
+    // Otherwise fallback to cookie-based session
+    const idToUse = userId || (await supabase.auth.getUser()).data.user?.id
+    
+    if (!idToUse) {
       console.warn(`[getPortalData] No user found, skipping fetch for ${type}`)
       return { success: false, error: 'Not authenticated' }
     }
 
-    console.log(`[getPortalData] Fetching cached ${type} for user ${user.id}...`)
+    console.log(`[getPortalData] Fetching cached ${type} for user ${idToUse}...`)
 
     const { data, error } = await supabase
       .from('portal_records')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', idToUse)
       .eq('type', type)
       .maybeSingle() // Safer than single() which errors on no-rows
 

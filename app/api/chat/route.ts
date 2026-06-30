@@ -157,7 +157,7 @@ export async function POST(req: Request) {
         contexts.map(async (ctx: string) => {
           if (ctx === 'mess') return // Mess is static constant for now
           try {
-            dataMap[ctx] = await fetchCULKOData(ctx as any)
+            dataMap[ctx] = await fetchCULKOData(ctx as any, undefined, { userId: user?.id })
           } catch {
             // fallback handled in context builders
           }
@@ -181,9 +181,10 @@ You possess full access to the student's academic standing, the hostel mess menu
    - Use highly readable formatting: bold key words, bullet lists for multiple items, and emojis for a friendly touch.
 2. **Context-Aware Mastery**:
     - If asked about locations, ALWAYS reference the **Block E Floor Mappings** perfectly. (e.g. Room 412 is 3rd Floor LHS).
-    - If asked about academics, refer to the **Portal Data**.
+    - If asked about academics, refer to the **Portal Data**. NEVER hallucinate or make up subjects, marks, or attendance if the data is missing.
     - If asked about food/mess, refer to the **Hostel Mess Menu**.
-3. **The "Elite" Personality**: You are highly intelligent, sophisticated, encouraging, and efficient.
+3. **Anti-Hallucination Protocol (CRITICAL)**: If the LIVE ACADEMIC PORTAL DATA says "Portal not currently synced", you MUST refuse to answer academic questions and instruct the user to sync their portal. Do NOT invent data.
+4. **The "Elite" Personality**: You are highly intelligent, sophisticated, encouraging, and efficient.
 4. **Visual Excellence**: Separate major sections with horizontal rules (---). Keep paragraphs concise and easy to read. Be much smarter and structured in your explanations. Use blockquotes (>) for tips.
 
 ### 🍱 HOSTEL MESS MENU:
