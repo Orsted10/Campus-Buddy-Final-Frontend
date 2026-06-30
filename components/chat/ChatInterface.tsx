@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useAuthStore } from '@/store/useAuthStore'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -31,7 +31,7 @@ export default function ChatInterface() {
   
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const user = useAuthStore((state) => state.user)
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   // Load chat history list
   useEffect(() => {
@@ -86,11 +86,8 @@ export default function ChatInterface() {
     setIsLoading(true)
 
     try {
-      // Add a timeout to getSession to prevent infinite loops on mobile if the auth lock gets stuck
-      const sessionData = await Promise.race([
-        supabase.auth.getSession(),
-        new Promise<any>((_, reject) => setTimeout(() => reject(new Error("Auth session timeout")), 3000))
-      ])
+      // Remove artificial 3-second timeout that kills the chat request during token refreshes
+      const sessionData = await supabase.auth.getSession()
       const session = sessionData?.data?.session
       
       const fetchPromise = fetch(getApiUrl('/api/chat'), {
