@@ -51,6 +51,19 @@ export function useAuth() {
             }
           } catch (err) {
             console.error('Profile fetch error:', err)
+            // Ensure we set fallback even if there's a network error
+            const fallback: Profile = {
+              id: session.user.id,
+              email: session.user.email || '',
+              full_name: session.user.user_metadata?.full_name || 'User',
+              role: session.user.user_metadata?.role || 'student',
+              student_id: session.user.user_metadata?.student_id || null,
+              phone: null,
+              avatar_url: session.user.user_metadata?.avatar_url || null,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            }
+            setUser(fallback)
           }
         } else {
           clearUser()

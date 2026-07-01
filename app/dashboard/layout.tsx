@@ -27,9 +27,9 @@ export default function DashboardLayout({
   useEffect(() => {
     // Only redirect AFTER zustand has hydrated AND auth has finished loading
     if (hasHydrated && !isLoading && !user) {
-      router.push('/login')
+      window.location.href = '/login'
     }
-  }, [user, router, hasHydrated, isLoading])
+  }, [user, hasHydrated, isLoading])
 
   // Global Auto-Sync
   useEffect(() => {
@@ -45,7 +45,7 @@ export default function DashboardLayout({
   }, [hasHydrated, isLoading, portalStatus])
 
   // Show a loading screen while zustand is reading from localStorage or auth is loading
-  if (!hasHydrated || isLoading) {
+  if (!hasHydrated || isLoading || !user) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
         <motion.div
@@ -55,15 +55,11 @@ export default function DashboardLayout({
         >
           <div className="w-12 h-12 rounded-full border-2 border-primary border-t-transparent animate-spin mx-auto" />
           <p className="text-muted-foreground text-sm">
-            {!hasHydrated ? 'Loading your session...' : 'Authenticating...'}
+            {!hasHydrated ? 'Loading your session...' : isLoading ? 'Authenticating...' : 'Redirecting to login...'}
           </p>
         </motion.div>
       </div>
     )
-  }
-
-  if (!user) {
-    return null
   }
 
   return (

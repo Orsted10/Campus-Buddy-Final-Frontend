@@ -141,7 +141,7 @@ export default function LoginPage() {
 
           <motion.button
             type="submit"
-            disabled={loading || otpCode.length !== 6}
+            disabled={loading || otpCode.length !== 8}
             whileHover={{ scale: 1.02, boxShadow: '0 0 20px rgba(160,210,80,0.3)' }}
             whileTap={{ scale: 0.98 }}
             className="w-full bg-primary text-background font-black uppercase tracking-widest py-3.5 rounded-xl flex items-center justify-center gap-2 hover:bg-primary/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed mt-4"
