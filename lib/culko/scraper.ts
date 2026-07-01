@@ -347,16 +347,30 @@ export async function fetchCULKOData(
       response = await fetchAttendanceDetails(sessionCookies, extraParams.courseCode, extraParams.chk)
       // Do NOT overwrite DB with single subject details
     } else if (endpoint === 'attendance-details-all') {
-      // Fetch the summary HTML ONCE and pass it down to all details fetches
-      const summaryUrl = `https://culko.cuchd.in/frmStudentCourseWiseAttendanceSummary.aspx?type=etgkYfqBdH1fSfc255iYGw==`
-      const summaryRes = await fetch(summaryUrl, { 
-        headers: {
-          'Cookie': Object.entries(sessionCookies).map(([k, v]) => `${k}=${v}`).join('; '),
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      // Fetch the summary using the existing attendance method which uses AJAX fallback if needed to get correct `chk` values
+      let baseAttendance: AttendanceRecord[] = []
+      try {
+        const attendanceData = await fetchCULKOResource('attendance', sessionCookies)
+        if (Array.isArray(attendanceData)) {
+          baseAttendance = attendanceData
         }
-      })
-      const summaryHtml = await summaryRes.text()
-      const baseAttendance = parseAttendanceHTML(summaryHtml)
+      } catch (e) {
+        console.error('Failed to get base attendance for details scrape:', e)
+      }
+      
+      let summaryHtml = ''
+      try {
+        const summaryUrl = `${BASE_URL}/frmStudentCourseWiseAttendanceSummary.aspx?type=etgkYfqBdH1fSfc255iYGw==`
+        const summaryRes = await fetch(summaryUrl, { 
+          headers: {
+            'Cookie': Object.entries(sessionCookies).map(([k, v]) => `${k}=${v}`).join('; '),
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+          }
+        })
+        summaryHtml = await summaryRes.text()
+      } catch (e) {
+        console.error('Failed to get summary HTML for details scrape:', e)
+      }
       
       const allDetails: Record<string, any> = {}
       if (Array.isArray(baseAttendance) && baseAttendance.length > 0) {
@@ -373,7 +387,7 @@ export async function fetchCULKOData(
         })
         await Promise.all(detailPromises)
       }
-      response = { success: true, data: allDetails }
+      response = allDetails
       try {
         await savePortalData('attendance-details' as any, response, extraParams?.userId)
       } catch (e) {

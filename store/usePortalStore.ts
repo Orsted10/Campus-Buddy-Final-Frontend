@@ -176,7 +176,6 @@ export const usePortalStore = create<PortalState>()(
 
           const updates: Partial<PortalState> = {
             lastSync: new Date().toISOString(),
-            isSyncing: false,
             portalStatus: 'connected'
           }
 
@@ -269,8 +268,14 @@ export const usePortalStore = create<PortalState>()(
                   }
                 })
                 .catch(err => console.warn('[usePortalStore] Phase 2b scrape failed (non-fatal):', err))
+                .finally(() => {
+                  set({ isSyncing: false })
+                })
             })
-            .catch(err => console.warn('[usePortalStore] Phase 2a cache read failed:', err))
+            .catch(err => {
+              console.warn('[usePortalStore] Phase 2a cache read failed:', err)
+              set({ isSyncing: false })
+            })
 
           return true
         } catch (err) {

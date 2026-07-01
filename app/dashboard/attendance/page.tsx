@@ -117,8 +117,8 @@ function AttendanceRing({
   )
 }
 
-function HistoryModal({ isOpen, onClose, subjectName, history, isLoading }: { 
-  isOpen: boolean, onClose: () => void, subjectName: string, history: any[], isLoading: boolean 
+function HistoryModal({ isOpen, onClose, subjectName, history, isLoading, hasLoaded }: { 
+  isOpen: boolean, onClose: () => void, subjectName: string, history: any[], isLoading: boolean, hasLoaded?: boolean 
 }) {
   if (!isOpen) return null
 
@@ -179,7 +179,7 @@ function HistoryModal({ isOpen, onClose, subjectName, history, isLoading }: {
               </div>
               <p className="text-sm font-semibold text-muted-foreground animate-pulse tracking-wide">Syncing records...</p>
             </div>
-          ) : history.length === 0 ? (
+          ) : !hasLoaded ? (
             <div className="py-24 text-center space-y-4">
               <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4 border border-primary/20 shadow-sm">
                  <RefreshCw className="w-8 h-8 text-primary animate-spin" />
@@ -187,6 +187,14 @@ function HistoryModal({ isOpen, onClose, subjectName, history, isLoading }: {
               <p className="text-lg font-bold text-foreground">Loading Class Records</p>
               <p className="text-sm text-muted-foreground max-w-sm mx-auto leading-relaxed">Fetching your detailed attendance in the background. This takes a few seconds — the records will appear automatically.</p>
             </div>
+          ) : history.length === 0 ? (
+            <div className="py-24 text-center space-y-4">
+               <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mx-auto mb-4 border border-border/20 shadow-sm">
+                 <Calendar className="w-8 h-8 text-muted-foreground" />
+               </div>
+               <p className="text-lg font-bold text-foreground">No Records Found</p>
+               <p className="text-sm text-muted-foreground max-w-sm mx-auto leading-relaxed">There are no attendance records for this subject yet.</p>
+             </div>
           ) : (
             <div className="relative before:absolute before:inset-0 before:left-[27px] md:before:left-[39px] before:w-px before:bg-border/60">
               {history.map((record, i) => {
@@ -230,11 +238,10 @@ function HistoryModal({ isOpen, onClose, subjectName, history, isLoading }: {
                        <div className={`w-3.5 h-3.5 rounded-full border-2 bg-background z-10 transition-all duration-300 ${dotColor} ${dotGlow} group-hover:scale-125`} />
                     </div>
 
-                    {/* Content Card */}
                     <motion.div 
                       initial={{ opacity: 0, x: -10 }}
-                      whileInView={{ opacity: 1, x: 0 }}
-                      viewport={{ once: true, margin: "-20px" }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.05 }}
                       className={`flex-1 p-5 md:p-6 rounded-2xl border border-border/40 bg-background transition-all duration-300 shadow-sm hover:shadow-md ${cardHover}`}
                     >
                       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-4">
@@ -293,7 +300,7 @@ export default function AttendancePage() {
     
     // Fetch details instantly from global state (populated by phase 2 background fetch)
     const historyData = attendanceDetails[subject.code]
-    if (Array.isArray(historyData) && historyData.length > 0) {
+    if (Array.isArray(historyData)) {
       setHistory(historyData)
     } else {
       // Phase 2 might not have resolved yet — set empty and show loading
@@ -305,7 +312,7 @@ export default function AttendancePage() {
   useEffect(() => {
     if (selectedSubject && isModalOpen) {
       const historyData = attendanceDetails[selectedSubject.code]
-      if (Array.isArray(historyData) && historyData.length > 0) {
+      if (Array.isArray(historyData)) {
         setHistory(historyData)
       }
     }
@@ -448,7 +455,9 @@ export default function AttendancePage() {
       )}
 
       <HistoryModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} 
-        subjectName={selectedSubject?.name || ''} history={history} isLoading={isSyncing && history.length === 0} />
+        subjectName={selectedSubject?.name || ''} history={history} 
+        isLoading={isSyncing && !(selectedSubject && attendanceDetails[selectedSubject.code] !== undefined)} 
+        hasLoaded={selectedSubject ? attendanceDetails[selectedSubject.code] !== undefined : false} />
     </div>
   )
 }
