@@ -347,36 +347,33 @@ export async function fetchCULKOData(
       response = await fetchAttendanceDetails(sessionCookies, extraParams.courseCode, extraParams.chk)
       // Do NOT overwrite DB with single subject details
     } else if (endpoint === 'attendance-details-all') {
-      const summaryUrl = `${BASE_URL}/frmStudentCourseWiseAttendanceSummary.aspx?type=etgkYfqBdH1fSfc255iYGw==`
-      const baseHeaders = {
-        'Cookie': Object.entries(sessionCookies).map(([k, v]) => `${k}=${v}`).join('; '),
-        'User-Agent': USER_AGENT,
-        'Referer': `${BASE_URL}/StudentHome.aspx`
-      }
-      const summaryRes = await fetch(summaryUrl, { headers: baseHeaders })
+      // Fetch the summary HTML ONCE and pass it down to all details fetches
+      const summaryUrl = `https://culko.cuchd.in/frmStudentCourseWiseAttendanceSummary.aspx?type=etgkYfqBdH1fSfc255iYGw==`
+      const summaryRes = await fetch(summaryUrl, { 
+        headers: {
+          'Cookie': Object.entries(sessionCookies).map(([k, v]) => `${k}=${v}`).join('; '),
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        }
+      })
       const summaryHtml = await summaryRes.text()
-
       const baseAttendance = parseAttendanceHTML(summaryHtml)
+      
       const allDetails: Record<string, any> = {}
       if (Array.isArray(baseAttendance) && baseAttendance.length > 0) {
-        const promises = baseAttendance.map(async (subject) => {
+        // Run all details requests in parallel to beat the Vercel 10s timeout
+        const detailPromises = baseAttendance.map(async (subject) => {
           try {
             const detailsData = await fetchAttendanceDetails(sessionCookies, subject.code, subject.chk, summaryHtml)
-            return { code: subject.code, data: detailsData?.data }
+            if (detailsData.data) {
+              allDetails[subject.code] = detailsData.data
+            }
           } catch (e) {
             console.error(`Failed to fetch details for ${subject.code}:`, e)
-            return { code: subject.code, data: null }
           }
         })
-        
-        const results = await Promise.all(promises)
-        for (const result of results) {
-          if (result.data) {
-            allDetails[result.code] = result.data
-          }
-        }
+        await Promise.all(detailPromises)
       }
-      response = allDetails
+      response = { success: true, data: allDetails }
       try {
         await savePortalData('attendance-details' as any, response, extraParams?.userId)
       } catch (e) {
