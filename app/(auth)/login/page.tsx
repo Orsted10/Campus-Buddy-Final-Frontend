@@ -121,7 +121,7 @@ export default function LoginPage() {
         <form onSubmit={handleVerifyRecovery} className="space-y-4">
           <div className="space-y-4 py-2">
             <div className="space-y-1.5 text-center mb-6">
-              <label className="text-sm font-bold text-muted-foreground">We sent a 6-digit code to</label>
+              <label className="text-sm font-bold text-muted-foreground">We sent an 8-digit code to</label>
               <div className="text-white font-black">{email}</div>
             </div>
             
@@ -129,11 +129,11 @@ export default function LoginPage() {
               <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest text-center block mb-2">Recovery Code</label>
               <input
                 type="text"
-                placeholder="123456"
+                placeholder="12345678"
                 value={otpCode}
-                onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 8))}
                 required
-                className="w-full border border-white/8 text-white placeholder:text-muted-foreground/50 rounded-xl px-4 py-3 text-2xl tracking-[0.5em] text-center font-black outline-none focus:border-primary focus:ring-1 focus:ring-primary/40 transition-all"
+                className="w-full border border-white/8 text-white placeholder:text-muted-foreground/50 rounded-xl px-4 py-3 text-2xl tracking-[0.3em] text-center font-black outline-none focus:border-primary focus:ring-1 focus:ring-primary/40 transition-all"
                 style={inputStyle}
               />
             </div>
