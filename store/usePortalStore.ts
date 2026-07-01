@@ -150,13 +150,13 @@ export const usePortalStore = create<PortalState>()(
             console.log('[usePortalStore] Cache clear failed (non-fatal):', e)
           }
 
-          const [attendRes, ttRes, profileRes, hostelRes, marksRes, detailsRes] = await Promise.all([
+          // Phase 1: Fast core data — resolves in ~3-5s
+          const [attendRes, ttRes, profileRes, hostelRes, marksRes] = await Promise.all([
             fetch(getApiUrl('/api/culko?endpoint=attendance'), { headers }),
             fetch(getApiUrl('/api/culko?endpoint=timetable'), { headers }),
             fetch(getApiUrl('/api/culko?endpoint=profile'), { headers }),
             fetch(getApiUrl('/api/culko?endpoint=hostel'), { headers }),
             fetch(getApiUrl('/api/culko?endpoint=marks'), { headers }),
-            fetch(getApiUrl('/api/culko?endpoint=attendance-details-all'), { headers }),
           ])
 
           // 401 on data endpoints = session truly died
@@ -166,13 +166,12 @@ export const usePortalStore = create<PortalState>()(
             return false
           }
 
-          const [attendance, timetable, profile, hostel, marks, details] = await Promise.all([
+          const [attendance, timetable, profile, hostel, marks] = await Promise.all([
             attendRes.json(),
             ttRes.json(),
             profileRes.json(),
             hostelRes.json(),
             marksRes.json(),
-            detailsRes.json()
           ])
 
           const updates: Partial<PortalState> = {
@@ -235,21 +234,31 @@ export const usePortalStore = create<PortalState>()(
             }
           }
           
-          if (detailsRes.ok && details.success) updates.attendanceDetails = details.data || {}
-
           if (newNotifications.length > get().notifications.length) {
             updates.notifications = newNotifications.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).slice(0, 20)
           }
 
-          console.log('[usePortalStore] Sync completed.', { 
+          console.log('[usePortalStore] Sync Phase 1 completed.', { 
             attendance: !!attendance.data, 
             marks: !!marks.data,
             profile: !!profile.data 
           })
 
+          // Phase 1 done — update store immediately so UI is live
           set(updates)
 
-          // Detailed attendance is now fetched in the Promise.all array above so it's ready instantly!
+          // Phase 2: Load detailed attendance records in background (heavier, non-blocking)
+          // This prevents Vercel timeout and lets the dashboard load fast
+          console.log('[usePortalStore] Starting Phase 2: attendance details...')
+          fetch(getApiUrl('/api/culko?endpoint=attendance-details-all'), { headers })
+            .then(res => res.json())
+            .then(details => {
+              if (details.success && details.data) {
+                console.log('[usePortalStore] Phase 2: attendance details loaded.')
+                set({ attendanceDetails: details.data })
+              }
+            })
+            .catch(err => console.error('[usePortalStore] Phase 2 (details) failed (non-fatal):', err))
 
           return true
         } catch (err) {

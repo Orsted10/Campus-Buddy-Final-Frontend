@@ -45,7 +45,9 @@ export default function DashboardLayout({
   }, [hasHydrated, isLoading, portalStatus])
 
   // Show a loading screen while zustand is reading from localStorage or auth is loading
-  if (!hasHydrated || isLoading || !user) {
+  // CRITICAL: If user is already hydrated from persisted store, trust it — never block on isLoading
+  // This prevents the mobile blank screen bug where isLoading stays true briefly on APK cold start
+  if (!hasHydrated || (!user && isLoading)) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
         <motion.div
@@ -55,11 +57,16 @@ export default function DashboardLayout({
         >
           <div className="w-12 h-12 rounded-full border-2 border-primary border-t-transparent animate-spin mx-auto" />
           <p className="text-muted-foreground text-sm">
-            {!hasHydrated ? 'Loading your session...' : isLoading ? 'Authenticating...' : 'Redirecting to login...'}
+            {!hasHydrated ? 'Loading your session...' : 'Authenticating...'}
           </p>
         </motion.div>
       </div>
     )
+  }
+
+  // If hydrated and no user and not loading — redirect to login
+  if (hasHydrated && !isLoading && !user) {
+    return null // useEffect will handle redirect
   }
 
   return (

@@ -181,11 +181,11 @@ function HistoryModal({ isOpen, onClose, subjectName, history, isLoading }: {
             </div>
           ) : history.length === 0 ? (
             <div className="py-24 text-center space-y-4">
-              <div className="w-20 h-20 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4 border border-border/50 shadow-sm">
-                 <Calendar className="w-8 h-8 text-muted-foreground/50" />
+              <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4 border border-primary/20 shadow-sm">
+                 <RefreshCw className="w-8 h-8 text-primary animate-spin" />
               </div>
-              <p className="text-lg font-bold text-foreground">No Classes Logged</p>
-              <p className="text-sm text-muted-foreground max-w-sm mx-auto leading-relaxed">The portal has not recorded any detailed attendance for this subject yet.</p>
+              <p className="text-lg font-bold text-foreground">Loading Class Records</p>
+              <p className="text-sm text-muted-foreground max-w-sm mx-auto leading-relaxed">Fetching your detailed attendance in the background. This takes a few seconds — the records will appear automatically.</p>
             </div>
           ) : (
             <div className="relative before:absolute before:inset-0 before:left-[27px] md:before:left-[39px] before:w-px before:bg-border/60">
@@ -291,14 +291,25 @@ export default function AttendancePage() {
     setSelectedSubject(subject)
     setIsModalOpen(true)
     
-    // Fetch details instantly from global state
+    // Fetch details instantly from global state (populated by phase 2 background fetch)
     const historyData = attendanceDetails[subject.code]
-    if (Array.isArray(historyData)) {
+    if (Array.isArray(historyData) && historyData.length > 0) {
       setHistory(historyData)
     } else {
+      // Phase 2 might not have resolved yet — set empty and show loading
       setHistory([])
     }
   }, [attendanceDetails])
+
+  // When attendanceDetails updates (phase 2 resolves), update modal if open
+  useEffect(() => {
+    if (selectedSubject && isModalOpen) {
+      const historyData = attendanceDetails[selectedSubject.code]
+      if (Array.isArray(historyData) && historyData.length > 0) {
+        setHistory(historyData)
+      }
+    }
+  }, [attendanceDetails, selectedSubject, isModalOpen])
 
   // Calculate overall attendance
   let totalEligAttd = 0, totalEligDelv = 0
